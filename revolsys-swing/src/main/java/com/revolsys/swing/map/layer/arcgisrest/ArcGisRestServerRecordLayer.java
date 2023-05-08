@@ -198,7 +198,7 @@ public class ArcGisRestServerRecordLayer extends AbstractRecordLayer {
   protected void forEachRecordInternal(final Query query,
     final Consumer<? super LayerRecord> consumer) {
     try (
-      RecordReader reader = this.layerDescription.newRecordReader(this::newLayerRecord, query)) {
+      RecordReader reader = this.layerDescription.getRecordReader(this::newLayerRecord, query)) {
       for (final Record record : reader) {
         consumer.accept((LayerRecord)record);
       }

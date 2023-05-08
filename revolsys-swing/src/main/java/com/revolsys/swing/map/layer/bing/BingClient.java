@@ -10,7 +10,6 @@ import java.util.Map;
 import org.jeometry.common.number.Doubles;
 import org.jeometry.coordinatesystem.model.systems.EpsgId;
 
-import com.revolsys.collection.map.LinkedHashMapEx;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.GeometryFactory;
@@ -19,6 +18,7 @@ import com.revolsys.raster.BufferedGeoreferencedImage;
 import com.revolsys.raster.BufferedImages;
 import com.revolsys.raster.GeoreferencedImage;
 import com.revolsys.record.io.format.json.Json;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.spring.resource.UrlResource;
 import com.revolsys.util.Property;
 import com.revolsys.util.UriTemplate;
@@ -26,7 +26,7 @@ import com.revolsys.util.UrlUtil;
 
 public class BingClient {
 
-  private static final double[] METRES_PER_PIXEL = {
+  public static final double[] METRES_PER_PIXEL = {
     78271.517, 39135.7585, 19567.8792, 9783.9396, 4891.9698, 2445.9849, 1222.9925, 611.4962,
     305.7481, 152.8741, 76.437, 38.2185, 19.1093, 9.5546, 4.7773, 2.3887, 1.1943, 0.5972, 0.2986,
     0.1493, 0.0746, 0.0373, 0.0187
@@ -36,7 +36,7 @@ public class BingClient {
 
   public static final GeometryFactory WGS84 = GeometryFactory.floating3d(EpsgId.WGS84);
 
-  private static final GeometryFactory WORLD_MERCATOR = GeometryFactory.worldMercator();
+  public static final GeometryFactory WORLD_MERCATOR = GeometryFactory.worldMercator();
 
   private final String bingMapsKey;
 
@@ -298,6 +298,7 @@ public class BingClient {
   }
 
   public int getZoomLevel(final ImagerySet imagerySet, final double resolution) {
+    final BingTileLevel l = imagerySet.getTileLevel(resolution);
     for (int i = 0; i < imagerySet.getMaxLevelOfDetail(); i++) {
       final double levelResolution = METRES_PER_PIXEL[i];
       if (resolution > levelResolution) {
@@ -325,6 +326,6 @@ public class BingClient {
   }
 
   private MapEx newParameterMap() {
-    return new LinkedHashMapEx("key", this.bingMapsKey);
+    return JsonObject.hash("key", this.bingMapsKey);
   }
 }

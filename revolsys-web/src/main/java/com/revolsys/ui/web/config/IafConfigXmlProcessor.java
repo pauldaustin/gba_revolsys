@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,9 +31,9 @@ import javax.xml.stream.XMLStreamException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.revolsys.record.io.format.xml.StaxReader;
 import com.revolsys.record.io.format.xml.XmlProcessor;
 import com.revolsys.record.io.format.xml.XmlProcessorContext;
+import com.revolsys.record.io.format.xml.stax.StaxReader;
 import com.revolsys.ui.html.view.Script;
 import com.revolsys.ui.html.view.Style;
 import com.revolsys.ui.web.exception.PageNotFoundException;

@@ -11,7 +11,7 @@ import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.io.PathName;
 
 import com.revolsys.collection.Parent;
-import com.revolsys.collection.map.LinkedHashMapEx;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.geometry.model.GeometryDataTypes;
@@ -21,7 +21,7 @@ import com.revolsys.spring.resource.Resource;
 import com.revolsys.util.Property;
 import com.revolsys.webservice.WebServiceResource;
 
-public class FeatureSource extends ResourceDocument implements Parent<FeatureLayer> {
+public class FeatureSource extends ResourceDocument implements Parent<MapGuideFeatureLayer> {
   public static String getString(final MapEx map, final String name) {
     final Object value = getValue(map, name);
     return DataTypes.toString(value);
@@ -46,9 +46,9 @@ public class FeatureSource extends ResourceDocument implements Parent<FeatureLay
     // .add("WORLD-MERCATOR", 3857) //
     .getMap();
 
-  private List<FeatureLayer> layers = new ArrayList<>();
+  private List<MapGuideFeatureLayer> layers = new ArrayList<>();
 
-  private Map<String, FeatureLayer> layerByName = new HashMap<>();
+  private Map<String, MapGuideFeatureLayer> layerByName = new HashMap<>();
 
   public FeatureSource(final MapEx properties) {
     setProperties(properties);
@@ -66,7 +66,7 @@ public class FeatureSource extends ResourceDocument implements Parent<FeatureLay
   }
 
   @Override
-  public List<FeatureLayer> getChildren() {
+  public List<MapGuideFeatureLayer> getChildren() {
     refreshIfNeeded();
     return this.layers;
   }
@@ -76,7 +76,7 @@ public class FeatureSource extends ResourceDocument implements Parent<FeatureLay
     return "folder:table";
   }
 
-  private FeatureLayer newLayer(final String name, final MapEx element, final MapEx complexType) {
+  private MapGuideFeatureLayer newLayer(final String name, final MapEx element, final MapEx complexType) {
     if (!"true".equals(getString(complexType, "@abstract"))) {
       final PathName pathName = getPathName();
       final PathName layerPathName = pathName.newChild(name);
@@ -192,7 +192,7 @@ public class FeatureSource extends ResourceDocument implements Parent<FeatureLay
           }
         }
         recordDefinition.setGeometryFactory(geometryFactory);
-        final FeatureLayer layer = new FeatureLayer(this, recordDefinition);
+        final MapGuideFeatureLayer layer = new MapGuideFeatureLayer(this, recordDefinition);
         return layer;
       }
     }
@@ -202,7 +202,7 @@ public class FeatureSource extends ResourceDocument implements Parent<FeatureLay
 
   @Override
   protected void refreshDo() {
-    final MapEx properties = new LinkedHashMapEx();
+    final MapEx properties = JsonObject.hash();
     final String resourceId = getResourceId();
     properties.put("RESOURCEID", resourceId);
     final MapGuideWebService webService = getWebService();
@@ -228,13 +228,13 @@ public class FeatureSource extends ResourceDocument implements Parent<FeatureLay
         }
         complexTypeDefinitions.put(name, complexType);
       }
-      final List<FeatureLayer> layers = new ArrayList<>();
-      final Map<String, FeatureLayer> layerByName = new HashMap<>();
+      final List<MapGuideFeatureLayer> layers = new ArrayList<>();
+      final Map<String, MapGuideFeatureLayer> layerByName = new HashMap<>();
       for (final MapEx element : schema.getValue("xs:element", Collections.<MapEx> emptyList())) {
         final String name = getString(element, "@name");
         final String type = getString(element, "@type");
         final MapEx complexType = complexTypeDefinitions.get(type);
-        final FeatureLayer layer = newLayer(name, element, complexType);
+        final MapGuideFeatureLayer layer = newLayer(name, element, complexType);
         if (layer != null) {
           layers.add(layer);
           layerByName.put(name.toLowerCase(), layer);

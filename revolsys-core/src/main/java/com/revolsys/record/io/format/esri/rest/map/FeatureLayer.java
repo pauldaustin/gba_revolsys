@@ -182,6 +182,41 @@ public class FeatureLayer extends LayerDescription implements WebServiceFeatureL
     return this.recordDefinition;
   }
 
+  public <V extends Record> RecordReader getRecordReader(final Query query,
+    final boolean pageByObjectId) {
+    return getRecordReader(ArrayRecord.FACTORY, query, pageByObjectId);
+  }
+
+  @Override
+  public <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
+    final BoundingBox boundingBox) {
+    final Map<String, Object> parameters = newQueryParameters(boundingBox);
+    final ArcGisRestServerFeatureReader reader = new ArcGisRestServerFeatureReader(this, parameters,
+      0, Integer.MAX_VALUE, recordFactory, !isSupportsPagination());
+    return reader;
+  }
+
+  @Override
+  public <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
+    final Query query) {
+    return getRecordReader(recordFactory, query, false);
+  }
+
+  public <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
+    final Query query, final boolean pageByObjectId) {
+    refreshIfNeeded();
+    final Map<String, Object> parameters = newQueryParameters(query);
+    addDefaultRecordQueryParameters(parameters);
+    int offset = 0;
+    int limit = Integer.MAX_VALUE;
+    if (query != null) {
+      offset = query.getOffset();
+      limit = query.getLimit();
+    }
+    return new ArcGisRestServerFeatureReader(this, parameters, offset, limit, recordFactory,
+      pageByObjectId);
+  }
+
   @Override
   protected void initialize(final MapEx properties) {
     super.initialize(properties);
@@ -271,41 +306,6 @@ public class FeatureLayer extends LayerDescription implements WebServiceFeatureL
       }
     }
     return parameters;
-  }
-
-  public <V extends Record> RecordReader newRecordReader(final Query query,
-    final boolean pageByObjectId) {
-    return newRecordReader(ArrayRecord.FACTORY, query, pageByObjectId);
-  }
-
-  @Override
-  public <V extends Record> RecordReader newRecordReader(final RecordFactory<V> recordFactory,
-    final BoundingBox boundingBox) {
-    final Map<String, Object> parameters = newQueryParameters(boundingBox);
-    final ArcGisRestServerFeatureReader reader = new ArcGisRestServerFeatureReader(this, parameters,
-      0, Integer.MAX_VALUE, recordFactory, !isSupportsPagination());
-    return reader;
-  }
-
-  @Override
-  public <V extends Record> RecordReader newRecordReader(final RecordFactory<V> recordFactory,
-    final Query query) {
-    return newRecordReader(recordFactory, query, false);
-  }
-
-  public <V extends Record> RecordReader newRecordReader(final RecordFactory<V> recordFactory,
-    final Query query, final boolean pageByObjectId) {
-    refreshIfNeeded();
-    final Map<String, Object> parameters = newQueryParameters(query);
-    addDefaultRecordQueryParameters(parameters);
-    int offset = 0;
-    int limit = Integer.MAX_VALUE;
-    if (query != null) {
-      offset = query.getOffset();
-      limit = query.getLimit();
-    }
-    return new ArcGisRestServerFeatureReader(this, parameters, offset, limit, recordFactory,
-      pageByObjectId);
   }
 
   public void setAdvancedQueryCapabilities(final MapEx advancedQueryCapabilities) {

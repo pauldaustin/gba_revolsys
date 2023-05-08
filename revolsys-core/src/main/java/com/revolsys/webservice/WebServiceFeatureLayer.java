@@ -45,6 +45,21 @@ public interface WebServiceFeatureLayer extends RecordDefinitionProxy, WebServic
     return WebServiceResource.super.getPathName();
   }
 
+  default Record getRecord(final Query query) {
+    Record firstRecord = null;
+    try (
+      RecordReader records = getRecordReader(query)) {
+      for (final Record record : records) {
+        if (firstRecord == null) {
+          firstRecord = record;
+        } else {
+          throw new IllegalArgumentException("Query matched multiple objects\n" + query);
+        }
+      }
+    }
+    return firstRecord;
+  }
+
   default int getRecordCount(final BoundingBox boundingBox) {
     return 0;
   }
@@ -53,13 +68,27 @@ public interface WebServiceFeatureLayer extends RecordDefinitionProxy, WebServic
     return 0;
   }
 
+  default RecordReader getRecordReader(final BoundingBox boundingBox) {
+    return getRecordReader(ArrayRecord.FACTORY, boundingBox);
+  }
+
+  default RecordReader getRecordReader(final Query query) {
+    return getRecordReader(ArrayRecord.FACTORY, query);
+  }
+
+  <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
+    final BoundingBox boundingBox);
+
+  <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
+    final Query query);
+
   @SuppressWarnings({
     "unchecked", "rawtypes"
   })
   default <V extends Record> List<V> getRecords(final RecordFactory<V> recordFactory,
     final BoundingBox boundingBox) {
     try (
-      RecordReader reader = newRecordReader(recordFactory, boundingBox)) {
+      RecordReader reader = getRecordReader(recordFactory, boundingBox)) {
       if (reader == null) {
         return Collections.emptyList();
       } else {
@@ -74,7 +103,7 @@ public interface WebServiceFeatureLayer extends RecordDefinitionProxy, WebServic
   default <V extends Record> List<V> getRecords(final RecordFactory<V> recordFactory,
     final Query query) {
     try (
-      RecordReader reader = newRecordReader(recordFactory, query)) {
+      RecordReader reader = getRecordReader(recordFactory, query)) {
       if (reader == null) {
         return Collections.emptyList();
       } else {
@@ -88,17 +117,4 @@ public interface WebServiceFeatureLayer extends RecordDefinitionProxy, WebServic
     return null;
   }
 
-  default RecordReader newRecordReader(final BoundingBox boundingBox) {
-    return newRecordReader(ArrayRecord.FACTORY, boundingBox);
-  }
-
-  default RecordReader newRecordReader(final Query query) {
-    return newRecordReader(ArrayRecord.FACTORY, query);
-  }
-
-  <V extends Record> RecordReader newRecordReader(final RecordFactory<V> recordFactory,
-    final BoundingBox boundingBox);
-
-  <V extends Record> RecordReader newRecordReader(final RecordFactory<V> recordFactory,
-    final Query query);
 }
