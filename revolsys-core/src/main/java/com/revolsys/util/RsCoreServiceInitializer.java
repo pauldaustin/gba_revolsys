@@ -11,6 +11,7 @@ import com.revolsys.geometry.model.GeometryDataTypes;
 import com.revolsys.geometry.model.GeometryFactory;
 import com.revolsys.gis.grid.CustomRectangularMapGrid;
 import com.revolsys.gis.wms.WmsClient;
+import com.revolsys.gis.wmts.WmtsClient;
 import com.revolsys.io.IoFactoryRegistry;
 import com.revolsys.io.map.MapObjectFactory;
 import com.revolsys.io.map.MapObjectFactoryRegistry;
@@ -86,6 +87,9 @@ public class RsCoreServiceInitializer implements ServiceInitializer {
 
     MapObjectFactoryRegistry.newFactory("ogcWmsServer", "OGC WMS Server", (config) -> {
       return WmsClient.newOgcWmsClient(config);
+    });
+    MapObjectFactoryRegistry.newFactory("ogcWmtsServer", "OGC WMTS Server", (config) -> {
+      return WmtsClient.newOgcWmtsClient(config);
     });
 
     ioFactory();

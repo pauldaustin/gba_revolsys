@@ -1,4 +1,4 @@
-package com.revolsys.record.io.format.xml;
+package com.revolsys.record.io.format.xml.stax;
 
 import java.io.IOException;
 import java.io.InputStream;

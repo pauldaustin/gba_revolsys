@@ -28,7 +28,7 @@ public class SecurityExpressionRoot
   public Set<String> getAuthoritySet() {
     if (this.roles == null) {
       this.roles = new HashSet<>();
-      Collection<? extends GrantedAuthority> userAuthorities = this.authentication.getAuthorities();
+      Collection<? extends GrantedAuthority> userAuthorities = getAuthentication().getAuthorities();
 
       if (this.roleHierarchy != null) {
         userAuthorities = this.roleHierarchy.getReachableGrantedAuthorities(userAuthorities);
@@ -42,13 +42,13 @@ public class SecurityExpressionRoot
 
   @Override
   public boolean hasPermission(final Object target, final Object permission) {
-    return this.permissionEvaluator.hasPermission(this.authentication, target, permission);
+    return this.permissionEvaluator.hasPermission(getAuthentication(), target, permission);
   }
 
   @Override
   public boolean hasPermission(final Object targetId, final String targetType,
     final Object permission) {
-    return this.permissionEvaluator.hasPermission(this.authentication, (Serializable)targetId,
+    return this.permissionEvaluator.hasPermission(getAuthentication(), (Serializable)targetId,
       targetType, permission);
   }
 

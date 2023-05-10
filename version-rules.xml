@@ -9,6 +9,8 @@
 		<ignoreVersion type="regex">.*-alpha.*</ignoreVersion>
 		<ignoreVersion type="regex">.*-beta.*</ignoreVersion>
 		<ignoreVersion type="regex">.*-MTEC.*</ignoreVersion>
+		<ignoreVersion type="regex">.*-M.*</ignoreVersion>
+		<ignoreVersion type="regex">.*-RC.*</ignoreVersion>
 	</ignoreVersions>
 	<rules>
 		<rule groupId="org.jeometry" comparisonMethod="maven">
@@ -41,5 +43,43 @@
 				<ignoreVersion type="regex">.*-EDR</ignoreVersion>
 			</ignoreVersions>
 		</rule>
+		<rule groupId="org.springframework" comparisonMethod="maven">
+			<ignoreVersions>
+				<ignoreVersion type="regex">6.*</ignoreVersion>
+			</ignoreVersions>
+		</rule>
+    <rule groupId="org.slf4j" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">2\..*</ignoreVersion>
+      </ignoreVersions>
+    </rule>
+    <rule groupId="ch.qos.logback" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">1.3\..*</ignoreVersion>
+        <ignoreVersion type="regex">1.4\..*</ignoreVersion>
+      </ignoreVersions>
+    </rule>
+		<rule groupId="commons-beanutils" comparisonMethod="maven">
+			<ignoreVersions>
+				<ignoreVersion type="regex">\d{8}(\.\d{6})?</ignoreVersion>
+			</ignoreVersions>
+		</rule>
+		<rule groupId="commons-cli" comparisonMethod="maven">
+			<ignoreVersions>
+				<ignoreVersion type="regex">\d{8}\.\d{6}</ignoreVersion>
+		 	</ignoreVersions>
+		</rule>
+    <rule groupId="commons-io" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">\d{8}\.\d{6}</ignoreVersion>
+      </ignoreVersions>
+    </rule>
+    <rule groupId="org.docx4j" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">11.2.*</ignoreVersion>
+        <ignoreVersion type="regex">11.3.*</ignoreVersion>
+        <ignoreVersion type="regex">11.4.*</ignoreVersion>
+      </ignoreVersions>
+    </rule>
 	</rules>
 </ruleset>

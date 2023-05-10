@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -459,7 +460,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
 
   private static final IntHashMap<GeometryFactories> INSTANCES_BY_COORDINATE_SYSTEM_ID = new IntHashMap<>();
 
-  private static final HashMap<CoordinateSystem, GeometryFactories> INSTANCES_BY_COORDINATE_SYSTEM = new HashMap<>();
+  private static final Map<CoordinateSystem, GeometryFactories> INSTANCES_BY_COORDINATE_SYSTEM = new HashMap<>();
 
   public static final GeometryFactory DEFAULT_2D = floating(0, 2);
 
@@ -484,7 +485,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
    * fixed x, y &amp; fixed z precision models.
    * </p>
    *
-   * @param coordinateSystemId The <a href="http://spatialreference.org/ref/epsg/">EPSG
+   * @param coordinateSystemId The <a href="https://spatialreference.org/ref/epsg/">EPSG
    *          coordinate system id</a>.
    * @param axisCount The number of coordinate axis. 2 for 2D x &amp; y
    *          coordinates. 3 for 3D x, y &amp; z coordinates.
@@ -525,6 +526,11 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     return fixed(wkt, 2, scaleX, scaleY);
   }
 
+  public static GeometryFactory fixed3d(final CoordinateSystem coordinateSystem,
+    final double scaleX, final double scaleY, final double scaleZ) {
+    return fixed(coordinateSystem, 3, scaleX, scaleY, scaleZ);
+  }
+
   public static GeometryFactory fixed3d(final double scaleX, final double scaleY,
     final double scaleZ) {
     return fixed(0, 3, scaleX, scaleY, scaleZ);
@@ -552,7 +558,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
    * floating precision model.
    * </p>
    *
-   * @param coordinateSystemId The <a href="http://spatialreference.org/ref/epsg/">EPSG
+   * @param coordinateSystemId The <a href="https://spatialreference.org/ref/epsg/">EPSG
    *          coordinate system id</a>.
    * @param axisCount The number of coordinate axis. 2 for 2D x &amp; y
    *          coordinates. 3 for 3D x, y &amp; z coordinates.
@@ -604,6 +610,12 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     return instances.floating(2);
   }
 
+  public static GeometryFactory floating2d(final Function<String, CoordinateSystem> conveter,
+    String id) {
+    final GeometryFactories instances = instances(conveter.apply(id));
+    return instances.floating(2);
+  }
+
   public static GeometryFactory floating2d(final int coordinateSystemId) {
     return floating(coordinateSystemId, 2);
   }
@@ -620,13 +632,19 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     return floating(coordinateSystem, 3);
   }
 
+  public static GeometryFactory floating3d(final Function<String, CoordinateSystem> conveter,
+    String id) {
+    final GeometryFactories instances = instances(conveter.apply(id));
+    return instances.floating(3);
+  }
+
   /**
    * <p>
    * Get a GeometryFactory with the coordinate system, 3D axis (x, y &amp; z)
    * and a floating precision models.
    * </p>
    *
-   * @param coordinateSystemId The <a href="http://spatialreference.org/ref/epsg/">EPSG
+   * @param coordinateSystemId The <a href="https://spatialreference.org/ref/epsg/">EPSG
    *          coordinate system id</a>.
    * @return The geometry factory.
    */
