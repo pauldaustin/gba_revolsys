@@ -182,6 +182,10 @@
           <groupId>org.apache.xmlgraphics</groupId>
           <artifactId>batik-awt-util</artifactId>
         </exclusion>
+        <exclusion>
+        	<groupId>xml-apis</groupId>
+        	<artifactId>xml-apis</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>

@@ -166,28 +166,18 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
   @Override
   public JdbcConnection getJdbcConnection(final boolean autoCommit) {
     final DataSource dataSource = getDataSource();
-    Connection connection = JdbcUtils.getConnection(dataSource);
-    if (connection == null) {
-      return null;
-    } else {
-      try {
-        PgConnection pgConnection;
-        try {
-          pgConnection = connection.unwrap(PgConnection.class);
-        } catch (final NullPointerException e) {
-          connection = JdbcUtils.getConnection(dataSource);
-          pgConnection = connection.unwrap(PgConnection.class);
-        }
-        pgConnection.addDataType("geometry", PostgreSQLGeometryWrapper.class);
-        pgConnection.addDataType("box2d", PostgreSQLBoundingBoxWrapper.class);
-        pgConnection.addDataType("box3d", PostgreSQLBoundingBoxWrapper.class);
-        pgConnection.addDataType("tid", PostgreSQLTidWrapper.class);
-      } catch (final SQLException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-      return new JdbcConnection(connection, dataSource, autoCommit);
+    final Connection connection = JdbcUtils.getConnection(dataSource);
+    try {
+      final PgConnection pgConnection = connection.unwrap(PgConnection.class);
+      pgConnection.addDataType("geometry", PostgreSQLGeometryWrapper.class);
+      pgConnection.addDataType("box2d", PostgreSQLBoundingBoxWrapper.class);
+      pgConnection.addDataType("box3d", PostgreSQLBoundingBoxWrapper.class);
+      pgConnection.addDataType("tid", PostgreSQLTidWrapper.class);
+    } catch (final SQLException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
+    return new JdbcConnection(connection, dataSource, autoCommit);
   }
 
   @Override
@@ -204,9 +194,9 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
   @Override
   protected String getSequenceName(final JdbcRecordDefinition recordDefinition) {
     final JdbcRecordStoreSchema schema = recordDefinition.getSchema();
-    final String dbSchemaName = schema.getQuotedDbName();
+    final String dbSchemaName = schema.getDbName();
     final String shortName = ShortNameProperty.getShortName(recordDefinition);
-    String sequenceName;
+    final String sequenceName;
     if (Property.hasValue(shortName)) {
       if (this.useSchemaSequencePrefix) {
         sequenceName = dbSchemaName + "." + shortName.toLowerCase() + "_seq";
@@ -215,10 +205,11 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
       }
     } else {
       final String tableName = recordDefinition.getDbTableName();
-      final String idFieldName = ((JdbcFieldDefinition)recordDefinition.getIdField()).getDbName();
-      sequenceName = '"' + tableName.replace("\"", "") + "_" + idFieldName + "_seq\"";
+      final String idFieldName = recordDefinition.getIdFieldName().toLowerCase();
       if (this.useSchemaSequencePrefix) {
-        return dbSchemaName + "." + sequenceName;
+        sequenceName = dbSchemaName + "." + tableName + "_" + idFieldName + "_seq";
+      } else {
+        sequenceName = tableName + "_" + idFieldName + "_seq";
       }
     }
     return sequenceName;
@@ -356,11 +347,6 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
   }
 
   @Override
-  public RecordIterator newIterator(final Query query, final Map<String, Object> properties) {
-    return new PostgreSQLJdbcQueryIterator(this, query, properties);
-  }
-
-  @Override
   protected JdbcRecordDefinition newRecordDefinition(final JdbcRecordStoreSchema schema,
     final PathName pathName, String dbTableName) {
     if (dbTableName.charAt(0) != '"' && !dbTableName.equals(dbTableName.toLowerCase())) {
@@ -370,23 +356,10 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
   }
 
   @Override
-  protected PostgreSQLRecordStoreSchema newRootSchema() {
-    return new PostgreSQLRecordStoreSchema(this);
-  }
-
-  @Override
   protected JdbcFieldDefinition newRowIdFieldDefinition() {
     return new PostgreSQLOidFieldDefinition();
   }
 
-  @Override
-  protected PostgreSQLRecordStoreSchema newSchema(final JdbcRecordStoreSchema rootSchema,
-    final String dbSchemaName, final PathName childSchemaPath) {
-    final boolean quoteName = !dbSchemaName.equals(dbSchemaName.toLowerCase());
-    return new PostgreSQLRecordStoreSchema((PostgreSQLRecordStoreSchema)rootSchema, childSchemaPath,
-      dbSchemaName, quoteName);
-  }
-  
   @Override
   public ResultPager<Record> page(final Query query) {
     return new PostgreSQLJdbcQueryResultPager(this, getProperties(), query);

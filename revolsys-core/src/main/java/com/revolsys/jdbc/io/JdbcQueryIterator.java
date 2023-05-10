@@ -181,7 +181,7 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
 
   protected ResultSet getResultSet() {
     final Query query = this.query;
-    final PathName tableName = query.getTablePath();
+    final String tableName = query.getTypeName();
     final RecordDefinition queryRecordDefinition = query.getRecordDefinition();
     if (queryRecordDefinition != null) {
       this.recordDefinition = this.recordStore.getRecordDefinition(queryRecordDefinition);
