@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import javax.sql.DataSource;
 
 import org.jeometry.common.exception.Exceptions;
@@ -67,14 +67,10 @@ public class JdbcRecordWriter extends AbstractRecordWriter {
   private final Map<JdbcRecordDefinition, LongCounter> typeCountMap = new HashMap<>();
 
   public JdbcRecordWriter(final AbstractJdbcRecordStore recordStore,
-    final RecordDefinitionProxy recordDefinition) {
-    this(recordStore, recordDefinition, recordStore.getStatistics(), 1);
-  }
-
-  public JdbcRecordWriter(final AbstractJdbcRecordStore recordStore,
     final RecordDefinitionProxy recordDefinition, final CategoryLabelCountMap statistics,
     final int batchSize) {
     super(recordDefinition);
+    Transaction.assertInTransaction();
     this.recordStore = recordStore;
     this.statistics = statistics;
     this.connection = recordStore.getJdbcConnection();

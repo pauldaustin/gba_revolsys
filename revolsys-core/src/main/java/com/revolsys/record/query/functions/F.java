@@ -1,21 +1,26 @@
 package com.revolsys.record.query.functions;
 
+import java.util.List;
+
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.BoundingBoxProxy;
 import com.revolsys.geometry.model.Geometry;
+import com.revolsys.geometry.model.GeometryFactory;
+import com.revolsys.jdbc.field.JdbcFieldDefinitions;
 import com.revolsys.record.query.Column;
+import com.revolsys.record.query.ColumnReference;
+import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
 import com.revolsys.record.query.Value;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
 
 public class F {
-  public static WithinDistance dWithin(final FieldDefinition fieldDefinition,
-    final Geometry geometry, final double distance) {
-    final Column column = new Column(fieldDefinition);
-    final Value geometryValue = Value.newValue(fieldDefinition, geometry);
+  public static WithinDistance dWithin(final FieldDefinition field, final Geometry geometry,
+    final double distance) {
+    final Value geometryValue = Value.newValue(field, geometry);
     final Value distanceValue = Value.newValue(distance);
-    return new WithinDistance(column, geometryValue, distanceValue);
+    return new WithinDistance(field, geometryValue, distanceValue);
   }
 
   public static WithinDistance dWithin(final String name, final Geometry geometry,
@@ -29,32 +34,69 @@ public class F {
     return new WithinDistance(column, geometryValue, distanceValue);
   }
 
-  public static EnvelopeIntersects envelopeIntersects(final FieldDefinition attribute,
+  public static EnvelopeIntersects envelopeIntersects(final FieldDefinition field,
     final BoundingBox boundingBox) {
-    if (attribute == null) {
+    if (field == null) {
       return null;
     } else {
-      final Column column = new Column(attribute);
-      final Value value = Value.newValue(attribute, boundingBox);
-      return new EnvelopeIntersects(column, value);
+      final Value value = Value.newValue(field, boundingBox);
+      return new EnvelopeIntersects(field, value);
     }
   }
 
-  public static EnvelopeIntersects envelopeIntersects(final FieldDefinition attribute,
-    final Geometry geometry) {
-    return new EnvelopeIntersects(new Column(attribute),
-      Value.newValue(attribute, geometry.getBoundingBox()));
+  public static EnvelopeIntersects envelopeIntersects(final List<QueryValue> values) {
+    final QueryValue left = values.get(0);
+    QueryValue right = values.get(1);
+    if (!(left instanceof ColumnReference)) {
+      throw new IllegalArgumentException(
+        "geo.intersections first argument must be a column reference");
+    }
+    final ColumnReference field = (ColumnReference)left;
+    if (right instanceof Value) {
+      final Value value = (Value)right;
+      final String text = value.getValue().toString();
+      final FieldDefinition fieldDefinition = field.getFieldDefinition();
+      final GeometryFactory geometryFactory = fieldDefinition.getGeometryFactory();
+      final Geometry geometry = geometryFactory.geometry(text);
+      right = new Value(JdbcFieldDefinitions.FIELD_UNKNOWN, geometry, true);
+    } else if (right instanceof Column) {
+      final Column value = (Column)right;
+      final String text = value.getName();
+      if (text.startsWith("geometry'")) {
+        final FieldDefinition fieldDefinition = field.getFieldDefinition();
+        final GeometryFactory geometryFactory = fieldDefinition.getGeometryFactory();
+        final Geometry geometry = geometryFactory.geometry(text);
+        right = new Value(JdbcFieldDefinitions.FIELD_UNKNOWN, geometry, true);
+      } else {
+        throw new IllegalArgumentException(
+          "geo.intersections second argument must be a geometry: " + right);
+      }
+    } else {
+      throw new IllegalArgumentException(
+        "geo.intersections second argument must be a geometry: " + right);
+    }
+    return new EnvelopeIntersects(left, right);
   }
 
-  public static EnvelopeIntersects envelopeIntersects(final RecordDefinition recordDefinition,
-    final BoundingBox boundingBox) {
-    final FieldDefinition attribute = recordDefinition.getGeometryField();
-    return envelopeIntersects(attribute, boundingBox);
-  }
-
-  public static EnvelopeIntersects envelopeIntersects(final String name,
+  public static EnvelopeIntersects envelopeIntersects(final Query query,
     final BoundingBoxProxy boundingBox) {
-    return new EnvelopeIntersects(new Column(name), Value.newValue(boundingBox.getBoundingBox()));
+    final RecordDefinition recordDefinition = query.getRecordDefinition();
+    final FieldDefinition field = recordDefinition.getGeometryField();
+    final BoundingBox bbox = boundingBox.getBoundingBox();
+    final Value value = Value.newValue(field, bbox, true);
+    final EnvelopeIntersects condition = new EnvelopeIntersects(field, value);
+    query.and(condition);
+    return condition;
+  }
+
+  public static EnvelopeIntersects envelopeIntersects(final Query query, final Geometry geometry) {
+    final RecordDefinition recordDefinition = query.getRecordDefinition();
+    final FieldDefinition field = recordDefinition.getGeometryField();
+    final BoundingBox bbox = geometry.getBoundingBox();
+    final Value value = Value.newValue(field, bbox);
+    final EnvelopeIntersects condition = new EnvelopeIntersects(field, value);
+    query.and(condition);
+    return condition;
   }
 
   public static Lower lower(final QueryValue value) {
@@ -71,8 +113,12 @@ public class F {
     return new RegexpReplace(value, pattern, replace, flags);
   }
 
-  public static Upper upper(final FieldDefinition fieldDefinition) {
-    return upper(new Column(fieldDefinition));
+  public static ToChar toChar(final ColumnReference column, final String format) {
+    return new ToChar(column, format);
+  }
+
+  public static Upper upper(final FieldDefinition field) {
+    return new Upper(field);
   }
 
   public static Upper upper(final QueryValue value) {
@@ -80,6 +126,7 @@ public class F {
   }
 
   public static Upper upper(final String name) {
-    return upper(new Column(name));
+    final Column column = new Column(name);
+    return upper(column);
   }
 }

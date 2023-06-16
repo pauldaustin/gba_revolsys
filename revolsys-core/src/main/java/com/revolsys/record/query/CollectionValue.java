@@ -1,5 +1,6 @@
 package com.revolsys.record.query;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -9,9 +10,9 @@ import java.util.List;
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.exception.Exceptions;
 
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
 import com.revolsys.jdbc.field.JdbcFieldDefinitions;
-import com.revolsys.record.Record;
 import com.revolsys.record.code.CodeTable;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordStore;
@@ -28,8 +29,8 @@ public class CollectionValue extends AbstractMultiQueryValue {
     this(null, values);
   }
 
-  public CollectionValue(final FieldDefinition field, final Collection<? extends Object> values) {
-    setFieldDefinition(field);
+  public CollectionValue(final ColumnReference field, final Collection<? extends Object> values) {
+    setFieldDefinition((FieldDefinition)field);
     for (final Object value : values) {
       QueryValue queryValue;
       if (value instanceof QueryValue) {
@@ -43,29 +44,33 @@ public class CollectionValue extends AbstractMultiQueryValue {
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder buffer) {
-    buffer.append('(');
+    final Appendable buffer) {
+    try {
+      buffer.append('(');
 
-    final QueryValue[] values = this.values;
-    final int valueCount = values.length;
-    for (int i = 0; i < valueCount; i++) {
-      if (i > 0) {
-        buffer.append(", ");
-      }
-
-      final QueryValue queryValue = values[i];
-      if (queryValue instanceof Value) {
-        if (this.jdbcField == null) {
-          queryValue.appendSql(query, recordStore, buffer);
-        } else {
-          this.jdbcField.addSelectStatementPlaceHolder(buffer);
+      final QueryValue[] values = this.values;
+      final int valueCount = values.length;
+      for (int i = 0; i < valueCount; i++) {
+        if (i > 0) {
+          buffer.append(", ");
         }
-      } else {
-        queryValue.appendSql(query, recordStore, buffer);
-      }
 
+        final QueryValue queryValue = values[i];
+        if (queryValue instanceof Value) {
+          if (this.jdbcField == null) {
+            queryValue.appendSql(query, recordStore, buffer);
+          } else {
+            this.jdbcField.addSelectStatementPlaceHolder(buffer);
+          }
+        } else {
+          queryValue.appendSql(query, recordStore, buffer);
+        }
+
+      }
+      buffer.append(')');
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
-    buffer.append(')');
   }
 
   @Override
@@ -129,13 +134,13 @@ public class CollectionValue extends AbstractMultiQueryValue {
     }
   }
 
-  public FieldDefinition getField() {
+  public ColumnReference getField() {
     return this.field;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <V> V getValue(final Record record) {
+  public <V> V getValue(final MapEx record) {
     final List<Object> values = new ArrayList<>();
     for (final QueryValue queryValue : this.values) {
       final Object value = queryValue.getValue(record);
@@ -181,7 +186,7 @@ public class CollectionValue extends AbstractMultiQueryValue {
       for (final QueryValue queryValue : this.values) {
         if (queryValue instanceof Value) {
           final Value value = (Value)queryValue;
-          value.setFieldDefinition(field);
+          value.setFieldDefinition(this.jdbcField);
         }
       }
     }

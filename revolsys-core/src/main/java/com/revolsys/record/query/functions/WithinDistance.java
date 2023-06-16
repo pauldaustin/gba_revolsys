@@ -1,5 +1,6 @@
 package com.revolsys.record.query.functions;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.List;
@@ -8,11 +9,12 @@ import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.exception.Exceptions;
 
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.Geometry;
-import com.revolsys.record.Record;
 import com.revolsys.record.query.Condition;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
+import com.revolsys.record.query.TableReference;
 import com.revolsys.record.schema.RecordStore;
 
 public class WithinDistance implements Condition, Function {
@@ -33,17 +35,22 @@ public class WithinDistance implements Condition, Function {
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder sql) {
-    if (this.geometry1Value == null || this.geometry2Value == null || this.distanceValue == null) {
-      sql.append("1 = 0");
-    } else {
-      sql.append(NAME + "(");
-      this.geometry1Value.appendSql(query, recordStore, sql);
-      sql.append(", ");
-      this.geometry2Value.appendSql(query, recordStore, sql);
-      sql.append(", ");
-      this.distanceValue.appendSql(query, recordStore, sql);
-      sql.append(")");
+    final Appendable sql) {
+    try {
+      if (this.geometry1Value == null || this.geometry2Value == null
+        || this.distanceValue == null) {
+        sql.append("1 = 0");
+      } else {
+        sql.append(NAME + "(");
+        this.geometry1Value.appendSql(query, recordStore, sql);
+        sql.append(", ");
+        this.geometry2Value.appendSql(query, recordStore, sql);
+        sql.append(", ");
+        this.distanceValue.appendSql(query, recordStore, sql);
+        sql.append(")");
+      }
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
@@ -64,20 +71,25 @@ public class WithinDistance implements Condition, Function {
   @Override
   public WithinDistance clone() {
     try {
-      final WithinDistance clone = (WithinDistance)super.clone();
-      if (this.geometry1Value != null) {
-        clone.geometry1Value = this.geometry1Value.clone();
-      }
-      if (this.geometry2Value != null) {
-        clone.geometry2Value = this.geometry2Value.clone();
-      }
-      if (this.distanceValue != null) {
-        clone.distanceValue = this.distanceValue.clone();
-      }
-      return clone;
+      return (WithinDistance)super.clone();
     } catch (final CloneNotSupportedException e) {
       throw Exceptions.wrap(e);
     }
+  }
+
+  @Override
+  public WithinDistance clone(final TableReference oldTable, final TableReference newTable) {
+    final WithinDistance clone = clone();
+    if (this.geometry1Value != null) {
+      clone.geometry1Value = this.geometry1Value.clone(oldTable, newTable);
+    }
+    if (this.geometry2Value != null) {
+      clone.geometry2Value = this.geometry2Value.clone(oldTable, newTable);
+    }
+    if (this.distanceValue != null) {
+      clone.distanceValue = this.distanceValue.clone(oldTable, newTable);
+    }
+    return clone;
   }
 
   @Override
@@ -127,14 +139,18 @@ public class WithinDistance implements Condition, Function {
     return Arrays.asList(this.geometry1Value, this.geometry2Value, this.distanceValue);
   }
 
+  public void setDistance(final QueryValue distanceValue) {
+    this.distanceValue = distanceValue;
+  }
+
   @Override
-  public boolean test(final Record record) {
+  public boolean test(final MapEx record) {
     if (this.geometry1Value == null || this.geometry2Value == null || this.distanceValue == null) {
       return false;
     } else {
       final Geometry geometry1 = this.geometry1Value.getValue(record);
       final Geometry geometry2 = this.geometry2Value.getValue(record);
-      ;
+
       final Number acceptDistance = this.distanceValue.getValue(record);
       if (acceptDistance == null || geometry1 == null || geometry2 == null) {
         return false;
@@ -156,7 +172,8 @@ public class WithinDistance implements Condition, Function {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <QV extends QueryValue> QV updateQueryValues(
+  public <QV extends QueryValue> QV updateQueryValues(final TableReference oldTable,
+    final TableReference newTable,
     final java.util.function.Function<QueryValue, QueryValue> valueHandler) {
     final QueryValue distanceValue = valueHandler.apply(this.distanceValue);
     final QueryValue geometry1Value = valueHandler.apply(this.geometry1Value);

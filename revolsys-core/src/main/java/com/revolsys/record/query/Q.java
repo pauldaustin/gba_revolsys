@@ -3,16 +3,40 @@ package com.revolsys.record.query;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.jeometry.common.data.identifier.Identifier;
+import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypes;
 
 import com.revolsys.record.query.functions.F;
+import com.revolsys.record.query.functions.JsonRawValue;
+import com.revolsys.record.query.functions.JsonValue;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordStore;
 import com.revolsys.util.Property;
 
 public class Q {
+  public static BiFunction<QueryValue, QueryValue, Condition> ILIKE = ILike::new;
+
+  public static Function<QueryValue, Condition> IS_NOT_NULL = IsNotNull::new;
+
+  public static Function<QueryValue, Condition> IS_NULL = IsNull::new;
+
+  public static BiFunction<QueryValue, QueryValue, Condition> EQUAL = Q::equal;
+
+  public static BiFunction<QueryValue, QueryValue, Condition> NOT_EQUAL = Q::notEqual;
+
+  public static BiFunction<QueryValue, QueryValue, Condition> GREATER_THAN = GreaterThan::new;
+
+  public static BiFunction<QueryValue, QueryValue, Condition> GREATER_THAN_EQUAL = GreaterThanEqual::new;
+
+  public static BiFunction<QueryValue, QueryValue, Condition> LESS_THAN = LessThan::new;
+
+  public static BiFunction<QueryValue, QueryValue, Condition> LESS_THAN_EQUAL = LessThanEqual::new;
+
+  public static BiFunction<QueryValue, QueryValue, Condition> IN = In::new;
 
   public static Add add(final QueryValue left, final QueryValue right) {
     return new Add(left, right);
@@ -23,15 +47,22 @@ public class Q {
     return and(list);
   }
 
+  public static Condition and(final Condition a, final Condition b) {
+    if (a == null) {
+      return b;
+    } else {
+      return a.and(b);
+    }
+  }
+
   public static And and(final List<? extends Condition> conditions) {
     return new And(conditions);
   }
 
   public static QueryValue arithmatic(final FieldDefinition field, final String operator,
     final Object value) {
-    final Column column = new Column(field);
     final Value queryValue = Value.newValue(field, value);
-    return arithmatic(column, operator, queryValue);
+    return arithmatic((QueryValue)field, operator, queryValue);
   }
 
   public static QueryValue arithmatic(final QueryValue left, final String operator,
@@ -59,22 +90,19 @@ public class Q {
 
   }
 
-  public static Between between(final FieldDefinition fieldDefinition, final Object min,
-    final Object max) {
-    final Column column = new Column(fieldDefinition);
-    final Value minCondition = Value.newValue(fieldDefinition, min);
-    final Value maxCondition = Value.newValue(fieldDefinition, max);
-    return new Between(column, minCondition, maxCondition);
+  public static Between between(final FieldDefinition field, final Object min, final Object max) {
+    final Value minCondition = Value.newValue(field, min);
+    final Value maxCondition = Value.newValue(field, max);
+    return new Between(field, minCondition, maxCondition);
   }
 
   public static Condition binary(final FieldDefinition field, final String operator,
     final Object value) {
-    final Column column = new Column(field);
     final Value queryValue = Value.newValue(field, value);
-    return binary(column, operator, queryValue);
+    return binary((QueryValue)field, operator, queryValue);
   }
 
-  public static BinaryCondition binary(final QueryValue left, final String operator,
+  public static Condition binary(final QueryValue left, final String operator,
     final QueryValue right) {
     if ("=".equals(operator)) {
       return Q.equal(left, right);
@@ -101,19 +129,21 @@ public class Q {
 
   }
 
+  public static QueryValue count(final TableReference table, final String fieldName) {
+    return new Count(table.getColumn(fieldName));
+  }
+
   public static Divide divide(final QueryValue left, final QueryValue right) {
     return new Divide(left, right);
   }
 
   public static Equal equal(final FieldDefinition fieldDefinition, final Object value) {
-    final String name = fieldDefinition.getName();
     final Value valueCondition = Value.newValue(fieldDefinition, value);
-    return equal(name, valueCondition);
+    return new Equal(fieldDefinition, valueCondition);
   }
 
   public static Equal equal(final FieldDefinition field, final QueryValue right) {
-    final Column leftCondition = new Column(field);
-    return new Equal(leftCondition, right);
+    return new Equal(field, right);
   }
 
   public static Equal equal(final QueryValue left, final Object value) {
@@ -121,7 +151,15 @@ public class Q {
     return new Equal(left, valueCondition);
   }
 
-  public static Equal equal(final QueryValue left, final QueryValue right) {
+  public static Condition equal(final QueryValue left, final QueryValue right) {
+    if (right == null) {
+      return new IsNull(left);
+    } else if (right instanceof Value) {
+      final Value value = (Value)right;
+      if (value.getValue() == null) {
+        return new IsNull(left);
+      }
+    }
     return new Equal(left, right);
   }
 
@@ -151,7 +189,8 @@ public class Q {
         Condition condition;
         if (value == null) {
           if (fieldKey instanceof FieldDefinition) {
-            condition = isNull((FieldDefinition)fieldKey);
+            final FieldDefinition field = (FieldDefinition)fieldKey;
+            condition = isNull(field);
           } else {
             condition = isNull(fieldKey.toString());
           }
@@ -236,7 +275,9 @@ public class Q {
   }
 
   public static Condition iLike(final String left, final String right) {
-    return Q.like(F.upper(new Cast(left, "varchar(4000)")), ("%" + right + "%").toUpperCase());
+    final Column leftCondition = new Column(left);
+    final Value valueCondition = Value.newValue("%" + right + "%");
+    return new ILike(leftCondition, valueCondition);
   }
 
   public static In in(final FieldDefinition fieldDefinition,
@@ -260,19 +301,38 @@ public class Q {
     return isNotNull(name);
   }
 
+  public static IsNotNull isNotNull(final QueryValue queryValue) {
+    return new IsNotNull(queryValue);
+  }
+
   public static IsNotNull isNotNull(final String name) {
     final Column condition = new Column(name);
     return new IsNotNull(condition);
   }
 
-  public static IsNull isNull(final FieldDefinition fieldDefinition) {
-    final String name = fieldDefinition.getName();
-    return isNull(name);
+  public static IsNull isNull(final QueryValue queryValue) {
+    return new IsNull(queryValue);
   }
 
   public static IsNull isNull(final String name) {
     final Column condition = new Column(name);
     return new IsNull(condition);
+  }
+
+  public static JsonRawValue jsonRawValue(final QueryValue left, final QueryValue right) {
+    return new JsonRawValue(Arrays.asList(left, right));
+  }
+
+  public static JsonRawValue jsonRawValue(final QueryValue left, final String right) {
+    return jsonRawValue(left, Value.newValue(right));
+  }
+
+  public static JsonValue jsonValue(final QueryValue left, final QueryValue right) {
+    return new JsonValue(Arrays.asList(left, right));
+  }
+
+  public static JsonValue jsonValue(final QueryValue left, final String right) {
+    return jsonValue(left, Value.newValue(right));
   }
 
   public static LessThan lessThan(final FieldDefinition fieldDefinition, final Object value) {
@@ -334,7 +394,7 @@ public class Q {
 
   public static Like like(final String left, final QueryValue right) {
     final Column leftCondition = new Column(left);
-    return new Like(leftCondition, right);
+    return like(leftCondition, right);
   }
 
   public static Condition likeRegEx(final RecordStore recordStore, final String fieldName,
@@ -350,11 +410,11 @@ public class Q {
     return Q.like(left, right);
   }
 
-  private static Mod mod(final QueryValue left, final QueryValue right) {
+  public static Mod mod(final QueryValue left, final QueryValue right) {
     return new Mod(left, right);
   }
 
-  private static Multiply multiply(final QueryValue left, final QueryValue right) {
+  public static Multiply multiply(final QueryValue left, final QueryValue right) {
     return new Multiply(left, right);
   }
 
@@ -362,28 +422,44 @@ public class Q {
     return new Not(condition);
   }
 
-  public static NotEqual notEqual(final FieldDefinition fieldDefinition, final Object value) {
+  public static Condition notEqual(final FieldDefinition fieldDefinition, final Object value) {
     final String name = fieldDefinition.getName();
     final Value valueCondition = Value.newValue(fieldDefinition, value);
     return notEqual(name, valueCondition);
   }
 
-  public static NotEqual notEqual(final QueryValue left, final QueryValue right) {
+  public static Condition notEqual(final QueryValue left, final QueryValue right) {
+    if (right == null) {
+      return new IsNotNull(left);
+    } else if (right instanceof Value) {
+      final Value value = (Value)right;
+      if (value.getValue() == null) {
+        return new IsNotNull(left);
+      }
+    }
     return new NotEqual(left, right);
   }
 
-  public static NotEqual notEqual(final String name, final Object value) {
+  public static Condition notEqual(final String name, final Object value) {
     return notEqual(name, Value.newValue(value));
   }
 
-  public static NotEqual notEqual(final String name, final QueryValue right) {
-    final Column column = new Column(name);
-    return new NotEqual(column, right);
+  public static Condition notEqual(final String name, final QueryValue right) {
+    final QueryValue column = new Column(name);
+    return notEqual(column, right);
   }
 
   public static Or or(final Condition... conditions) {
     final List<Condition> list = Arrays.asList(conditions);
     return or(list);
+  }
+
+  public static Condition or(final Condition a, final Condition b) {
+    if (a == null) {
+      return b;
+    } else {
+      return a.or(b);
+    }
   }
 
   public static Or or(final List<? extends Condition> conditions) {
@@ -426,7 +502,11 @@ public class Q {
     return new SqlCondition(sql, parameters);
   }
 
-  private static Subtract subtract(final QueryValue left, final QueryValue right) {
+  public static QueryValue sqlExpression(final String sql, final DataType dataType) {
+    return new SqlExpression(sql, dataType);
+  }
+
+  public static Subtract subtract(final QueryValue left, final QueryValue right) {
     return new Subtract(left, right);
   }
 }

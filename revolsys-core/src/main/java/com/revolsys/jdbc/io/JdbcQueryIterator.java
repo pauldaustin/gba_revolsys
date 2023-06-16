@@ -18,37 +18,39 @@ import com.revolsys.collection.iterator.AbstractIterator;
 import com.revolsys.io.FileUtil;
 import com.revolsys.jdbc.JdbcConnection;
 import com.revolsys.jdbc.JdbcUtils;
-import com.revolsys.jdbc.field.JdbcFieldDefinition;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordFactory;
 import com.revolsys.record.RecordState;
 import com.revolsys.record.io.RecordIterator;
 import com.revolsys.record.io.RecordReader;
+import com.revolsys.record.query.ColumnIndexes;
 import com.revolsys.record.query.Query;
-import com.revolsys.record.schema.FieldDefinition;
+import com.revolsys.record.query.QueryValue;
 import com.revolsys.record.schema.RecordDefinition;
+import com.revolsys.transaction.Transaction;
 import com.revolsys.util.Booleans;
-import com.revolsys.util.count.LabelCountMap;
 import com.revolsys.util.count.LabelCounters;
 
 public class JdbcQueryIterator extends AbstractIterator<Record>
   implements RecordReader, RecordIterator {
   public static Record getNextRecord(final JdbcRecordStore recordStore,
-    final RecordDefinition recordDefinition, final List<FieldDefinition> fields,
+    final RecordDefinition recordDefinition, final List<QueryValue> expressions,
     final RecordFactory<Record> recordFactory, final ResultSet resultSet,
     final boolean internStrings) {
     final Record record = recordFactory.newRecord(recordDefinition);
     if (record != null) {
       record.setState(RecordState.INITIALIZING);
-      int columnIndex = 1;
-      for (final FieldDefinition field : fields) {
-        final JdbcFieldDefinition jdbcField = (JdbcFieldDefinition)field;
+      final ColumnIndexes indexes = new ColumnIndexes();
+      int fieldIndex = 0;
+      for (final QueryValue expression : expressions) {
         try {
-          columnIndex = jdbcField.setFieldValueFromResultSet(resultSet, columnIndex, record,
-            internStrings);
+          final Object value = expression.getValueFromResultSet(recordDefinition, resultSet,
+            indexes, internStrings);
+          record.setValue(fieldIndex, value);
+          fieldIndex++;
         } catch (final SQLException e) {
           throw new RuntimeException(
-            "Unable to get value " + (columnIndex + 1) + " from result set", e);
+            "Unable to get value " + indexes.columnIndex + " from result set", e);
         }
       }
       record.setState(RecordState.PERSISTED);
@@ -56,6 +58,8 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
     }
     return record;
   }
+
+  private boolean autoCommit;
 
   private boolean internStrings;
 
@@ -65,7 +69,7 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
 
   private final int fetchSize = 10;
 
-  private List<FieldDefinition> fields = new ArrayList<>();
+  private List<QueryValue> selectExpressions = new ArrayList<>();
 
   private List<Query> queries;
 
@@ -85,11 +89,8 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
 
   public JdbcQueryIterator(final JdbcRecordStore recordStore, final Query query,
     final Map<String, Object> properties) {
-    super();
+    Transaction.assertInTransaction();
 
-    final boolean autoCommit = Booleans.getBoolean(properties.get("autoCommit"));
-    this.internStrings = Booleans.getBoolean(properties.get("internStrings"));
-    this.connection = recordStore.getJdbcConnection(autoCommit);
     this.recordFactory = query.getRecordFactory();
     if (this.recordFactory == null) {
       this.recordFactory = recordStore.getRecordFactory();
@@ -97,8 +98,12 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
     this.recordStore = recordStore;
     this.query = query;
     this.labelCountMap = query.getStatistics();
-    if (this.labelCountMap == null) {
-      this.labelCountMap = (LabelCounters)properties.get(LabelCountMap.class.getName());
+    if (properties != null) {
+      this.autoCommit = Booleans.getBoolean(properties.get("autoCommit"));
+      this.internStrings = Booleans.getBoolean(properties.get("internStrings"));
+      if (this.labelCountMap == null) {
+        this.labelCountMap = (LabelCounters)properties.get(LabelCounters.class.getName());
+      }
     }
   }
 
@@ -106,7 +111,7 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
   public synchronized void closeDo() {
     JdbcUtils.close(this.statement, this.resultSet);
     FileUtil.closeSilent(this.connection);
-    this.fields = null;
+    this.selectExpressions = null;
     this.connection = null;
     this.recordFactory = null;
     this.recordStore = null;
@@ -130,8 +135,8 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
   protected Record getNext() throws NoSuchElementException {
     try {
       if (this.resultSet != null && !this.query.isCancelled() && this.resultSet.next()) {
-        final Record record = getNextRecord(this.recordStore, this.recordDefinition, this.fields,
-          this.recordFactory, this.resultSet, this.internStrings);
+        final Record record = getNextRecord(this.recordStore, this.recordDefinition,
+          this.selectExpressions, this.recordFactory, this.resultSet, this.internStrings);
         if (this.labelCountMap != null) {
           this.labelCountMap.addCount(record);
         }
@@ -155,7 +160,11 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
       } else if (e2 == null) {
         throw Exceptions.wrap(e);
       } else {
-        throw e2;
+        if (e2 == null) {
+          throw Exceptions.wrap(e);
+        } else {
+          throw e2;
+        }
       }
     } catch (final RuntimeException e) {
       close();
@@ -181,7 +190,7 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
 
   protected ResultSet getResultSet() {
     final Query query = this.query;
-    final String tableName = query.getTypeName();
+    final PathName tableName = query.getTablePath();
     final RecordDefinition queryRecordDefinition = query.getRecordDefinition();
     if (queryRecordDefinition != null) {
       this.recordDefinition = this.recordStore.getRecordDefinition(queryRecordDefinition);
@@ -192,7 +201,9 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
     if (this.recordDefinition == null) {
       if (tableName != null) {
         this.recordDefinition = this.recordStore.getRecordDefinition(tableName);
-        query.setRecordDefinition(this.recordDefinition);
+        if (this.recordDefinition != null) {
+          query.setRecordDefinition(this.recordDefinition);
+        }
       }
     }
     String dbTableName;
@@ -215,17 +226,19 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
       this.resultSet = this.recordStore.getResultSet(this.statement, query);
       final ResultSetMetaData resultSetMetaData = this.resultSet.getMetaData();
 
-      if (this.recordDefinition == null || !query.getJoins().isEmpty()) {
+      if (this.recordDefinition == null || !query.getJoins().isEmpty()
+        || this.recordStore != this.recordDefinition.getRecordStore() || query.getSql() != null) {
         this.recordDefinition = this.recordStore.getRecordDefinition(tableName, resultSetMetaData,
           dbTableName);
+        query.setRecordDefinition(this.recordDefinition);
+      } else if (query.isCustomResult()) {
+        this.recordDefinition = this.recordStore.getRecordDefinition(query, resultSetMetaData);
       }
-      this.fields = query.getFields(this.recordDefinition);
+      this.selectExpressions = query.getSelectExpressions();
+      if (this.selectExpressions.isEmpty()) {
+        this.selectExpressions = (List)this.recordDefinition.getFieldDefinitions();
+      }
 
-      final String typePath = query.getTypeNameAlias();
-      if (typePath != null) {
-        final JdbcRecordDefinition newRecordDefinition = this.recordDefinition.rename(typePath);
-        this.recordDefinition = newRecordDefinition;
-      }
     } catch (final SQLException e) {
       JdbcUtils.close(this.statement, this.resultSet);
       throw toSqlException("Execute Query", sql, e);
@@ -234,16 +247,30 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
   }
 
   protected String getSql(final Query query) {
-    return JdbcUtils.getSelectSql(query);
+    return query.getSelectSql();
   }
 
   @Override
   protected void initDo() {
-    this.resultSet = getResultSet();
+    if (this.query == null) {
+      close();
+    } else {
+      this.connection = this.recordStore.getJdbcConnection(this.autoCommit);
+
+      this.resultSet = getResultSet();
+    }
+  }
+
+  public boolean isAutoCommit() {
+    return this.autoCommit;
   }
 
   public boolean isInternStrings() {
     return this.internStrings;
+  }
+
+  public void setAutoCommit(final boolean autoCommit) {
+    this.autoCommit = autoCommit;
   }
 
   public void setInternStrings(final boolean internStrings) {

@@ -5,14 +5,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.jeometry.common.data.identifier.Identifier;
-import org.jeometry.common.date.Dates;
 import org.jeometry.common.io.PathName;
 import org.jeometry.common.io.PathNameProxy;
 import org.springframework.beans.DirectFieldAccessor;
@@ -26,9 +25,10 @@ import com.revolsys.geometry.model.GeometryFactoryProxy;
 import com.revolsys.io.BaseCloseable;
 import com.revolsys.io.FileUtil;
 import com.revolsys.io.IoFactory;
-import com.revolsys.jdbc.io.RecordStoreIteratorFactory;
 import com.revolsys.properties.ObjectWithProperties;
+import com.revolsys.record.ArrayChangeTrackRecord;
 import com.revolsys.record.ArrayRecord;
+import com.revolsys.record.ChangeTrackRecord;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordFactory;
 import com.revolsys.record.RecordState;
@@ -40,17 +40,22 @@ import com.revolsys.record.io.RecordStoreConnection;
 import com.revolsys.record.io.RecordStoreFactory;
 import com.revolsys.record.io.RecordStoreQueryReader;
 import com.revolsys.record.io.RecordWriter;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.query.Condition;
+import com.revolsys.record.query.InsertUpdateAction;
 import com.revolsys.record.query.Q;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
 import com.revolsys.transaction.Propagation;
 import com.revolsys.transaction.Transaction;
+import com.revolsys.transaction.TransactionOptions;
 import com.revolsys.transaction.Transactionable;
 import com.revolsys.util.Property;
 import com.revolsys.util.count.CategoryLabelCountMap;
 import com.revolsys.util.count.LabelCountMap;
 import com.revolsys.util.count.LabelCounters;
+
+import reactor.core.publisher.Mono;
 
 public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFactory, Transactionable,
   BaseCloseable, ObjectWithProperties {
@@ -87,8 +92,7 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
    * @return
    */
   @SuppressWarnings("unchecked")
-  static <T extends RecordStore> T newRecordStore(
-    final Map<String, ? extends Object> connectionProperties) {
+  static <T extends RecordStore> T newRecordStore(final MapEx connectionProperties) {
     final String url = (String)connectionProperties.get("url");
     final RecordStoreFactory factory = recordStoreFactory(url);
     if (factory == null) {
@@ -108,8 +112,7 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
     if (factory == null) {
       throw new IllegalArgumentException("Record Store Factory not found for " + url);
     } else {
-      final Map<String, Object> connectionProperties = new HashMap<>();
-      connectionProperties.put("url", url);
+      final JsonObject connectionProperties = JsonObject.hash("url", url);
       return (T)factory.newRecordStore(connectionProperties);
     }
   }
@@ -121,29 +124,24 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
     if (factory == null) {
       throw new IllegalArgumentException("Record Store Factory not found for " + url);
     } else {
-      final Map<String, Object> connectionProperties = new HashMap<>();
-      connectionProperties.put("url", url);
-      connectionProperties.put("user", user);
-      connectionProperties.put("password", password);
+      final JsonObject connectionProperties = JsonObject.hash()
+        .addValue("url", url)
+        .addValue("user", user)
+        .addValue("password", password);
       return (T)factory.newRecordStore(connectionProperties);
     }
   }
 
   @SuppressWarnings("unchecked")
-  static <T extends RecordStore> T newRecordStoreInitialized(
-    final Map<String, ? extends Object> config) {
-    final Map<String, Object> connectionProperties = (Map<String, Object>)config.get("connection");
+  static <T extends RecordStore> T newRecordStoreInitialized(final MapEx config) {
+    final MapEx connectionProperties = (MapEx)config.get("connection");
     if (Property.isEmpty(connectionProperties)) {
       throw new IllegalArgumentException(
         "Record store must include a 'connection' map property: " + config);
     } else {
-      long startTime = System.currentTimeMillis();
       final RecordStore recordStore = RecordStore.newRecordStore(connectionProperties);
-      Dates.debugEllapsedTime(RecordStore.class, "new", startTime);
       recordStore.setProperties(config);
-      Dates.debugEllapsedTime(RecordStore.class, "setProperties", startTime);
       recordStore.initialize();
-      startTime = Dates.debugEllapsedTime(RecordStore.class, "init", startTime);
       return (T)recordStore;
     }
   }
@@ -215,9 +213,13 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
     }
   }
 
-  default void appendQueryValue(final Query query, final StringBuilder sql,
+  default void appendQueryValue(final Query query, final Appendable sql,
     final QueryValue queryValue) {
     queryValue.appendDefaultSql(query, this, sql);
+  }
+
+  default void appendSelect(final Query query, final Appendable sql, final QueryValue queryValue) {
+    queryValue.appendDefaultSelect(query, this, sql);
   }
 
   @Override
@@ -293,6 +295,15 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
     return getCodeTable(pathName);
   }
 
+  default <CT extends CodeTable> Mono<CT> getCodeTable$(final PathName typePath) {
+    final RecordDefinition recordDefinition = getRecordDefinition(typePath);
+    if (recordDefinition == null) {
+      return Mono.empty();
+    } else {
+      return recordDefinition.codeTable$();
+    }
+  }
+
   CodeTable getCodeTableByFieldName(CharSequence fieldName);
 
   Map<String, CodeTable> getCodeTableByFieldNameMap();
@@ -300,8 +311,6 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
   MapEx getConnectionProperties();
 
   String getConnectionTitle();
-
-  RecordStoreIteratorFactory getIteratorFactory();
 
   String getLabel();
 
@@ -452,6 +461,11 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
     return reader;
   }
 
+  @SuppressWarnings("unchecked")
+  default <R extends RecordStore> R getRecordStore() {
+    return (R)this;
+  }
+
   RecordStoreConnection getRecordStoreConnection();
 
   String getRecordStoreType();
@@ -495,11 +509,77 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
 
   void initializeRecordDefinition(RecordDefinition recordDefinition);
 
+  default Record insertOrUpdateRecord(final Query query, final Supplier<Record> newRecordSupplier,
+    final Consumer<Record> updateAction) {
+    query.setRecordFactory(ArrayChangeTrackRecord.FACTORY);
+
+    try (
+      Transaction transaction = newTransaction(TransactionOptions.REQUIRED)) {
+      final ChangeTrackRecord changeTrackRecord = query.getRecord();
+      if (changeTrackRecord == null) {
+        final Record newRecord = newRecordSupplier.get();
+        if (newRecord == null) {
+          return null;
+        } else {
+          insertRecord(newRecord);
+          return newRecord;
+        }
+      } else {
+        updateAction.accept(changeTrackRecord);
+        if (changeTrackRecord.isModified()) {
+          updateRecord(changeTrackRecord);
+        }
+        return changeTrackRecord.newRecord();
+      }
+    }
+  }
+
+  default Record insertOrUpdateRecord(final RecordStoreQuery query,
+    final InsertUpdateAction action) {
+    query.setRecordFactory(ArrayChangeTrackRecord.FACTORY);
+
+    try (
+      Transaction transaction = newTransaction(TransactionOptions.REQUIRED)) {
+      final ChangeTrackRecord changeTrackRecord = query.getRecord();
+      if (changeTrackRecord == null) {
+        final Record newRecord = action.insertRecord();
+        if (newRecord == null) {
+          return null;
+        } else {
+          insertRecord(newRecord);
+          return newRecord;
+        }
+      } else {
+        action.updateRecord(changeTrackRecord);
+        if (changeTrackRecord.isModified()) {
+          updateRecord(changeTrackRecord);
+        }
+        return changeTrackRecord.newRecord();
+      }
+    }
+  }
+
   default Record insertRecord(final PathName pathName, final Object... values) {
     final RecordDefinition recordDefinition = getRecordDefinition(pathName);
     final Record record = new ArrayRecord(recordDefinition, values);
     insertRecord(record);
     return record;
+  }
+
+  default Record insertRecord(final Query query, final Supplier<Record> newRecordSupplier) {
+    query.setRecordFactory(ArrayChangeTrackRecord.FACTORY);
+    final ChangeTrackRecord changeTrackRecord = query.getRecord();
+    if (changeTrackRecord == null) {
+      final Record newRecord = newRecordSupplier.get();
+      if (newRecord == null) {
+        return null;
+      } else {
+        insertRecord(newRecord);
+        return newRecord;
+      }
+    } else {
+      return changeTrackRecord.newRecord();
+    }
   }
 
   default void insertRecord(final Record record) {
@@ -546,32 +626,14 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
     }
   }
 
-  default RecordIterator newIterator(final Query query, Map<String, Object> properties) {
-    if (properties == null) {
-      properties = Collections.emptyMap();
-    }
-    if (query == null) {
-      return null;
-    } else {
-      final RecordDefinition recordDefinition = query.getRecordDefinition();
-      if (recordDefinition != null) {
-        final RecordStoreIteratorFactory recordStoreIteratorFactory = recordDefinition
-          .getProperty("recordStoreIteratorFactory");
-        if (recordStoreIteratorFactory != null) {
-          final RecordIterator iterator = recordStoreIteratorFactory.newIterator(this, query,
-            properties);
-          if (iterator != null) {
-            return iterator;
-          }
-        }
-      }
-      final RecordStoreIteratorFactory iteratorFactory = getIteratorFactory();
-      return iteratorFactory.newIterator(this, query, properties);
-    }
-  }
+  RecordIterator newIterator(final Query query, Map<String, Object> properties);
 
   default Identifier newPrimaryIdentifier(final PathName typePath) {
     return null;
+  }
+
+  default Query newQuery() {
+    return new RecordStoreQuery(this);
   }
 
   default Query newQuery(final PathName pathName) {
@@ -743,12 +805,48 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
     }
   }
 
+  default Record updateRecord(final Query query, final Consumer<Record> updateAction) {
+    try (
+      Transaction transaction = newTransaction(TransactionOptions.REQUIRED)) {
+      query.setRecordFactory(ArrayChangeTrackRecord.FACTORY);
+      final ChangeTrackRecord record = query.getRecord();
+      if (record == null) {
+        return null;
+      } else {
+        updateAction.accept(record);
+        if (record.isModified()) {
+          updateRecord(record);
+        }
+        return record.newRecord();
+      }
+    }
+  }
+
   default void updateRecord(final Record record) {
     write(record, null);
   }
 
   default void updateRecords(final Iterable<? extends Record> records) {
     writeAll(records, null);
+  }
+
+  default int updateRecords(final Query query,
+    final Consumer<? super ChangeTrackRecord> updateAction) {
+    int i = 0;
+    query.setRecordFactory(ArrayChangeTrackRecord.FACTORY);
+    try (
+      RecordReader reader = getRecords(query);
+      RecordWriter writer = newRecordWriter()) {
+      for (final Record queryRecord : reader) {
+        final ChangeTrackRecord record = (ChangeTrackRecord)queryRecord;
+        updateAction.accept(record);
+        if (record.isModified()) {
+          writer.write(record);
+          i++;
+        }
+      }
+    }
+    return i;
   }
 
   default void write(final Record record, final RecordState state) {

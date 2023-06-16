@@ -19,7 +19,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import javax.annotation.PreDestroy;
 import javax.sql.DataSource;
 
 import org.jeometry.common.data.identifier.Identifier;
@@ -36,7 +35,6 @@ import com.revolsys.collection.ResultPager;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.io.PathUtil;
 import com.revolsys.jdbc.JdbcConnection;
-import com.revolsys.jdbc.JdbcUtils;
 import com.revolsys.jdbc.field.JdbcFieldAdder;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
 import com.revolsys.jdbc.field.JdbcFieldFactory;
@@ -45,13 +43,18 @@ import com.revolsys.record.ArrayRecord;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordFactory;
 import com.revolsys.record.RecordState;
-import com.revolsys.record.code.AbstractMultiValueCodeTable;
+import com.revolsys.record.code.CodeTable;
 import com.revolsys.record.io.RecordIterator;
+import com.revolsys.record.io.RecordReader;
 import com.revolsys.record.io.RecordStoreExtension;
 import com.revolsys.record.io.RecordStoreQueryReader;
 import com.revolsys.record.io.RecordWriter;
 import com.revolsys.record.property.GlobalIdProperty;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.query.Q;
 import com.revolsys.record.query.Query;
+import com.revolsys.record.query.QueryValue;
+import com.revolsys.record.query.TableReference;
 import com.revolsys.record.schema.AbstractRecordStore;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
@@ -61,17 +64,15 @@ import com.revolsys.record.schema.RecordStore;
 import com.revolsys.record.schema.RecordStoreSchema;
 import com.revolsys.record.schema.RecordStoreSchemaElement;
 import com.revolsys.transaction.Transaction;
+import com.revolsys.transaction.TransactionOptions;
 import com.revolsys.util.Booleans;
 import com.revolsys.util.Property;
+
+import jakarta.annotation.PreDestroy;
 
 public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   implements JdbcRecordStore, RecordStoreExtension {
   public static final List<String> DEFAULT_PERMISSIONS = Arrays.asList("SELECT");
-
-  public static final RecordIterator newJdbcIterator(final RecordStore recordStore,
-    final Query query, final Map<String, Object> properties) {
-    return new JdbcQueryIterator((AbstractJdbcRecordStore)recordStore, query, properties);
-  }
 
   private final Set<String> allSchemaNames = new TreeSet<>();
 
@@ -146,7 +147,6 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
 
   public AbstractJdbcRecordStore(final RecordFactory<? extends Record> recordFactory) {
     super(recordFactory);
-    setIteratorFactory(new RecordStoreIteratorFactory(AbstractJdbcRecordStore::newJdbcIterator));
     addRecordStoreExtension(this);
   }
 
@@ -156,6 +156,18 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
 
   public void addExcludeTablePaths(final String tableName) {
     addExcludeTablePaths(tableName);
+  }
+
+  public JdbcFieldDefinition addField(final JdbcRecordDefinition recordDefinition,
+    final ResultSetMetaData resultSetMetaData, final int columnIndex) throws SQLException {
+    final String columnName = resultSetMetaData.getColumnName(columnIndex);
+    final String fieldName = toUpperIfNeeded(columnName);
+    final String dataType = resultSetMetaData.getColumnTypeName(columnIndex);
+    final int sqlType = resultSetMetaData.getColumnType(columnIndex);
+    final int length = resultSetMetaData.getPrecision(columnIndex);
+    final int scale = resultSetMetaData.getScale(columnIndex);
+    return addField(recordDefinition, columnName, fieldName, dataType, sqlType, length, scale,
+      false, null);
   }
 
   protected JdbcFieldDefinition addField(final JdbcRecordDefinition recordDefinition,
@@ -245,15 +257,15 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
 
   @Override
   public int deleteRecords(final Query query) {
-    final String typeName = query.getTypeName();
+    final PathName tablePath = query.getTablePath();
     RecordDefinition recordDefinition = query.getRecordDefinition();
     if (recordDefinition == null) {
-      if (typeName != null) {
-        recordDefinition = getRecordDefinition(typeName);
+      if (tablePath != null) {
+        recordDefinition = getRecordDefinition(tablePath);
         query.setRecordDefinition(recordDefinition);
       }
     }
-    final String sql = JdbcUtils.getDeleteSql(query);
+    final String sql = query.newDeleteSql();
     try (
       Transaction transaction = newTransaction(com.revolsys.transaction.Propagation.REQUIRED)) {
       // It's important to have this in an inner try. Otherwise the exceptions
@@ -378,12 +390,19 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
     if (query == null) {
       return 0;
     } else {
-      query = query.clone();
+      final TableReference table = query.getTable();
+      query = query.clone(table, table);
       query.setSql(null);
-      query.setFieldNames("count(*)");
       query.clearOrderBy();
-      final String sql = JdbcUtils.getSelectSql(query);
+      final String sql;
+      if (query.isDistinct() || !query.getGroupBy().isEmpty()) {
+        sql = "select count(mainquery.*) from (" + query.getSelectSql() + ") mainquery";
+      } else {
+        query.setSelect(Q.sql("count(*)"));
+        sql = query.getSelectSql();
+      }
       try (
+        Transaction transaction = newTransaction(TransactionOptions.REQUIRED);
         JdbcConnection connection = getJdbcConnection()) {
         try (
           final PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -408,10 +427,10 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   }
 
   @Override
-  public JdbcRecordDefinition getRecordDefinition(String typePath,
+  public JdbcRecordDefinition getRecordDefinition(PathName typePath,
     final ResultSetMetaData resultSetMetaData, final String dbTableName) {
     if (Property.isEmpty(typePath)) {
-      typePath = "Record";
+      typePath = PathName.newPathName("/Record");
     }
 
     try {
@@ -438,6 +457,53 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
     } catch (final SQLException e) {
       throw new IllegalArgumentException("Unable to load metadata for " + typePath);
     }
+  }
+
+  @Override
+  public JdbcRecordDefinition getRecordDefinition(final Query query,
+    final ResultSetMetaData resultSetMetaData) {
+    PathName tablePath = query.getTablePath();
+    if (Property.isEmpty(tablePath)) {
+      tablePath = PathName.newPathName("/Record");
+    }
+
+    final RecordDefinition recordDefinition = query.getRecordDefinition();
+    try {
+      final PathName schemaName = tablePath.getParent();
+      final JdbcRecordStoreSchema schema = getSchema(schemaName);
+      final String dbTableName = recordDefinition.getDbTableName();
+      final JdbcRecordDefinition resultRecordDefinition = newRecordDefinition(schema, tablePath,
+        dbTableName);
+
+      final ColumnIndexes columnIndexes = new ColumnIndexes();
+      List<? extends QueryValue> selectExpressions = query.getSelectExpressions();
+      if (selectExpressions.isEmpty()) {
+        selectExpressions = recordDefinition.getFieldDefinitions();
+      }
+      for (final QueryValue expression : selectExpressions) {
+        final FieldDefinition newField = expression.addField(this, resultRecordDefinition,
+          resultSetMetaData, columnIndexes);
+        if (expression instanceof JdbcFieldDefinition) {
+          final JdbcFieldDefinition field = (JdbcFieldDefinition)expression;
+          if (field.getRecordDefinition() == recordDefinition
+            && recordDefinition.isIdField(field)) {
+            final String name = newField.getName();
+            resultRecordDefinition.setIdFieldName(name);
+          }
+        }
+      }
+
+      addRecordDefinitionProperties(resultRecordDefinition);
+
+      return resultRecordDefinition;
+    } catch (final SQLException e) {
+      throw new IllegalArgumentException("Unable to load metadata for " + tablePath);
+    }
+  }
+
+  @Override
+  public RecordReader getRecords(final Query query) {
+    return newIterator(query, null);
   }
 
   public String getSchemaTablePermissionsSql() {
@@ -477,6 +543,7 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   @Override
   protected void initializePost() {
     try (
+      Transaction transaction = newTransaction(TransactionOptions.REQUIRES_NEW_READONLY);
       JdbcConnection connection = getJdbcConnection()) {
       // Get a connection to test that the database works
     }
@@ -561,13 +628,13 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
     return this.useUpperCaseNames;
   }
 
-  protected synchronized Map<String, List<String>> loadIdFieldNames(final String dbSchemaName) {
+  protected synchronized Map<String, List<String>> loadIdFieldNames(final Connection connection,
+    final String dbSchemaName) {
     final String schemaName = "/" + toUpperIfNeeded(dbSchemaName);
     final Map<String, List<String>> idFieldNames = new HashMap<>();
     if (Property.hasValue(this.primaryKeySql)) {
       try {
         try (
-          final Connection connection = getJdbcConnection();
           final PreparedStatement statement = connection.prepareStatement(this.primaryKeySql);) {
           if (this.primaryKeySql.indexOf('?') != -1) {
             statement.setString(1, dbSchemaName);
@@ -592,37 +659,11 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
     return idFieldNames;
   }
 
-  protected synchronized List<String> loadIdFieldNames(final String dbSchemaName,
-    final String dbTableName) {
-    final List<String> idFieldNames = new ArrayList<>();
-    try {
-      try (
-        final Connection connection = getJdbcConnection();
-        final PreparedStatement statement = connection
-          .prepareStatement(this.primaryKeySql + this.primaryKeyTableCondition);) {
-        statement.setString(1, dbSchemaName);
-        statement.setString(2, dbTableName);
-        try (
-          final ResultSet rs = statement.executeQuery()) {
-          while (rs.next()) {
-            final String idFieldName = rs.getString("COLUMN_NAME");
-            idFieldNames.add(idFieldName);
-          }
-        }
-      }
-    } catch (final Throwable e) {
-      throw new IllegalArgumentException(
-        "Unable to primary keys for table " + dbSchemaName + "." + dbTableName, e);
-    }
-    return idFieldNames;
-  }
-
   protected Map<PathName, JdbcRecordDefinition> loadRecordDefinitionsPermissions(
-    final JdbcRecordStoreSchema schema) {
+    final Connection connection, final JdbcRecordStoreSchema schema) {
     final PathName schemaPath = schema.getPathName();
     final String dbSchemaName = schema.getDbName();
     try (
-      final Connection connection = getJdbcConnection();
       final PreparedStatement statement = connection
         .prepareStatement(this.schemaTablePermissionsSql)) {
       if (this.schemaTablePermissionsSql.indexOf('?') != -1) {
@@ -675,6 +716,11 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
     } catch (final Throwable e) {
       throw Exceptions.wrap("Unable to get schema and table permissions: " + dbSchemaName, e);
     }
+  }
+
+  @Override
+  public RecordIterator newIterator(final Query query, final Map<String, Object> properties) {
+    return new JdbcQueryIterator(this, query, properties);
   }
 
   protected Identifier newPrimaryIdentifier(final JdbcRecordDefinition recordDefinition) {
@@ -775,6 +821,11 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
     return null;
   }
 
+  protected JdbcRecordStoreSchema newSchema(final JdbcRecordStoreSchema rootSchema,
+    final String dbSchemaName, final PathName childSchemaPath) {
+    return new JdbcRecordStoreSchema(rootSchema, childSchemaPath, dbSchemaName);
+  }
+
   @Override
   public ResultPager<Record> page(final Query query) {
     return new JdbcQueryResultPager(this, getProperties(), query);
@@ -805,43 +856,45 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
     final JdbcRecordStoreSchema jdbcSchema = (JdbcRecordStoreSchema)schema;
     final JdbcRecordStoreSchema rootSchema = getRootSchema();
     final PathName schemaPath = jdbcSchema.getPathName();
-    if (jdbcSchema == rootSchema) {
-      if (this.usesSchema) {
-        final Map<PathName, RecordStoreSchemaElement> schemas = new TreeMap<>();
-        final Set<String> databaseSchemaNames = getDatabaseSchemaNames();
-        for (final String dbSchemaName : databaseSchemaNames) {
-          final PathName childSchemaPath = schemaPath.newChild(toUpperIfNeeded(dbSchemaName));
-          RecordStoreSchema childSchema = schema.getSchema(childSchemaPath);
-          if (childSchema == null) {
-            childSchema = new JdbcRecordStoreSchema(rootSchema, childSchemaPath, dbSchemaName);
-          } else {
-            if (childSchema.isInitialized()) {
+    try (
+      Transaction transaction = newTransaction(TransactionOptions.REQUIRED).setRollbackOnly()) {
+      if (jdbcSchema == rootSchema) {
+        if (this.usesSchema) {
+          final Map<PathName, RecordStoreSchemaElement> schemas = new TreeMap<>();
+          final Set<String> databaseSchemaNames = getDatabaseSchemaNames();
+          for (final String dbSchemaName : databaseSchemaNames) {
+            final PathName childSchemaPath = schemaPath.newChild(toUpperIfNeeded(dbSchemaName));
+            RecordStoreSchema childSchema = schema.getSchema(childSchemaPath);
+            if (childSchema == null) {
+              childSchema = newSchema(rootSchema, dbSchemaName, childSchemaPath);
+            } else if (childSchema.isInitialized()) {
               childSchema.refresh();
             }
+            schemas.put(childSchemaPath, childSchema);
           }
-          schemas.put(childSchemaPath, childSchema);
+          return schemas;
+        } else {
+          return refreshSchemaElementsDo(jdbcSchema, schemaPath);
         }
-        return schemas;
       } else {
         return refreshSchemaElementsDo(jdbcSchema, schemaPath);
       }
-    } else {
-      return refreshSchemaElementsDo(jdbcSchema, schemaPath);
     }
   }
 
   protected Map<PathName, ? extends RecordStoreSchemaElement> refreshSchemaElementsDo(
     final JdbcRecordStoreSchema schema, final PathName schemaPath) {
     final String dbSchemaName = schema.getDbName();
-    final Map<PathName, JdbcRecordDefinition> recordDefinitionMap = loadRecordDefinitionsPermissions(
-      schema);
 
     final Map<PathName, RecordStoreSchemaElement> elementsByPath = new TreeMap<>();
     try {
       try (
         final Connection connection = getJdbcConnection()) {
         final DatabaseMetaData databaseMetaData = connection.getMetaData();
-        final Map<String, List<String>> idFieldNameMap = loadIdFieldNames(dbSchemaName);
+        final Map<PathName, JdbcRecordDefinition> recordDefinitionMap = loadRecordDefinitionsPermissions(
+          connection, schema);
+
+        final Map<String, List<String>> idFieldNameMap = loadIdFieldNames(connection, dbSchemaName);
         for (final JdbcRecordDefinition recordDefinition : recordDefinitionMap.values()) {
           final PathName typePath = recordDefinition.getPathName();
           final List<String> idFieldNames = idFieldNameMap.get(typePath.toString());
@@ -905,8 +958,8 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
     this.clobAsString = clobAsString;
   }
 
-  public void setCodeTables(final List<AbstractMultiValueCodeTable> codeTables) {
-    for (final AbstractMultiValueCodeTable codeTable : codeTables) {
+  public void setCodeTables(final List<CodeTable> codeTables) {
+    for (final CodeTable codeTable : codeTables) {
       addCodeTable(codeTable);
     }
   }

@@ -1,12 +1,16 @@
 package com.revolsys.record.query;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
+import java.util.List;
 
 import org.jeometry.common.data.type.DataType;
+import org.jeometry.common.exception.Exceptions;
 
 import com.revolsys.record.schema.RecordStore;
 
-public abstract class AbstractMultiCondition extends AbstractMultiQueryValue implements Condition {
+public abstract class AbstractMultiCondition extends AbstractMultiQueryValue
+  implements Condition, ConditionBuilder {
 
   private final String operator;
 
@@ -16,12 +20,12 @@ public abstract class AbstractMultiCondition extends AbstractMultiQueryValue imp
     this.operator = operator;
   }
 
-  public boolean addCondition(final Condition condition) {
-    if (condition == null) {
-      return false;
-    } else {
-      return addValue(condition);
+  @Override
+  public AbstractMultiCondition addCondition(final Condition condition) {
+    if (condition != null) {
+      addValue(condition);
     }
+    return this;
   }
 
   public void addCondition(final String sql) {
@@ -31,25 +35,29 @@ public abstract class AbstractMultiCondition extends AbstractMultiQueryValue imp
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder buffer) {
-    buffer.append("(");
-    boolean first = true;
+    final Appendable buffer) {
+    try {
+      buffer.append("(");
+      boolean first = true;
 
-    for (final QueryValue value : this.values) {
-      if (first) {
-        first = false;
-      } else {
-        buffer.append(" ");
-        buffer.append(this.operator);
-        buffer.append(" ");
+      for (final QueryValue value : this.values) {
+        if (first) {
+          first = false;
+        } else {
+          buffer.append(" ");
+          buffer.append(this.operator);
+          buffer.append(" ");
+        }
+        if (value == null) {
+          buffer.append("NULL");
+        } else {
+          value.appendSql(query, recordStore, buffer);
+        }
       }
-      if (value == null) {
-        buffer.append("NULL");
-      } else {
-        value.appendSql(query, recordStore, buffer);
-      }
+      buffer.append(")");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
-    buffer.append(")");
   }
 
   @Override
@@ -64,8 +72,13 @@ public abstract class AbstractMultiCondition extends AbstractMultiQueryValue imp
 
   @Override
   public AbstractMultiCondition clone() {
-    final AbstractMultiCondition clone = (AbstractMultiCondition)super.clone();
-    return clone;
+    return (AbstractMultiCondition)super.clone();
+  }
+
+  @Override
+  public AbstractMultiCondition clone(final TableReference oldTable,
+    final TableReference newTable) {
+    return (AbstractMultiCondition)super.clone();
   }
 
   @Override
@@ -77,6 +90,16 @@ public abstract class AbstractMultiCondition extends AbstractMultiQueryValue imp
       }
     }
     return false;
+  }
+
+  @Override
+  public Condition getCondition() {
+    return this;
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<Condition> getConditions() {
+    return (List)super.getQueryValues();
   }
 
   public String getOperator() {

@@ -2,7 +2,7 @@ package com.revolsys.record.query;
 
 import java.sql.PreparedStatement;
 
-import com.revolsys.record.Record;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.record.schema.RecordStore;
 
@@ -18,16 +18,27 @@ public class AcceptAllCondition implements Condition {
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder sql) {
+    final Appendable sql) {
   }
 
   @Override
   public int appendParameters(final int index, final PreparedStatement statement) {
-    return 0;
+    return index;
   }
 
   @Override
-  public Condition clone() {
+  public void changeRecordDefinition(final RecordDefinition oldRecordDefinition,
+    final RecordDefinition newRecordDefinition) {
+
+  }
+
+  @Override
+  public AcceptAllCondition clone() {
+    return this;
+  }
+
+  @Override
+  public Condition clone(final TableReference oldTable, final TableReference newTable) {
     return this;
   }
 
@@ -46,12 +57,7 @@ public class AcceptAllCondition implements Condition {
   }
 
   @Override
-  public void setRecordDefinition(final RecordDefinition recordDefinition) {
-
-  }
-
-  @Override
-  public boolean test(final Record record) {
+  public boolean test(final MapEx record) {
     return true;
   }
 

@@ -1,5 +1,6 @@
 package com.revolsys.record.query;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.List;
@@ -7,10 +8,10 @@ import java.util.function.Function;
 
 import org.jeometry.common.compare.CompareUtil;
 import org.jeometry.common.data.type.DataType;
+import org.jeometry.common.exception.Exceptions;
 
-import com.revolsys.record.Record;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.record.schema.RecordStore;
-import com.revolsys.util.JavaBeanUtil;
 
 public class Between extends AbstractUnaryQueryValue implements Condition {
 
@@ -18,7 +19,7 @@ public class Between extends AbstractUnaryQueryValue implements Condition {
 
   private Value min;
 
-  public Between(final Column column, final Value min, final Value max) {
+  public Between(final ColumnReference column, final Value min, final Value max) {
     super(column);
     this.min = min;
     this.max = max;
@@ -26,12 +27,16 @@ public class Between extends AbstractUnaryQueryValue implements Condition {
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder buffer) {
-    super.appendDefaultSql(query, recordStore, buffer);
-    buffer.append(" BETWEEN ");
-    this.min.appendSql(query, recordStore, buffer);
-    buffer.append(" AND ");
-    this.max.appendSql(query, recordStore, buffer);
+    final Appendable buffer) {
+    try {
+      super.appendDefaultSql(query, recordStore, buffer);
+      buffer.append(" BETWEEN ");
+      this.min.appendSql(query, recordStore, buffer);
+      buffer.append(" AND ");
+      this.max.appendSql(query, recordStore, buffer);
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
@@ -44,9 +49,14 @@ public class Between extends AbstractUnaryQueryValue implements Condition {
 
   @Override
   public Between clone() {
-    final Between clone = (Between)super.clone();
-    clone.min = JavaBeanUtil.clone(getMin());
-    clone.max = JavaBeanUtil.clone(getMax());
+    return (Between)super.clone();
+  }
+
+  @Override
+  public Between clone(final TableReference oldTable, final TableReference newTable) {
+    final Between clone = clone();
+    clone.min = this.min.clone(oldTable, newTable);
+    clone.max = this.max.clone(oldTable, newTable);
     return clone;
   }
 
@@ -54,8 +64,8 @@ public class Between extends AbstractUnaryQueryValue implements Condition {
   public boolean equals(final Object obj) {
     if (obj instanceof Between) {
       final Between condition = (Between)obj;
-      if (DataType.equal(condition.getMin(), this.getMin())) {
-        if (DataType.equal(condition.getMax(), this.getMax())) {
+      if (DataType.equal(condition.getMin(), getMin())) {
+        if (DataType.equal(condition.getMax(), getMax())) {
           return super.equals(condition);
         }
       }
@@ -81,7 +91,7 @@ public class Between extends AbstractUnaryQueryValue implements Condition {
   }
 
   @Override
-  public boolean test(final Record record) {
+  public boolean test(final MapEx record) {
     final QueryValue colum = getColumn();
     final Object columnValue = colum.getValue(record);
     if (columnValue == null) {
@@ -110,9 +120,9 @@ public class Between extends AbstractUnaryQueryValue implements Condition {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <QV extends QueryValue> QV updateQueryValues(
-    final Function<QueryValue, QueryValue> valueHandler) {
-    Between between = super.updateQueryValues(valueHandler);
+  public <QV extends QueryValue> QV updateQueryValues(final TableReference oldTable,
+    final TableReference newTable, final Function<QueryValue, QueryValue> valueHandler) {
+    Between between = super.updateQueryValues(oldTable, newTable, valueHandler);
     final Value min = (Value)valueHandler.apply(this.min);
     final Value max = (Value)valueHandler.apply(this.max);
     if (between == this) {

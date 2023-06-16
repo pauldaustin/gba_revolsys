@@ -5,7 +5,10 @@ import org.jeometry.common.io.PathName;
 import com.revolsys.record.schema.RecordDefinitionProxy;
 
 public enum JoinType {
-  CROSS_JOIN, INNER_JOIN, LEFT_OUTER_JOIN, RIGHT_OUTER_JOIN, FULL_OUTER_JOIN;
+
+  CROSS_JOIN, INNER_JOIN, LEFT_OUTER_JOIN, RIGHT_OUTER_JOIN, FULL_OUTER_JOIN, COMMA(", ");
+
+  static JoinType JOIN = INNER_JOIN;
 
   private String sql;
 
@@ -13,12 +16,24 @@ public enum JoinType {
     this.sql = name().replace('_', ' ');
   }
 
+  private JoinType(final String sql) {
+    this.sql = sql;
+  }
+
   public Join build(final PathName tablePath) {
-    return new Join(this).tablePath(tablePath);
+    return build().tablePath(tablePath);
+  }
+
+  public Join build() {
+    return new Join(this);
   }
 
   public Join build(final RecordDefinitionProxy recordDefinition) {
-    return new Join(this).recordDefinition(recordDefinition);
+    return build().recordDefinition(recordDefinition);
+  }
+
+  public Join build(final TableReference table) {
+    return build().table(table);
   }
 
   public String getSql() {

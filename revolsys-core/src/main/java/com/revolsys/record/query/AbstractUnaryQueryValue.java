@@ -7,7 +7,7 @@ import java.util.function.Function;
 
 import org.jeometry.common.data.type.DataType;
 
-import com.revolsys.record.Record;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.record.schema.RecordStore;
 
 public abstract class AbstractUnaryQueryValue implements QueryValue {
@@ -23,7 +23,7 @@ public abstract class AbstractUnaryQueryValue implements QueryValue {
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder buffer) {
+    final Appendable buffer) {
     this.value.appendSql(query, recordStore, buffer);
   }
 
@@ -48,12 +48,18 @@ public abstract class AbstractUnaryQueryValue implements QueryValue {
   @Override
   public AbstractUnaryQueryValue clone() {
     try {
-      final AbstractUnaryQueryValue clone = (AbstractUnaryQueryValue)super.clone();
-      clone.value = this.value.clone();
-      return clone;
+      return (AbstractUnaryQueryValue)super.clone();
     } catch (final CloneNotSupportedException e) {
       return null;
     }
+  }
+
+  @Override
+  public AbstractUnaryQueryValue clone(final TableReference oldTable,
+    final TableReference newTable) {
+    final AbstractUnaryQueryValue clone = clone();
+    clone.value = this.value.clone(oldTable, newTable);
+    return clone;
   }
 
   @Override
@@ -73,7 +79,7 @@ public abstract class AbstractUnaryQueryValue implements QueryValue {
   }
 
   @Override
-  public String getStringValue(final Record record) {
+  public String getStringValue(final MapEx record) {
     return this.value.getStringValue(record);
   }
 
@@ -83,7 +89,7 @@ public abstract class AbstractUnaryQueryValue implements QueryValue {
   }
 
   @Override
-  public <V> V getValue(final Record record) {
+  public <V> V getValue(final MapEx record) {
     return this.value.getValue(record);
   }
 
@@ -102,13 +108,13 @@ public abstract class AbstractUnaryQueryValue implements QueryValue {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <QV extends QueryValue> QV updateQueryValues(
-    final Function<QueryValue, QueryValue> valueHandler) {
+  public <QV extends QueryValue> QV updateQueryValues(final TableReference oldTable,
+    final TableReference newTable, final Function<QueryValue, QueryValue> valueHandler) {
     final QueryValue value = valueHandler.apply(this.value);
     if (value == this.value) {
       return (QV)this;
     } else {
-      final AbstractUnaryQueryValue clone = clone();
+      final AbstractUnaryQueryValue clone = clone(oldTable, newTable);
       clone.value = value;
       return (QV)clone;
     }

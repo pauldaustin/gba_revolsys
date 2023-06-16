@@ -289,7 +289,7 @@ public class Graphics2DViewRenderer extends ViewRenderer {
 
   public static final AffineTransform IDENTITY_TRANSFORM = new AffineTransform();
 
-  protected AffineTransform canvasModelTransform = IDENTITY_TRANSFORM;;
+  protected AffineTransform canvasModelTransform = IDENTITY_TRANSFORM;
 
   protected AffineTransform canvasOriginalTransform = IDENTITY_TRANSFORM;
 

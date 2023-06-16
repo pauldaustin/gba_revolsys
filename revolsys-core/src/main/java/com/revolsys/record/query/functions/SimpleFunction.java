@@ -1,13 +1,15 @@
 package com.revolsys.record.query.functions;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import org.jeometry.common.data.type.DataType;
+import org.jeometry.common.exception.Exceptions;
 
-import com.revolsys.record.Record;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.record.query.AbstractMultiQueryValue;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
@@ -29,6 +31,11 @@ public class SimpleFunction extends AbstractMultiQueryValue implements Function 
     }
   }
 
+  public SimpleFunction(final String name, final int expectedParameterCount,
+    final QueryValue... parameters) {
+    this(name, expectedParameterCount, Arrays.asList(parameters));
+  }
+
   public SimpleFunction(final String name, final List<QueryValue> parameters) {
     super(parameters);
     this.name = name;
@@ -44,19 +51,23 @@ public class SimpleFunction extends AbstractMultiQueryValue implements Function 
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder buffer) {
-    buffer.append(this.name);
-    buffer.append("(");
-    boolean first = true;
-    for (final QueryValue parameter : getParameters()) {
-      if (first) {
-        first = false;
-      } else {
-        buffer.append(", ");
+    final Appendable buffer) {
+    try {
+      buffer.append(this.name);
+      buffer.append("(");
+      boolean first = true;
+      for (final QueryValue parameter : getParameters()) {
+        if (first) {
+          first = false;
+        } else {
+          buffer.append(", ");
+        }
+        parameter.appendSql(query, recordStore, buffer);
       }
-      parameter.appendSql(query, recordStore, buffer);
+      buffer.append(")");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
-    buffer.append(")");
   }
 
   @Override
@@ -110,7 +121,7 @@ public class SimpleFunction extends AbstractMultiQueryValue implements Function 
     return Collections.unmodifiableList(getQueryValues());
   }
 
-  public String getParameterStringValue(final int index, final Record record) {
+  public String getParameterStringValue(final int index, final MapEx record) {
     final QueryValue parameter = getParameter(index);
     if (parameter == null) {
       return null;
@@ -119,7 +130,7 @@ public class SimpleFunction extends AbstractMultiQueryValue implements Function 
     }
   }
 
-  public <V> V getParameterValue(final int index, final Record record) {
+  public <V> V getParameterValue(final int index, final MapEx record) {
     final QueryValue parameter = getParameter(index);
     if (parameter == null) {
       return null;
@@ -129,7 +140,7 @@ public class SimpleFunction extends AbstractMultiQueryValue implements Function 
     }
   }
 
-  public <V> V getParameterValue(final int index, final Record record, final DataType dataType) {
+  public <V> V getParameterValue(final int index, final MapEx record, final DataType dataType) {
     final QueryValue parameter = getParameter(index);
     if (parameter == null) {
       return null;
@@ -139,7 +150,7 @@ public class SimpleFunction extends AbstractMultiQueryValue implements Function 
   }
 
   @Override
-  public <V> V getValue(final Record record) {
+  public <V> V getValue(final MapEx record) {
     return null;
   }
 

@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -21,7 +22,10 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -41,12 +45,13 @@ import com.revolsys.io.FileNames;
 import com.revolsys.io.FileUtil;
 import com.revolsys.io.channels.ChannelReader;
 import com.revolsys.io.channels.ChannelWriter;
+import com.revolsys.io.channels.DataReader;
 import com.revolsys.io.file.Paths;
 import com.revolsys.predicate.Predicates;
 import com.revolsys.util.Property;
 
 public interface Resource extends org.springframework.core.io.Resource, FileProxy, UrlProxy {
-  static String CLASSPATH_URL_PREFIX = "classpath:";
+  String CLASSPATH_URL_PREFIX = "classpath:";
 
   ThreadLocal<Resource> BASE_RESOURCE = new ThreadLocal<>();
 
@@ -299,9 +304,14 @@ public interface Resource extends org.springframework.core.io.Resource, FileProx
   @Override
   File getFile();
 
+  @Override
+  default String getFileName() {
+    return getFilename();
+  }
+
   default String getFileNameExtension() {
-    final String filename = getFilename();
-    return FileNames.getFileNameExtension(filename);
+    final String fileName = getFilename();
+    return FileNames.getFileNameExtension(fileName);
   }
 
   @Override
@@ -332,14 +342,29 @@ public interface Resource extends org.springframework.core.io.Resource, FileProx
     }
   }
 
+  default Instant getLastModifiedInstant() {
+    final long lastModified = getLastModified();
+    if (lastModified == Long.MAX_VALUE) {
+      return Instant.MAX;
+    } else {
+      return Instant.ofEpochMilli(lastModified);
+    }
+  }
+
   @Override
   default File getOrDownloadFile() {
     try {
       return getFile();
     } catch (final Throwable e) {
       if (exists()) {
-        final String baseName = getBaseName();
-        final String fileNameExtension = getFileNameExtension();
+        String baseName = getBaseName();
+        if (baseName.length() < 3) {
+          baseName += "xxx";
+        }
+        String fileNameExtension = getFileNameExtension();
+        if (fileNameExtension.length() < 3) {
+          fileNameExtension += "xxx";
+        }
         final File file = FileUtil.newTempFile(baseName, "." + fileNameExtension);
         try (
           InputStream inputStream = getInputStream()) {
@@ -360,6 +385,38 @@ public interface Resource extends org.springframework.core.io.Resource, FileProx
       return null;
     } else {
       return factory.apply(file);
+    }
+  }
+
+  default Path getOrDownloadPath() {
+    try {
+      return getPath();
+    } catch (final Throwable e) {
+      if (exists()) {
+        String baseName = getBaseName();
+        if (baseName.length() < 3) {
+          baseName += "xxx";
+        }
+        String fileNameExtension = getFileNameExtension();
+        if (fileNameExtension.length() < 3) {
+          fileNameExtension += "xxx";
+        }
+        Path path;
+        try {
+          path = Files.createTempFile(baseName, "." + fileNameExtension);
+          try (
+            InputStream inputStream = getInputStream()) {
+            Files.copy(inputStream, path, StandardCopyOption.REPLACE_EXISTING);
+          } catch (final IOException e1) {
+            throw Exceptions.wrap("Error downloading: " + this, e1);
+          }
+        } catch (final IOException e1) {
+          throw Exceptions.wrap("Error downloading: " + this, e1);
+        }
+        return path;
+      } else {
+        throw new IllegalArgumentException("Cannot get File for resource " + this, e);
+      }
     }
   }
 
@@ -438,7 +495,7 @@ public interface Resource extends org.springframework.core.io.Resource, FileProx
     return new BufferedReader(in);
   }
 
-  default ChannelReader newChannelReader() {
+  default DataReader newChannelReader() {
     return newChannelReader(8192, ByteOrder.BIG_ENDIAN);
   }
 
@@ -451,11 +508,11 @@ public interface Resource extends org.springframework.core.io.Resource, FileProx
     }
   }
 
-  default ChannelReader newChannelReader(final int capacity) {
+  default DataReader newChannelReader(final int capacity) {
     return newChannelReader(capacity, ByteOrder.BIG_ENDIAN);
   }
 
-  default ChannelReader newChannelReader(final int capacity, final ByteOrder byteOrder) {
+  default DataReader newChannelReader(final int capacity, final ByteOrder byteOrder) {
     final ReadableByteChannel in = newReadableByteChannel();
     if (in == null) {
       return null;
@@ -532,6 +589,11 @@ public interface Resource extends org.springframework.core.io.Resource, FileProx
   default Reader newReader() {
     final InputStream in = getInputStream();
     return FileUtil.newUtf8Reader(in);
+  }
+
+  default Reader newReader(final Charset charset) {
+    final InputStream in = getInputStream();
+    return new InputStreamReader(in, charset);
   }
 
   default Resource newResourceAddExtension(final String extension) {

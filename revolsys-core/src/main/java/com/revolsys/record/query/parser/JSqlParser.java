@@ -15,11 +15,10 @@ import com.revolsys.record.query.And;
 import com.revolsys.record.query.Cast;
 import com.revolsys.record.query.CollectionValue;
 import com.revolsys.record.query.Column;
+import com.revolsys.record.query.ColumnReference;
 import com.revolsys.record.query.Condition;
 import com.revolsys.record.query.Divide;
-import com.revolsys.record.query.Equal;
 import com.revolsys.record.query.GreaterThanEqual;
-import com.revolsys.record.query.ILike;
 import com.revolsys.record.query.In;
 import com.revolsys.record.query.IsNotNull;
 import com.revolsys.record.query.IsNull;
@@ -28,7 +27,6 @@ import com.revolsys.record.query.LessThanEqual;
 import com.revolsys.record.query.Mod;
 import com.revolsys.record.query.Multiply;
 import com.revolsys.record.query.Not;
-import com.revolsys.record.query.NotEqual;
 import com.revolsys.record.query.Or;
 import com.revolsys.record.query.Q;
 import com.revolsys.record.query.QueryValue;
@@ -98,14 +96,14 @@ public class JSqlParser extends AbstractSqlParser {
     this.converters.put(OrExpression.class, convertBinaryExpression(Or::new));
     this.converters.put(MultiOrExpression.class, convertMultipleExpression(Or::new));
 
-    this.converters.put(EqualsTo.class, convertBinaryExpression(Equal::new));
+    this.converters.put(EqualsTo.class, convertBinaryExpression(Q.EQUAL));
     this.converters.put(GreaterThan.class,
       convertBinaryExpression(com.revolsys.record.query.GreaterThan::new));
     this.converters.put(GreaterThanEquals.class, convertBinaryExpression(GreaterThanEqual::new));
     this.converters.put(MinorThan.class, convertBinaryExpression(LessThan::new));
     this.converters.put(MinorThanEquals.class, convertBinaryExpression(LessThanEqual::new));
-    this.converters.put(NotEqualsTo.class, convertBinaryExpression(NotEqual::new));
-    this.converters.put(LikeExpression.class, convertBinaryExpression(ILike::new));
+    this.converters.put(NotEqualsTo.class, convertBinaryExpression(Q.NOT_EQUAL));
+    this.converters.put(LikeExpression.class, convertBinaryExpression(Q.ILIKE));
 
     this.converters.put(StringValue.class,
       convertValue((final StringValue value) -> value.getNotExcapedValue()));
@@ -194,7 +192,7 @@ public class JSqlParser extends AbstractSqlParser {
   }
 
   private Function<Expression, QueryValue> convertBinaryExpression(
-    final BiFunction<QueryValue, QueryValue, QueryValue> constructor) {
+    final BiFunction<QueryValue, QueryValue, ? extends QueryValue> constructor) {
     return (final Expression expression) -> {
       final BinaryExpression binaryExpression = (BinaryExpression)expression;
       QueryValue leftValue = convertLeftExpression(binaryExpression);
@@ -215,16 +213,16 @@ public class JSqlParser extends AbstractSqlParser {
     return new Cast(leftValue, dataType);
   }
 
-  private Column convertColumn(final Expression expression) {
+  private ColumnReference convertColumn(final Expression expression) {
     final net.sf.jsqlparser.schema.Column column = (net.sf.jsqlparser.schema.Column)expression;
     String columnName = column.getColumnName();
     columnName = columnName.replaceAll("\"", "");
     final FieldDefinition fieldDefinition = this.recordDefinition.getField(columnName);
     if (fieldDefinition == null) {
       throw new IllegalArgumentException("Invalid field name " + columnName);
+    } else {
+      return fieldDefinition;
     }
-
-    return new Column(fieldDefinition);
   }
 
   @SuppressWarnings("unchecked")
@@ -350,9 +348,9 @@ public class JSqlParser extends AbstractSqlParser {
 
   private QueryValue setFieldDefinition(final QueryValue value1, final QueryValue value2) {
     if (this.recordDefinition != null) {
-      if (value1 instanceof Column) {
+      if (value1 instanceof ColumnReference) {
         if (value2 instanceof Value) {
-          final Column column = (Column)value1;
+          final ColumnReference column = (ColumnReference)value1;
 
           final String name = column.getName();
           final Object value = ((Value)value2).getValue();

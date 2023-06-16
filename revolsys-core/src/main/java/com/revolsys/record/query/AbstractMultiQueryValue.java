@@ -54,12 +54,18 @@ public abstract class AbstractMultiQueryValue implements QueryValue {
   @Override
   public AbstractMultiQueryValue clone() {
     try {
-      final AbstractMultiQueryValue clone = (AbstractMultiQueryValue)super.clone();
-      clone.values = QueryValue.cloneQueryValues(this.values);
-      return clone;
+      return (AbstractMultiQueryValue)super.clone();
     } catch (final CloneNotSupportedException e) {
       throw Exceptions.wrap(e);
     }
+  }
+
+  @Override
+  public AbstractMultiQueryValue clone(final TableReference oldTable,
+    final TableReference newTable) {
+    final AbstractMultiQueryValue clone = clone();
+    clone.values = QueryValue.cloneQueryValues(oldTable, newTable, this.values);
+    return clone;
   }
 
   @Override
@@ -91,10 +97,28 @@ public abstract class AbstractMultiQueryValue implements QueryValue {
     return this.values.length == 0;
   }
 
+  protected void removeValue(final int index) {
+    final QueryValue[] oldValues = this.values;
+    final QueryValue[] newValues = new QueryValue[oldValues.length - 1];
+    System.arraycopy(oldValues, 0, newValues, 0, index);
+    if (index < newValues.length) {
+      System.arraycopy(oldValues, index + 1, newValues, index, newValues.length - index);
+    }
+    this.values = newValues;
+  }
+
+  public void setQueryValue(final int i, final QueryValue value) {
+    if (value == null) {
+      removeValue(i);
+    } else {
+      this.values[i] = value;
+    }
+  }
+
   @SuppressWarnings("unchecked")
   @Override
-  public <QV extends QueryValue> QV updateQueryValues(
-    final Function<QueryValue, QueryValue> valueHandler) {
+  public <QV extends QueryValue> QV updateQueryValues(final TableReference oldTable,
+    final TableReference newTable, final Function<QueryValue, QueryValue> valueHandler) {
     QueryValue[] newValues = null;
 
     final int index = 0;
@@ -102,7 +126,7 @@ public abstract class AbstractMultiQueryValue implements QueryValue {
       final QueryValue newValue = valueHandler.apply(queryValue);
       if (queryValue != newValue) {
         if (newValues == null) {
-          newValues = QueryValue.cloneQueryValues(this.values);
+          newValues = QueryValue.cloneQueryValues(oldTable, newTable, this.values);
         }
       }
       if (newValues != null) {

@@ -1,16 +1,19 @@
 package com.revolsys.record.query.functions;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import org.jeometry.common.data.type.DataTypes;
+import org.jeometry.common.exception.Exceptions;
 
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.Geometry;
-import com.revolsys.record.Record;
 import com.revolsys.record.query.AbstractBinaryQueryValue;
 import com.revolsys.record.query.Condition;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
+import com.revolsys.record.query.TableReference;
 import com.revolsys.record.schema.RecordStore;
 
 public class GeometryEqual2d extends AbstractBinaryQueryValue implements Condition, Function {
@@ -23,19 +26,27 @@ public class GeometryEqual2d extends AbstractBinaryQueryValue implements Conditi
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder buffer) {
-    buffer.append(NAME);
-    buffer.append("(");
-    appendLeft(buffer, query, recordStore);
-    buffer.append(", ");
-    appendRight(buffer, query, recordStore);
-    buffer.append(")");
+    final Appendable buffer) {
+    try {
+      buffer.append(NAME);
+      buffer.append("(");
+      appendLeft(buffer, query, recordStore);
+      buffer.append(", ");
+      appendRight(buffer, query, recordStore);
+      buffer.append(")");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
   public GeometryEqual2d clone() {
-    final GeometryEqual2d clone = (GeometryEqual2d)super.clone();
-    return clone;
+    return (GeometryEqual2d)super.clone();
+  }
+
+  @Override
+  public GeometryEqual2d clone(final TableReference oldTable, final TableReference newTable) {
+    return (GeometryEqual2d)super.clone(oldTable, newTable);
   }
 
   @Override
@@ -71,7 +82,7 @@ public class GeometryEqual2d extends AbstractBinaryQueryValue implements Conditi
   }
 
   @Override
-  public boolean test(final Record record) {
+  public boolean test(final MapEx record) {
     final Geometry geometry1 = getLeft().getValue(record);
     final Geometry geometry2 = getRight().getValue(record);
     if (geometry1 == null || geometry2 == null) {

@@ -2,8 +2,7 @@ package com.revolsys.record.query;
 
 import java.util.Arrays;
 
-import com.revolsys.record.Record;
-import com.revolsys.util.Property;
+import com.revolsys.collection.map.MapEx;
 
 public class Or extends AbstractMultiCondition {
 
@@ -33,15 +32,19 @@ public class Or extends AbstractMultiCondition {
   }
 
   @Override
-  public Or or(final Condition condition) {
-    if (!Property.isEmpty(condition)) {
-      addCondition(condition);
+  public Condition or(final Condition condition) {
+    if (condition != null && !condition.isEmpty()) {
+      if (isEmpty()) {
+        return condition;
+      } else {
+        addCondition(condition);
+      }
     }
     return this;
   }
 
   @Override
-  public boolean test(final Record record) {
+  public boolean test(final MapEx record) {
     final QueryValue[] values = this.values;
     if (values.length == 0) {
       return true;

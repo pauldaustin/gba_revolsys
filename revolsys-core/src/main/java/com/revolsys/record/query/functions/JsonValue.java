@@ -1,14 +1,21 @@
 package com.revolsys.record.query.functions;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
-import com.revolsys.record.Record;
+import org.jeometry.common.exception.Exceptions;
+
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.record.io.format.json.Json;
 import com.revolsys.record.io.format.json.JsonObject;
+import com.revolsys.record.query.ColumnIndexes;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
 import com.revolsys.record.query.Value;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.record.schema.RecordStore;
 
 public class JsonValue extends SimpleFunction {
@@ -41,15 +48,19 @@ public class JsonValue extends SimpleFunction {
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder buffer) {
-    final QueryValue jsonParameter = getParameter(0);
+    final Appendable buffer) {
+    try {
+      final QueryValue jsonParameter = getParameter(0);
 
-    buffer.append(getName());
-    buffer.append("(");
-    jsonParameter.appendSql(query, recordStore, buffer);
-    buffer.append(", '");
-    buffer.append(this.path);
-    buffer.append("')");
+      buffer.append(getName());
+      buffer.append("(");
+      jsonParameter.appendSql(query, recordStore, buffer);
+      buffer.append(", '");
+      buffer.append(this.path);
+      buffer.append("')");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
@@ -65,7 +76,7 @@ public class JsonValue extends SimpleFunction {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <V> V getValue(final Record record) {
+  public <V> V getValue(final MapEx record) {
 
     final JsonObject value = getParameterValue(0, record, Json.JSON_OBJECT);
     final String path = getParameterStringValue(1, record);
@@ -78,6 +89,13 @@ public class JsonValue extends SimpleFunction {
     }
     return null;
 
+  }
+
+  @Override
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    return resultSet.getObject(indexes.incrementAndGet());
   }
 
   @Override

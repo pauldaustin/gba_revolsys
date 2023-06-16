@@ -1,11 +1,13 @@
 package com.revolsys.record.query;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 import org.jeometry.common.data.type.DataType;
+import org.jeometry.common.exception.Exceptions;
 
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordStore;
@@ -19,30 +21,43 @@ public abstract class AbstractBinaryQueryValue implements QueryValue {
   public AbstractBinaryQueryValue(final QueryValue left, final QueryValue right) {
     this.left = left;
     this.right = right;
+    if (left instanceof ColumnReference && right instanceof Value) {
+      final ColumnReference column = (ColumnReference)left;
+      final Value value = (Value)right;
+      final FieldDefinition fieldDefinition = column.getFieldDefinition();
+      value.setFieldDefinition(fieldDefinition);
+    }
   }
 
-  protected void appendLeft(final StringBuilder sql, final Query query,
+  protected void appendLeft(final Appendable sql, final Query query,
     final RecordStore recordStore) {
-    if (this.left == null) {
-      sql.append("NULL");
-    } else {
-      this.left.appendSql(query, recordStore, sql);
+    try {
+      if (this.left == null) {
+        sql.append("NULL");
+      } else {
+        this.left.appendSql(query, recordStore, sql);
+      }
+      sql.append(" ");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+
     }
-    sql.append(" ");
   }
 
   @Override
   public int appendParameters(int index, final PreparedStatement statement) {
     if (this.left != null) {
-      if (this.right instanceof Column && !(this.left instanceof Column)) {
-        final FieldDefinition rightFieldDefinition = ((Column)this.right).getFieldDefinition();
+      if (this.right instanceof ColumnReference && !(this.left instanceof ColumnReference)) {
+        final FieldDefinition rightFieldDefinition = ((ColumnReference)this.right)
+          .getFieldDefinition();
         this.left.setFieldDefinition(rightFieldDefinition);
       }
       index = this.left.appendParameters(index, statement);
     }
     if (this.right != null) {
-      if (this.left instanceof Column && !(this.right instanceof Column)) {
-        final FieldDefinition rightFieldDefinition = ((Column)this.left).getFieldDefinition();
+      if (this.left instanceof ColumnReference && !(this.right instanceof ColumnReference)) {
+        final FieldDefinition rightFieldDefinition = ((ColumnReference)this.left)
+          .getFieldDefinition();
         this.right.setFieldDefinition(rightFieldDefinition);
       }
       index = this.right.appendParameters(index, statement);
@@ -50,26 +65,36 @@ public abstract class AbstractBinaryQueryValue implements QueryValue {
     return index;
   }
 
-  protected void appendRight(final StringBuilder sql, final Query query,
+  protected void appendRight(final Appendable sql, final Query query,
     final RecordStore recordStore) {
-    sql.append(" ");
-    if (this.right == null) {
-      sql.append("NULL");
-    } else {
-      this.right.appendSql(query, recordStore, sql);
+    try {
+      sql.append(" ");
+      if (this.right == null) {
+        sql.append("NULL");
+      } else {
+        this.right.appendSql(query, recordStore, sql);
+      }
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
   @Override
   public AbstractBinaryQueryValue clone() {
     try {
-      final AbstractBinaryQueryValue clone = (AbstractBinaryQueryValue)super.clone();
-      clone.left = this.left.clone();
-      clone.right = this.right.clone();
-      return clone;
+      return (AbstractBinaryQueryValue)super.clone();
     } catch (final CloneNotSupportedException e) {
       return null;
     }
+  }
+
+  @Override
+  public AbstractBinaryQueryValue clone(final TableReference oldTable,
+    final TableReference newTable) {
+    final AbstractBinaryQueryValue clone = clone();
+    clone.left = this.left.clone(oldTable, newTable);
+    clone.right = this.right.clone(oldTable, newTable);
+    return clone;
   }
 
   @Override
@@ -110,14 +135,14 @@ public abstract class AbstractBinaryQueryValue implements QueryValue {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <QV extends QueryValue> QV updateQueryValues(
-    final Function<QueryValue, QueryValue> valueHandler) {
-    final QueryValue left = valueHandler.apply(this.left);
-    final QueryValue right = valueHandler.apply(this.right);
+  public <QV extends QueryValue> QV updateQueryValues(final TableReference oldTable,
+    final TableReference newTable, final Function<QueryValue, QueryValue> valueHandler) {
+    final QueryValue left = valueHandler.apply(this.left.clone(oldTable, newTable));
+    final QueryValue right = valueHandler.apply(this.right.clone(oldTable, newTable));
     if (left == this.left && right == this.right) {
       return (QV)this;
     } else {
-      final AbstractBinaryQueryValue clone = clone();
+      final AbstractBinaryQueryValue clone = clone(oldTable, newTable);
       clone.left = left;
       clone.right = right;
       return (QV)clone;

@@ -1,13 +1,12 @@
 package com.revolsys.record.query;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 
 import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.io.PathName;
 
-import com.revolsys.jdbc.JdbcUtils;
-import com.revolsys.record.Record;
-import com.revolsys.record.schema.RecordDefinition;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.record.schema.RecordDefinitionProxy;
 import com.revolsys.record.schema.RecordStore;
 
@@ -17,38 +16,50 @@ public class Join implements QueryValue {
 
   private PathName tablePath;
 
-  private String qualifiedTableName;
+  private TableReference table;
+
+  private QueryValue statement;
+
+  private Condition condition = Condition.ALL;
 
   private String alias;
-
-  private RecordDefinition recordDefinition;
-
-  private Condition condition;
 
   public Join(final JoinType joinType) {
     this.joinType = joinType;
   }
 
-  public Join alias(final String alias) {
-    this.alias = alias;
+  public Join and(final Condition condition) {
+    this.condition = this.condition.and(condition);
     return this;
   }
 
   @Override
   public void appendDefaultSql(final Query query, final RecordStore recordStore,
-    final StringBuilder sql) {
-    sql.append(' ');
-    sql.append(this.joinType);
-    sql.append(' ');
-    sql.append(this.qualifiedTableName);
-    if (this.alias != null) {
-      sql.append(" as \"");
-      sql.append(this.alias);
-      sql.append('"');
-    }
-    if (this.condition != null) {
-      sql.append(" ON ");
-      this.condition.appendSql(query, recordStore, sql);
+    final Appendable sql) {
+    try {
+      sql.append(' ');
+      sql.append(this.joinType.toString());
+      sql.append(' ');
+      if (this.table != null) {
+        if (this.alias == null) {
+          this.table.appendFromWithAlias(sql);
+        } else {
+          this.table.appendFromWithAlias(sql, this.alias);
+        }
+      }
+      if (this.statement != null) {
+        this.statement.appendDefaultSelect(query, recordStore, sql);
+        if (this.alias != null) {
+          sql.append(" ");
+          sql.append(this.alias);
+        }
+      }
+      if (!this.condition.isEmpty()) {
+        sql.append(" ON ");
+        this.condition.appendSql(query, recordStore, sql);
+      }
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
@@ -57,24 +68,24 @@ public class Join implements QueryValue {
     return this.condition.appendParameters(index, statement);
   }
 
-  public void appendSql(final StringBuilder sql) {
+  private void appendSql(final StringBuilder sql) {
     sql.append(' ');
     sql.append(this.joinType);
     sql.append(' ');
-    sql.append(this.qualifiedTableName);
-    if (this.alias != null) {
-      sql.append(" as \"");
-      sql.append(this.alias);
-      sql.append('"');
+    if (this.table != null) {
+      this.table.appendFromWithAlias(sql);
     }
-    if (this.condition != null) {
+    if (this.statement != null) {
+      this.statement.appendSql(null, null, sql);
+    }
+    if (!this.condition.isEmpty()) {
       sql.append(" ON ");
       sql.append(this.condition);
     }
   }
 
   @Override
-  public QueryValue clone() {
+  public Join clone() {
     try {
       final Join join = (Join)super.clone();
       join.condition = this.condition.clone();
@@ -84,8 +95,19 @@ public class Join implements QueryValue {
     }
   }
 
+  @Override
+  public Join clone(final TableReference oldTable, final TableReference newTable) {
+    final Join join = clone();
+    join.condition = this.condition.clone(oldTable, newTable);
+    return join;
+  }
+
   public Join condition(final Condition condition) {
-    this.condition = condition;
+    if (condition == null) {
+      this.condition = Condition.ALL;
+    } else {
+      this.condition = condition;
+    }
     return this;
   }
 
@@ -93,8 +115,8 @@ public class Join implements QueryValue {
     return this.condition;
   }
 
-  public RecordDefinition getRecordDefinition() {
-    return this.recordDefinition;
+  public TableReference getTable() {
+    return this.table;
   }
 
   public PathName getTableName() {
@@ -102,20 +124,63 @@ public class Join implements QueryValue {
   }
 
   @Override
-  public <V> V getValue(final Record record) {
+  public <V> V getValue(final MapEx record) {
     return null;
   }
 
+  public Join on(final String fromFieldName, final Object value) {
+    final Condition condition = this.table.equal(fromFieldName, value);
+    return and(condition);
+  }
+
+  public Join on(final String fieldName, final Query query) {
+    final TableReference toTable = query.getTable();
+    return on(fieldName, toTable);
+  }
+
+  public Join on(final String fromFieldName, final Query query, final String toFieldName) {
+    final TableReference toTable = query.getTable();
+    return on(fromFieldName, toTable, toFieldName);
+  }
+
+  public Join on(final String fieldName, final TableReference toTable) {
+    return on(fieldName, toTable, fieldName);
+  }
+
+  public Join on(final String fromFieldName, final TableReference toTable,
+    final String toFieldName) {
+    final Condition condition = this.table.equal(fromFieldName, toTable, toFieldName);
+    return and(condition);
+  }
+
+  public Join or(final Condition condition) {
+    this.condition = this.condition.or(condition);
+    return this;
+  }
+
   public Join recordDefinition(final RecordDefinitionProxy recordDefinition) {
-    this.recordDefinition = recordDefinition.getRecordDefinition();
-    this.tablePath = this.recordDefinition.getPathName();
-    this.qualifiedTableName = this.recordDefinition.getQualifiedTableName();
+    this.table = recordDefinition.getRecordDefinition();
+    this.tablePath = this.table.getTablePath();
+    return this;
+  }
+
+  public Join setAlias(final String alias) {
+    this.alias = alias;
+    return this;
+  }
+
+  public Join statement(final QueryValue statement) {
+    this.statement = statement;
+    return this;
+  }
+
+  public Join table(final TableReference table) {
+    this.table = table;
     return this;
   }
 
   public Join tablePath(final PathName tableName) {
     this.tablePath = tableName;
-    this.qualifiedTableName = JdbcUtils.getQualifiedTableName(this.tablePath);
     return this;
   }
 
