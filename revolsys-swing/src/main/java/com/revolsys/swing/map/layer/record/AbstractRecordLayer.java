@@ -2994,7 +2994,7 @@ public abstract class AbstractRecordLayer extends AbstractLayer implements
   @Override
   public void setEditable(final boolean editable) {
     Invoke.background("Set Editable " + this, () -> {
-      if (editable == false) {
+      if (!editable) {
         firePropertyChange("preEditable", false, true);
         final boolean hasChanges = isHasChanges();
         if (hasChanges) {

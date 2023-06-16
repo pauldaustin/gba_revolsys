@@ -297,13 +297,7 @@ public interface Triangles {
    * @return true if the triangle is acute
    */
   static boolean isAcute(final Point a, final Point b, final Point c) {
-    if (!Point.isAcute(a, b, c)) {
-      return false;
-    }
-    if (!Point.isAcute(b, c, a)) {
-      return false;
-    }
-    if (!Point.isAcute(c, a, b)) {
+    if (!Point.isAcute(a, b, c) || !Point.isAcute(b, c, a) || !Point.isAcute(c, a, b)) {
       return false;
     }
     return true;

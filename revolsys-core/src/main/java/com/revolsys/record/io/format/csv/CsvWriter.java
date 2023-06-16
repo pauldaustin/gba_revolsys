@@ -16,10 +16,6 @@ public class CsvWriter implements BaseCloseable {
 
   private String newLine = "\n";
 
-  private int maxFieldLength = Integer.MAX_VALUE;
-
-  private boolean useQuotes;
-
   /**
    * Constructs CSVReader with supplied separator and quote char.
    *
@@ -53,7 +49,6 @@ public class CsvWriter implements BaseCloseable {
   }
 
   public void setMaxFieldLength(final int maxFieldLength) {
-    this.maxFieldLength = maxFieldLength;
   }
 
   public void setNewLine(final String newLine) {
@@ -61,7 +56,6 @@ public class CsvWriter implements BaseCloseable {
   }
 
   public void setUseQuotes(final boolean useQuotes) {
-    this.useQuotes = useQuotes;
   }
 
   public void write(final Collection<? extends Object> values) {

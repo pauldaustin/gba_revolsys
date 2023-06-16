@@ -244,18 +244,12 @@ public class ConvexHull {
       final double y3 = c3.getY();
 
       if (x1 != x3) {
-        if (x1 <= x2 && x2 <= x3) {
-          return true;
-        }
-        if (x3 <= x2 && x2 <= x1) {
+        if ((x1 <= x2 && x2 <= x3) || (x3 <= x2 && x2 <= x1)) {
           return true;
         }
       }
       if (y1 != y3) {
-        if (y1 <= y2 && y2 <= y3) {
-          return true;
-        }
-        if (y3 <= y2 && y2 <= y1) {
+        if ((y1 <= y2 && y2 <= y3) || (y3 <= y2 && y2 <= y1)) {
           return true;
         }
       }

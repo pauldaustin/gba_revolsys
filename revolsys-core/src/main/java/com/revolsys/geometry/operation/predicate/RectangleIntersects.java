@@ -73,7 +73,7 @@ class EnvelopeIntersectsVisitor extends ShortCircuitedGeometryVisitor {
 
   @Override
   protected boolean isDone() {
-    return this.intersects == true;
+    return this.intersects;
   }
 
   @Override
@@ -85,10 +85,6 @@ class EnvelopeIntersectsVisitor extends ShortCircuitedGeometryVisitor {
       return;
     }
     // rectangle contains target env => must intersect
-    if (this.rectEnv.bboxCovers(boundingBox)) {
-      this.intersects = true;
-      return;
-    }
     /**
      * Since the envelopes intersect and the test element is connected, if the
      * test envelope is completely bisected by an edge of the rectangle the
@@ -98,8 +94,8 @@ class EnvelopeIntersectsVisitor extends ShortCircuitedGeometryVisitor {
      * completely bisected. In this case it is not possible to make a conclusion
      * about the presence of an intersection.
      */
-    if (boundingBox.getMinX() >= this.rectEnv.getMinX()
-      && boundingBox.getMaxX() <= this.rectEnv.getMaxX()) {
+    if (this.rectEnv.bboxCovers(boundingBox) || (boundingBox.getMinX() >= this.rectEnv.getMinX()
+      && boundingBox.getMaxX() <= this.rectEnv.getMaxX())) {
       this.intersects = true;
       return;
     }
@@ -144,7 +140,7 @@ class GeometryContainsPointVisitor extends ShortCircuitedGeometryVisitor {
 
   @Override
   protected boolean isDone() {
-    return this.containsPoint == true;
+    return this.containsPoint;
   }
 
   @Override
@@ -298,7 +294,7 @@ class RectangleIntersectsSegmentVisitor extends ShortCircuitedGeometryVisitor {
 
   @Override
   protected boolean isDone() {
-    return this.hasIntersection == true;
+    return this.hasIntersection;
   }
 
   @Override

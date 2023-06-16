@@ -206,7 +206,7 @@ public class StrTree<I>
     }
     final StrTreeLeaf<I> itemBoundable = new StrTreeLeaf<>(bounds, item);
     this.strTreeLeafs.add(itemBoundable);
-  };
+  }
 
   /**
    * Inserts an item having the given bounds into the tree.

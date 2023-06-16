@@ -145,10 +145,7 @@ public class TaggedLineStringSimplifier {
 
   private boolean hasBadIntersection(final TaggedLineString parentLine, final int[] sectionIndex,
     final LineSegment candidateSeg) {
-    if (hasBadOutputIntersection(candidateSeg)) {
-      return true;
-    }
-    if (hasBadInputIntersection(parentLine, sectionIndex, candidateSeg)) {
+    if (hasBadOutputIntersection(candidateSeg) || hasBadInputIntersection(parentLine, sectionIndex, candidateSeg)) {
       return true;
     }
     return false;

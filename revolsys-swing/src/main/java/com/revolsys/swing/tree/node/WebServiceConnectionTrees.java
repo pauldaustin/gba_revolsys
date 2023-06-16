@@ -2,11 +2,11 @@ package com.revolsys.swing.tree.node;
 
 import org.jeometry.common.io.PathName;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.connection.ConnectionRegistry;
 import com.revolsys.gis.wms.WmsClient;
 import com.revolsys.record.io.format.esri.rest.ArcGisRestCatalog;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.io.format.mapguide.MapGuideWebService;
 import com.revolsys.swing.Borders;
 import com.revolsys.swing.SwingUtil;

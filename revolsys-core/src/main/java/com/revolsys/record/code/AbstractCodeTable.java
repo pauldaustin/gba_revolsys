@@ -53,16 +53,16 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
     return this.data.get();
   }
 
-  public CodeTableEntry getEntry(Consumer<CodeTableEntry> callback, final Object idOrValue) {
+  public CodeTableEntry getEntry(final Consumer<CodeTableEntry> callback, final Object idOrValue) {
     return getData().getEntry(idOrValue);
   }
 
-  public Identifier getIdentidier(int index) {
+  public Identifier getIdentidier(final int index) {
     return getData().getIdentidier(index);
   }
 
   @Override
-  public Identifier getIdentifier(Consumer<CodeTableEntry> callback, final Object value) {
+  public Identifier getIdentifier(final Consumer<CodeTableEntry> callback, final Object value) {
     final CodeTableEntry entry = getEntry(callback, value);
     return CodeTableEntry.getIdentifier(entry);
   }
@@ -92,7 +92,7 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   }
 
   @Override
-  public <V> V getValue(Consumer<CodeTableEntry> callback, Identifier id) {
+  public <V> V getValue(final Consumer<CodeTableEntry> callback, final Identifier id) {
     final CodeTableEntry entry = getEntry(callback, id);
     return CodeTableEntry.getValue(entry);
   }
@@ -112,7 +112,7 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   }
 
   @Override
-  public List<Object> getValues(Consumer<CodeTableEntry> callback, Identifier id) {
+  public List<Object> getValues(final Consumer<CodeTableEntry> callback, final Identifier id) {
     final CodeTableEntry entry = getEntry(callback, id);
     return CodeTableEntry.getValues(entry);
   }
@@ -136,7 +136,7 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
     return getData().isEmpty();
   }
 
-  protected boolean isFindByValue(Identifier identifier) {
+  protected boolean isFindByValue(final Identifier identifier) {
     return true;
   }
 
@@ -144,7 +144,7 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
     this.caseSensitive = caseSensitive;
   }
 
-  protected void setData(CodeTableData data) {
+  protected void setData(final CodeTableData data) {
     this.data.set(data);
   }
 
@@ -156,7 +156,8 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
     this.swingEditor = swingEditor;
   }
 
-  public AbstractCodeTable setValueFieldDefinitions(List<FieldDefinition> valueFieldDefinitions) {
+  public AbstractCodeTable setValueFieldDefinitions(
+    final List<FieldDefinition> valueFieldDefinitions) {
     this.valueFieldDefinitions = valueFieldDefinitions;
     return this;
   }
@@ -166,7 +167,7 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
     return getData().size();
   }
 
-  protected CodeTableData updateData(UnaryOperator<CodeTableData> updateAction) {
+  protected CodeTableData updateData(final UnaryOperator<CodeTableData> updateAction) {
     return this.data.updateAndGet(updateAction);
   }
 

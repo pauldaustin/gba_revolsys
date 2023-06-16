@@ -144,7 +144,7 @@ public class LineStringGraph extends Graph<LineSegment> {
               lines.add(line);
             }
             points.clear();
-            ;
+
             points.add(lineSegment.getPoint(0));
             points.add(lineSegment.getPoint(1));
           }
@@ -154,7 +154,7 @@ public class LineStringGraph extends Graph<LineSegment> {
               final LineString line = LineStringGraph.this.geometryFactory.lineString(points);
               lines.add(line);
               points.clear();
-              ;
+
               points.add(toNode);
             }
           }

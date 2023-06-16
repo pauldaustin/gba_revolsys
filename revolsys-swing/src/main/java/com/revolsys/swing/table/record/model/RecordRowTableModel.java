@@ -7,8 +7,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.annotation.PreDestroy;
 import javax.swing.SortOrder;
+
+import jakarta.annotation.PreDestroy;
 
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.DataType;

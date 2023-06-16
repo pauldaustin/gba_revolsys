@@ -28,7 +28,6 @@ import org.w3c.dom.NodeList;
 
 import com.revolsys.beans.AbstractPropertyChangeSupportProxy;
 import com.revolsys.collection.PropertyChangeArrayList;
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.GeometryFactory;
 import com.revolsys.geometry.model.Point;
@@ -315,7 +314,7 @@ public abstract class AbstractGeoreferencedImage extends AbstractPropertyChangeS
           final List<Double> sourceControlPoints = DomUtil.getDoubleList(doc, "SourceGCPs");
           final List<Double> targetControlPoints = DomUtil.getDoubleList(doc, "TargetGCPs");
           if (sourceControlPoints.size() > 0 && targetControlPoints.size() > 0) {
-            int imageHeight = getImageHeight();
+            final int imageHeight = getImageHeight();
             final List<MappedLocation> tiePoints = new ArrayList<>();
             for (int i = 0; i < sourceControlPoints.size()
               && i < targetControlPoints.size(); i += 2) {

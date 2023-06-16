@@ -29,7 +29,7 @@ public class HeaderField implements Cloneable {
   private List<String> values;
 
   public HeaderField(final String fieldName, final int lineNumber) {
-    this(fieldName, new ArrayList<String>(), lineNumber);
+    this(fieldName, new ArrayList<>(), lineNumber);
   }
 
   public HeaderField(final String fieldName, final List<String> values, final int lineNumber) {

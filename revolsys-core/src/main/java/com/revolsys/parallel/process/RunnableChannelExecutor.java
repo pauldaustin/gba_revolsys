@@ -34,7 +34,7 @@ public class RunnableChannelExecutor extends ThreadPoolExecutor implements Proce
   private final AtomicInteger taskCount = new AtomicInteger();
 
   public RunnableChannelExecutor() {
-    super(0, 100, 60, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(), new NamedThreadFactory());
+    super(0, 100, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new NamedThreadFactory());
   }
 
   @Override

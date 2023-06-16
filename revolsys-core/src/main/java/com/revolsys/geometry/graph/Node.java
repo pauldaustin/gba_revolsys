@@ -17,7 +17,6 @@ import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.geometry.graph.attribute.NodeProperties;
@@ -29,6 +28,7 @@ import com.revolsys.geometry.model.Point;
 import com.revolsys.geometry.model.impl.PointDoubleXY;
 import com.revolsys.properties.ObjectPropertyProxy;
 import com.revolsys.properties.ObjectWithProperties;
+import com.revolsys.record.io.format.json.JsonObject;
 
 public class Node<T> extends PointDoubleXY implements ObjectWithProperties, Externalizable {
   private static final int[] EMPTY_IDS = new int[0];

@@ -150,8 +150,8 @@ public class LineStringDoubleGeometryFactory extends LineStringDouble {
 
   public static LineString newLineStringDoubleGf(final GeometryFactory geometryFactory,
     final int axisCount, final double... coordinates) {
-    return new LineStringDoubleGeometryFactory(geometryFactory, axisCount, coordinates.length / axisCount,
-      coordinates);
+    return new LineStringDoubleGeometryFactory(geometryFactory, axisCount,
+      coordinates.length / axisCount, coordinates);
   }
 
   /**

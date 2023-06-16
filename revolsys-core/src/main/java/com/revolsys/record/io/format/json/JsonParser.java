@@ -46,7 +46,8 @@ public class JsonParser implements Iterator<JsonParser.EventType>, Closeable {
 
   public static Map<String, Object> getMap(final Reader reader) {
     final JsonParser parser = new JsonParser(reader);
-    try (parser) {
+    try (
+      parser) {
       if (parser.next() == EventType.startDocument) {
         return parser.getMap();
       } else {

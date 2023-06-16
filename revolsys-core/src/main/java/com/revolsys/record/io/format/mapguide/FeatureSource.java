@@ -11,11 +11,11 @@ import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.io.PathName;
 
 import com.revolsys.collection.Parent;
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.geometry.model.GeometryDataTypes;
 import com.revolsys.geometry.model.GeometryFactory;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.schema.RecordDefinitionImpl;
 import com.revolsys.spring.resource.Resource;
 import com.revolsys.util.Property;
@@ -76,7 +76,8 @@ public class FeatureSource extends ResourceDocument implements Parent<MapGuideFe
     return "folder:table";
   }
 
-  private MapGuideFeatureLayer newLayer(final String name, final MapEx element, final MapEx complexType) {
+  private MapGuideFeatureLayer newLayer(final String name, final MapEx element,
+    final MapEx complexType) {
     if (!"true".equals(getString(complexType, "@abstract"))) {
       final PathName pathName = getPathName();
       final PathName layerPathName = pathName.newChild(name);

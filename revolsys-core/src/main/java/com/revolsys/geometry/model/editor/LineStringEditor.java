@@ -854,7 +854,8 @@ public class LineStringEditor extends AbstractGeometryEditor<LineStringEditor>
     final double[] coordinates = new double[coordinateCount];
     System.arraycopy(this.coordinates, 0, coordinates, 0, coordinateCount);
     final GeometryFactory geometryFactory = getGeometryFactory();
-    return new LinearRingDoubleGeometryFactory(geometryFactory, this.axisCount, this.vertexCount, coordinates);
+    return new LinearRingDoubleGeometryFactory(geometryFactory, this.axisCount, this.vertexCount,
+      coordinates);
   }
 
   @Override

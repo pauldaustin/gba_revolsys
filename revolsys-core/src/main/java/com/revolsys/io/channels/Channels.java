@@ -45,8 +45,8 @@ public class Channels {
     }
   }
 
-  public static long copy(final ReadableByteChannel in, final WritableByteChannel out, long size)
-    throws IOException {
+  public static long copy(final ReadableByteChannel in, final WritableByteChannel out,
+    final long size) throws IOException {
     if (in instanceof FileChannel) {
       copy(in, out, size);
       return size;
@@ -58,7 +58,7 @@ public class Channels {
         if (remaining < 8192) {
           buffer.limit((int)remaining);
         }
-        int readCount = in.read(buffer);
+        final int readCount = in.read(buffer);
         if (readCount < 0) {
           break;
         }

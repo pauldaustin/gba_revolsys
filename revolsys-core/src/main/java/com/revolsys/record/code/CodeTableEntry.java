@@ -6,7 +6,7 @@ import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.DataType;
 
 public interface CodeTableEntry {
-  static CodeTableEntry create(Identifier identifier, Object value) {
+  static CodeTableEntry create(final Identifier identifier, final Object value) {
     return new SingleValueCodeTableEntry(identifier, value);
   }
 
@@ -19,7 +19,7 @@ public interface CodeTableEntry {
   }
 
   @SuppressWarnings("unchecked")
-  static <V> V getValue(CodeTableEntry entry) {
+  static <V> V getValue(final CodeTableEntry entry) {
     if (entry == null) {
       return null;
     } else {
@@ -27,7 +27,7 @@ public interface CodeTableEntry {
     }
   }
 
-  static List<Object> getValues(CodeTableEntry entry) {
+  static List<Object> getValues(final CodeTableEntry entry) {
     if (entry == null) {
       return null;
     } else {
@@ -35,7 +35,7 @@ public interface CodeTableEntry {
     }
   }
 
-  static int maxLength(Iterable<CodeTableEntry> entries) {
+  static int maxLength(final Iterable<CodeTableEntry> entries) {
     int length = 0;
     for (final CodeTableEntry entry : entries) {
       final int valueLength = entry.getLength();
@@ -46,7 +46,7 @@ public interface CodeTableEntry {
     return length;
   }
 
-  default boolean equalsValue(Object value) {
+  default boolean equalsValue(final Object value) {
     return DataType.equal(value, getValue());
   }
 

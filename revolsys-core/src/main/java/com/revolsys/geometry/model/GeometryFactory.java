@@ -2281,7 +2281,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     return new PointDoubleXYGeometryFactory(this, x, y);
   }
 
-  public Point point(final double x, double y, double z) {
+  public Point point(final double x, final double y, final double z) {
     return new PointDoubleXYZGeometryFactory(this, x, y, z);
   }
 

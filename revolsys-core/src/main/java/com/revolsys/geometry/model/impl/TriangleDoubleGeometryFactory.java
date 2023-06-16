@@ -10,7 +10,8 @@ public class TriangleDoubleGeometryFactory extends TriangleDouble {
 
   private final GeometryFactory geometryFactory;
 
-  public TriangleDoubleGeometryFactory(final GeometryFactory geometryFactory, final double... coordinates) {
+  public TriangleDoubleGeometryFactory(final GeometryFactory geometryFactory,
+    final double... coordinates) {
     super(coordinates);
     this.geometryFactory = geometryFactory;
   }

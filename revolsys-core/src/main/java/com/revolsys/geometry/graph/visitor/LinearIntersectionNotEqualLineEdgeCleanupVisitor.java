@@ -41,7 +41,7 @@ public class LinearIntersectionNotEqualLineEdgeCleanupVisitor extends AbstractVi
   private Comparator<Record> newerComparator;
 
   public LinearIntersectionNotEqualLineEdgeCleanupVisitor() {
-    super.setComparator(new EdgeLengthComparator<Record>(true));
+    super.setComparator(new EdgeLengthComparator<>(true));
   }
 
   @Override

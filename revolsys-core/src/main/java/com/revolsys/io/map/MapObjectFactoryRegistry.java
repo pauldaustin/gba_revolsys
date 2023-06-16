@@ -27,8 +27,7 @@ public class MapObjectFactoryRegistry {
   public static void init() {
   }
 
-  public static void newFactory(final String typeName,
-    final Function<MapEx, Object> function) {
+  public static void newFactory(final String typeName, final Function<MapEx, Object> function) {
     newFactory(typeName, CaseConverter.toCapitalizedWords(typeName), function);
   }
 

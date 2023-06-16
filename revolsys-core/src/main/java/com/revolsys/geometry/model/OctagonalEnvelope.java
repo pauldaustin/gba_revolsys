@@ -295,14 +295,7 @@ public class OctagonalEnvelope {
   }
 
   public boolean intersects(final OctagonalEnvelope other) {
-    if (isNull() || other.isNull()) {
-      return false;
-    }
-
-    if (this.minX > other.maxX) {
-      return false;
-    }
-    if (this.maxX < other.minX) {
+    if (isNull() || other.isNull() || (this.minX > other.maxX) || (this.maxX < other.minX)) {
       return false;
     }
     if (this.minY > other.maxY) {
@@ -327,16 +320,7 @@ public class OctagonalEnvelope {
   }
 
   public boolean intersects(final Point p) {
-    if (this.minX > p.getX()) {
-      return false;
-    }
-    if (this.maxX < p.getX()) {
-      return false;
-    }
-    if (this.minY > p.getY()) {
-      return false;
-    }
-    if (this.maxY < p.getY()) {
+    if ((this.minX > p.getX()) || (this.maxX < p.getX()) || (this.minY > p.getY()) || (this.maxY < p.getY())) {
       return false;
     }
 

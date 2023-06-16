@@ -14,7 +14,7 @@ public class ObjectListTable<T> extends BaseJTable implements Iterable<T> {
   private static final long serialVersionUID = 1L;
 
   public ObjectListTable(final List<String> columnNames, final List<String> columnTitles) {
-    this(new ObjectListTableModel<T>(columnNames, columnTitles));
+    this(new ObjectListTableModel<>(columnNames, columnTitles));
   }
 
   public ObjectListTable(final List<T> objects, final List<String> columnNames,
@@ -37,7 +37,7 @@ public class ObjectListTable<T> extends BaseJTable implements Iterable<T> {
   }
 
   public ObjectListTable(final String... columnNames) {
-    this(new ObjectListTableModel<T>(columnNames));
+    this(new ObjectListTableModel<>(columnNames));
   }
 
   @SuppressWarnings("unchecked")

@@ -478,7 +478,7 @@ public class LineMatchGraph<T> extends Graph<LineSegmentMatch> {
 
   private Set<Node<LineSegmentMatch>> getStartNodes(final int index) {
     while (index >= this.startNodes.size()) {
-      this.startNodes.add(new LinkedHashSet<Node<LineSegmentMatch>>());
+      this.startNodes.add(new LinkedHashSet<>());
     }
     return this.startNodes.get(index);
   }

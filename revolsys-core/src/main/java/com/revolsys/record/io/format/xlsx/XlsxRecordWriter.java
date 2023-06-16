@@ -6,6 +6,8 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
 
+import jakarta.xml.bind.JAXBException;
+
 import org.docx4j.jaxb.NamespacePrefixMapperUtils;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io3.Save;
@@ -42,8 +44,6 @@ import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.record.schema.RecordDefinitionProxy;
 import com.revolsys.spring.resource.Resource;
-
-import jakarta.xml.bind.JAXBException;
 
 public class XlsxRecordWriter extends AbstractRecordWriter {
   private static final ObjectFactory smlObjectFactory = Context.getsmlObjectFactory();

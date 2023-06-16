@@ -199,7 +199,7 @@ public class LongHashMap<T> implements Map<Long, T>, Cloneable, Serializable {
       Entry<T> n = null;
       if (LongHashMap.this.size != 0) { // advance to first entry
         while (i > 0 && (n = t[--i]) == null) {
-          /* NoOp */;
+          /* NoOp */
         }
       }
       this.next = n;

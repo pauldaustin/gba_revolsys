@@ -159,7 +159,7 @@ public class RecordLayerTableModel extends RecordRowTableModel
     final Consumer<V> consumer) {
     final LayerRecordMenu menu = getMenu();
     return menu.addMenuItem(groupName, -1, name, null, iconName, enabledFilter, consumer);
-  };
+  }
 
   @Override
   public void dispose() {

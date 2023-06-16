@@ -245,7 +245,7 @@ public class UriBuilder {
    */
   public UriBuilder addParameter(final String param, final String value) {
     if (this.queryParams == null) {
-      this.queryParams = new ArrayList<NameValuePair>();
+      this.queryParams = new ArrayList<>();
     }
     this.queryParams.add(new BasicNameValuePair(param, value));
     this.encodedQuery = null;
@@ -266,7 +266,7 @@ public class UriBuilder {
    */
   public UriBuilder addParameters(final List<NameValuePair> nvps) {
     if (this.queryParams == null) {
-      this.queryParams = new ArrayList<NameValuePair>();
+      this.queryParams = new ArrayList<>();
     }
     this.queryParams.addAll(nvps);
     this.encodedQuery = null;
@@ -429,7 +429,7 @@ public class UriBuilder {
    * @since 4.5.8
    */
   public List<String> getPathSegments() {
-    return this.pathSegments != null ? new ArrayList<String>(this.pathSegments)
+    return this.pathSegments != null ? new ArrayList<>(this.pathSegments)
       : Collections.<String> emptyList();
   }
 
@@ -438,7 +438,7 @@ public class UriBuilder {
   }
 
   public List<NameValuePair> getQueryParams() {
-    return this.queryParams != null ? new ArrayList<NameValuePair>(this.queryParams)
+    return this.queryParams != null ? new ArrayList<>(this.queryParams)
       : Collections.<NameValuePair> emptyList();
   }
 
@@ -515,7 +515,7 @@ public class UriBuilder {
       delimSet.set(';');
       delimSet.set('&');
       final ParserCursor cursor = new ParserCursor(0, buffer.length());
-      final List<NameValuePair> list = new ArrayList<NameValuePair>();
+      final List<NameValuePair> list = new ArrayList<>();
       while (!cursor.atEnd()) {
         delimSet.set('=');
         final String name = tokenParser.parseToken(buffer, cursor, delimSet);
@@ -617,7 +617,7 @@ public class UriBuilder {
    */
   public UriBuilder setParameter(final String param, final String value) {
     if (this.queryParams == null) {
-      this.queryParams = new ArrayList<NameValuePair>();
+      this.queryParams = new ArrayList<>();
     }
     if (!this.queryParams.isEmpty()) {
       for (final Iterator<NameValuePair> it = this.queryParams.iterator(); it.hasNext();) {
@@ -646,7 +646,7 @@ public class UriBuilder {
    */
   public UriBuilder setParameters(final List<NameValuePair> nvps) {
     if (this.queryParams == null) {
-      this.queryParams = new ArrayList<NameValuePair>();
+      this.queryParams = new ArrayList<>();
     } else {
       this.queryParams.clear();
     }
@@ -669,7 +669,7 @@ public class UriBuilder {
    */
   public UriBuilder setParameters(final NameValuePair... nvps) {
     if (this.queryParams == null) {
-      this.queryParams = new ArrayList<NameValuePair>();
+      this.queryParams = new ArrayList<>();
     } else {
       this.queryParams.clear();
     }
@@ -701,7 +701,7 @@ public class UriBuilder {
    */
   public UriBuilder setPathSegments(final List<String> pathSegments) {
     this.pathSegments = pathSegments != null && pathSegments.size() > 0
-      ? new ArrayList<String>(pathSegments)
+      ? new ArrayList<>(pathSegments)
       : null;
     this.encodedSchemeSpecificPart = null;
     this.encodedPath = null;
@@ -772,7 +772,7 @@ public class UriBuilder {
       if (PATH_SEPARATORS.get(s.charAt(cursor.getPos()))) {
         cursor.updatePos(cursor.getPos() + 1);
       }
-      final List<String> list = new ArrayList<String>();
+      final List<String> list = new ArrayList<>();
       final StringBuilder buf = new StringBuilder();
       for (;;) {
         if (cursor.atEnd()) {

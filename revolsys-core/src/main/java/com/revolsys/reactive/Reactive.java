@@ -107,7 +107,7 @@ public class Reactive {
 
   public static <V> MergeSinkHandler<V> merge(final Publisher<V> source1,
     final Publisher<V> source2, final Comparator<V> comparator) {
-    return new MergeSinkHandler<V>(source1, source2, comparator);
+    return new MergeSinkHandler<>(source1, source2, comparator);
   }
 
   public static <R extends AutoCloseable, V> Mono<V> monoCloseable(final Callable<R> supplier,
@@ -124,7 +124,7 @@ public class Reactive {
   }
 
   public static <T> Consumer<T> once(final Runnable action) {
-    return new Consumer<T>() {
+    return new Consumer<>() {
       boolean first = true;
 
       @Override

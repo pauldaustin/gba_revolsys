@@ -59,7 +59,7 @@ public interface Layer extends GeometryFactoryProxy, PropertyChangeSupportProxy,
     }
   }
 
-  default void addSelectedBoundingBox(BoundingBoxEditor boundingBox) {
+  default void addSelectedBoundingBox(final BoundingBoxEditor boundingBox) {
   }
 
   default void addVisibleBbox(final BoundingBoxEditor boundingBox) {

@@ -105,7 +105,7 @@ public class FieldFilterPanel extends JComponent implements PropertyChangeListen
 
   private RecordLayerTableModel tableModel;
 
-  private final TextField whereField = new TextField(20).setFieldEditable(false);;
+  private final TextField whereField = new TextField(20).setFieldEditable(false);
 
   private final ItemListener itemListener = (e) -> {
     if (this.settingFilter.isFalse()) {

@@ -809,9 +809,7 @@ public class ODataJsonDeserializer implements ODataDeserializer {
       if (jsonNode != null) {
         if (jsonNode.isArray()) {
           final ArrayNode arrayNode = (ArrayNode)jsonNode;
-          final Iterator<JsonNode> it = arrayNode.iterator();
-          while (it.hasNext()) {
-            final JsonNode next = it.next();
+          for (JsonNode next : arrayNode) {
             if (next.has(key)) {
               parsedValues.add(new URI(next.get(key).asText()));
             }

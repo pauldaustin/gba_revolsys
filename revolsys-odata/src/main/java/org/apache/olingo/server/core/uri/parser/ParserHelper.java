@@ -350,8 +350,8 @@ public class ParserHelper {
         // Don't pass on the current alias to avoid circular references.
         final Map<String, AliasQueryOption> aliasesInner = new HashMap<>(aliases);
         aliasesInner.remove(name);
-        final Expression expression = new ExpressionParser(edm).parse(aliasTokenizer,
-          referringType, null, aliasesInner);
+        final Expression expression = new ExpressionParser(edm).parse(aliasTokenizer, referringType,
+          null, aliasesInner);
         final EdmType expressionType = ExpressionParser.getType(expression);
         if (aliasTokenizer.next(TokenKind.EOF)
           && (expressionType == null || type == null || expressionType.equals(type))) {
@@ -404,8 +404,8 @@ public class ParserHelper {
             tokenizer.getText());
         }
       } else if (withComplex) {
-        final Expression expression = new ExpressionParser(edm).parse(tokenizer,
-          referringType, null, aliases);
+        final Expression expression = new ExpressionParser(edm).parse(tokenizer, referringType,
+          null, aliases);
         parameter
           .setText(
             expression instanceof Literal ? "null".equals(((Literal)expression).getText()) ? null

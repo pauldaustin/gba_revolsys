@@ -5,6 +5,8 @@ import javax.xml.namespace.QName;
 
 public class XmlName extends QName implements XmlNameProxy {
 
+  private static final long serialVersionUID = 1L;
+
   private XmlNamespace namespace;
 
   public XmlName(final String localPart) {
@@ -27,6 +29,7 @@ public class XmlName extends QName implements XmlNameProxy {
     this.namespace = namespace;
   }
 
+  @Override
   public XmlNamespace getNamespace() {
     return this.namespace;
   }

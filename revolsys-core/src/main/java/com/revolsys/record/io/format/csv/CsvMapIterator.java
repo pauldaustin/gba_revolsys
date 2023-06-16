@@ -7,8 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.spring.resource.Resource;
 
 public class CsvMapIterator implements Iterator<MapEx> {

@@ -421,10 +421,7 @@ public class AffineTransformation implements Cloneable
    */
   @Override
   public boolean equals(final Object obj) {
-    if (obj == null) {
-      return false;
-    }
-    if (!(obj instanceof AffineTransformation)) {
+    if ((obj == null) || !(obj instanceof AffineTransformation)) {
       return false;
     }
 
@@ -456,7 +453,7 @@ public class AffineTransformation implements Cloneable
    * the transform is singular (not invertible),
    * and operations which attempt to compute
    * an inverse will throw a <tt>NoninvertibleTransformException</tt>.
-
+  
    * @return the determinant of the transformation
    * @see #getInverse()
    */

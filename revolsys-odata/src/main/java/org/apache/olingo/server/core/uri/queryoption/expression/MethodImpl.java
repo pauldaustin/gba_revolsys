@@ -135,7 +135,7 @@ public class MethodImpl implements Method {
         kind = null;
     }
     final EdmPrimitiveTypeKind kind1 = kind;
-    ODataImpl r = new ODataImpl();
+    final ODataImpl r = new ODataImpl();
 
     return kind == null ? null : kind1.getInstance();
   }

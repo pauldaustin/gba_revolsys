@@ -639,7 +639,7 @@ public class LasZipItemCodecPoint14V3 implements LasZipItemCodec {
     final int scannerChannel = point.getScannerChannel();
     final boolean scannerChannelChanged = scannerChannel != this.current_context;
     if (scannerChannelChanged) {
-      if (this.contexts[scannerChannel].unused == false) {
+      if (!this.contexts[scannerChannel].unused) {
         lastPoint = this.contexts[scannerChannel].lastPoint;
       }
     }

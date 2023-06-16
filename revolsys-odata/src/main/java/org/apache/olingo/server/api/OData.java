@@ -21,8 +21,6 @@ package org.apache.olingo.server.api;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.provider.CsdlEdmProvider;
 import org.apache.olingo.commons.api.edmx.EdmxReference;
 import org.apache.olingo.commons.api.ex.ODataRuntimeException;

@@ -84,7 +84,7 @@ public class TitleCollapsiblePanel extends BasePanel implements MouseListener {
   }
 
   public void setCollapsed(final boolean collapsed) {
-    if (collapsed == false) {
+    if (!collapsed) {
       synchronized (this) {
         if (!this.created) {
           this.created = true;

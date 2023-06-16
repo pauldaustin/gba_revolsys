@@ -533,7 +533,7 @@ public class OgrRecordStore extends AbstractRecordStore {
     } else {
       layer = dataSource.CreateLayer(name);
     }
-    if (dataSource.TestCapability(ogrConstants.ODsCCreateLayer) == false) {
+    if (!dataSource.TestCapability(ogrConstants.ODsCCreateLayer)) {
       System.err.println("CreateLayer not supported by driver.");
     }
     return OgrRecordDefinition.newRecordDefinition(this, schema, layer);

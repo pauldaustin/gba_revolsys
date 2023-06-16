@@ -78,8 +78,6 @@ public class JsonWriter implements BaseCloseable {
 
   private boolean indented = false;
 
-  private final boolean newlined = false;
-
   public JsonWriter(final OutputStream out, final boolean indent) {
     this(new OutputStreamWriter(out), indent);
   }

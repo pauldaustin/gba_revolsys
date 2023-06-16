@@ -30,7 +30,8 @@ public class OrientedArcConverter extends ArcConverter {
     final LineStringEditor line) {
     final int axisCount = geometryFactory.getAxisCount();
     final int vertexCount = line.getVertexCount();
-    final double[] coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(geometryFactory, line);
+    final double[] coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(geometryFactory,
+      line);
     return new OrientedArcLineString(geometryFactory, axisCount, vertexCount, coordinates);
   }
 

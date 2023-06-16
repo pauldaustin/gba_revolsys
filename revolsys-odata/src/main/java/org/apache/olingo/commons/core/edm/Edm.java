@@ -78,64 +78,64 @@ public class Edm {
   private boolean isPreviousES;
 
   private final Map<FullQualifiedName, EdmEntityContainer> entityContainers = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmEntityContainer>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmEnumType> enumTypes = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmEnumType>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmTypeDefinition> typeDefinitions = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmTypeDefinition>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmEntityType> entityTypes = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmEntityType>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmComplexType> complexTypes = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmComplexType>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmAction> unboundActions = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmAction>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, List<EdmFunction>> unboundFunctionsByName = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, List<EdmFunction>>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FunctionMapKey, EdmFunction> unboundFunctionsByKey = Collections
-    .synchronizedMap(new HashMap<FunctionMapKey, EdmFunction>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<ActionMapKey, EdmAction> boundActions = Collections
-    .synchronizedMap(new HashMap<ActionMapKey, EdmAction>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FunctionMapKey, EdmFunction> boundFunctions = Collections
-    .synchronizedMap(new HashMap<FunctionMapKey, EdmFunction>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmTerm> terms = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmTerm>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<TargetQualifierMapKey, EdmAnnotations> annotationGroups = Collections
-    .synchronizedMap(new HashMap<TargetQualifierMapKey, EdmAnnotations>());
+    .synchronizedMap(new HashMap<>());
 
   private Map<String, String> aliasToNamespaceInfo = null;
 
   private final Map<FullQualifiedName, EdmEntityType> entityTypesWithAnnotations = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmEntityType>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmEntityType> entityTypesDerivedFromES = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmEntityType>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmComplexType> complexTypesWithAnnotations = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmComplexType>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, EdmComplexType> complexTypesDerivedFromES = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, EdmComplexType>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<String, List<CsdlAnnotation>> annotationMap = new HashMap<>();
 
   private final CsdlEdmProvider provider;
 
   private final Map<FullQualifiedName, List<CsdlAction>> actionsMap = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, List<CsdlAction>>());
+    .synchronizedMap(new HashMap<>());
 
   private final Map<FullQualifiedName, List<CsdlFunction>> functionsMap = Collections
-    .synchronizedMap(new HashMap<FullQualifiedName, List<CsdlFunction>>());
+    .synchronizedMap(new HashMap<>());
 
   private List<CsdlSchema> termSchemaDefinition = new ArrayList<>();
 
@@ -406,7 +406,7 @@ public class Edm {
       this.boundFunctions.put(key, function);
     } else {
       if (!this.unboundFunctionsByName.containsKey(functionName)) {
-        this.unboundFunctionsByName.put(functionName, new ArrayList<EdmFunction>());
+        this.unboundFunctionsByName.put(functionName, new ArrayList<>());
       }
       this.unboundFunctionsByName.get(functionName).add(function);
 

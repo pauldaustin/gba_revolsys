@@ -2,6 +2,8 @@ package com.revolsys.net.http.exception;
 
 public class SecurityException extends RuntimeException {
 
+  private static final long serialVersionUID = 1L;
+
   public SecurityException(final String message) {
     super(message);
   }

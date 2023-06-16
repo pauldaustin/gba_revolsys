@@ -47,7 +47,7 @@ public class MicrosoftOAuthHandler {
   }
 
   public OpenIdBearerToken callback(final HttpServletRequest request, final String redirectUri,
-    final String nonce, String scope) {
+    final String nonce, final String scope) {
     final String code = request.getParameter("code");
     if (!Property.hasValue(code)) {
       throw new AuthenticationException("Callback doesn't include the required code parameter");
@@ -90,7 +90,7 @@ public class MicrosoftOAuthHandler {
   }
 
   public String getRedirectUri(final String redirectUri, final String state, final String nonce,
-    String scope) {
+    final String scope) {
     final RequestBuilder urlBuilder = this.oauthClient.authorizationUrlBuilder(scope, redirectUri,
       state, nonce, this.prompt);
     return urlBuilder.build().getURI().toASCIIString();

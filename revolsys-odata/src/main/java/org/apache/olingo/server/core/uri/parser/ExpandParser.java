@@ -277,8 +277,8 @@ public class ExpandParser {
 
         } else if (tokenizer.next(TokenKind.FILTER)) {
           ParserHelper.requireNext(tokenizer, TokenKind.EQ);
-          systemQueryOption = new FilterParser(this.edm).parse(tokenizer,
-            referencedType, null, this.aliases);
+          systemQueryOption = new FilterParser(this.edm).parse(tokenizer, referencedType, null,
+            this.aliases);
 
         } else if (!forRef && !forCount && tokenizer.next(TokenKind.LEVELS)) {
           ParserHelper.requireNext(tokenizer, TokenKind.EQ);
@@ -286,8 +286,8 @@ public class ExpandParser {
 
         } else if (!forCount && tokenizer.next(TokenKind.ORDERBY)) {
           ParserHelper.requireNext(tokenizer, TokenKind.EQ);
-          systemQueryOption = new OrderByParser(this.edm).parse(tokenizer,
-            referencedType, null, this.aliases);
+          systemQueryOption = new OrderByParser(this.edm).parse(tokenizer, referencedType, null,
+            this.aliases);
 
         } else if (tokenizer.next(TokenKind.SEARCH)) {
           ParserHelper.requireNext(tokenizer, TokenKind.EQ);

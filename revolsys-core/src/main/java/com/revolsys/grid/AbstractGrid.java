@@ -117,7 +117,7 @@ public abstract class AbstractGrid extends BaseObjectWithProperties implements G
       }
     }
 
-  };
+  }
 
   protected void expandRange(final double value) {
     if (Double.isFinite(value)) {

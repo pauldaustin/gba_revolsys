@@ -79,16 +79,12 @@ public class RectangleContains {
 
   public boolean contains(final Geometry geom) {
     // the test geometry must be wholly contained in the rectangle envelope
-    if (!this.rectEnv.bboxCovers(geom.getBoundingBox())) {
-      return false;
-    }
-
     /**
      * Check that geom is not contained entirely in the rectangle boundary.
      * According to the somewhat odd spec of the SFS, if this
      * is the case the geometry is NOT contained.
      */
-    if (isContainedInBoundary(geom)) {
+    if (!this.rectEnv.bboxCovers(geom.getBoundingBox()) || isContainedInBoundary(geom)) {
       return false;
     }
     return true;

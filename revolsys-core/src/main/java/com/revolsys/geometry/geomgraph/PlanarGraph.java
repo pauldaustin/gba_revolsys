@@ -178,11 +178,7 @@ public class PlanarGraph {
    */
   public Edge findEdgeInSameDirection(final Point p0, final Point p1) {
     for (final Edge e : this.edges) {
-      if (matchInSameDirection(p0, p1, e.getPoint(0), e.getPoint(1))) {
-        return e;
-      }
-
-      if (matchInSameDirection(p0, p1, e.getPoint(e.getVertexCount() - 1),
+      if (matchInSameDirection(p0, p1, e.getPoint(0), e.getPoint(1)) || matchInSameDirection(p0, p1, e.getPoint(e.getVertexCount() - 1),
         e.getPoint(e.getVertexCount() - 2))) {
         return e;
       }
