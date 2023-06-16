@@ -3,7 +3,6 @@ package com.revolsys.record.io.format.esri.gdb.xml.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,19 +15,10 @@ import com.revolsys.record.code.AbstractCodeTable;
 import com.revolsys.record.io.format.esri.gdb.xml.model.enums.FieldType;
 import com.revolsys.record.io.format.esri.gdb.xml.model.enums.MergePolicyType;
 import com.revolsys.record.io.format.esri.gdb.xml.model.enums.SplitPolicyType;
+import com.revolsys.record.io.format.json.JsonObject;
 
-public class Domain extends AbstractCodeTable implements Cloneable {
+public class Domain extends AbstractCodeTable {
   private List<CodedValue> codedValues = new ArrayList<>();
-
-  private Map<Identifier, List<Object>> idValueMap = new HashMap<>();
-
-  private int maxId = 0;
-
-  private Map<String, Identifier> stringIdMap = new HashMap<>();
-
-  private JComponent swingEditor;
-
-  private Map<String, Identifier> valueIdMap = new HashMap<>();
 
   private String description;
 
@@ -36,15 +26,19 @@ public class Domain extends AbstractCodeTable implements Cloneable {
 
   private FieldType fieldType = FieldType.esriFieldTypeSmallInteger;
 
+  private String maxValue;
+
   private MergePolicyType mergePolicy = MergePolicyType.esriMPTAreaWeighted;
+
+  private String minValue;
 
   private String owner;
 
   private SplitPolicyType splitPolicy = SplitPolicyType.esriSPTDuplicate;
 
-  private String minValue;
+  private JComponent swingEditor;
 
-  private String maxValue;
+  private int maxId;
 
   public Domain() {
   }
@@ -59,10 +53,7 @@ public class Domain extends AbstractCodeTable implements Cloneable {
     final Identifier identifier = Identifier.newIdentifier(code);
     final CodedValue value = new CodedValue(code, name);
     this.codedValues.add(value);
-    final List<Object> values = Collections.<Object> singletonList(name);
-    this.idValueMap.put(identifier, values);
-    this.stringIdMap.put(code.toString(), identifier);
-    this.valueIdMap.put(name.toLowerCase(), identifier);
+    super.addEntry(identifier, name);
     if (code instanceof Number) {
       final int id = ((Number)code).intValue();
       if (this.maxId < id) {
@@ -78,28 +69,17 @@ public class Domain extends AbstractCodeTable implements Cloneable {
   }
 
   @Override
-  protected int calculateValueFieldLength() {
-    int length = 0;
-    for (final String value : this.valueIdMap.keySet()) {
-      final int valueLength = value.length();
-      if (valueLength > length) {
-        length = valueLength;
-      }
-    }
-    return length;
-  }
-
-  @Override
   public Domain clone() {
     final Domain clone = (Domain)super.clone();
-    clone.idValueMap = new HashMap<>();
-    clone.stringIdMap = new HashMap<>();
-    clone.valueIdMap = new HashMap<>();
     clone.codedValues = new ArrayList<>();
     for (final CodedValue codedValue : this.codedValues) {
       clone.addCodedValue(codedValue.getCode(), codedValue.getName());
     }
     return clone;
+  }
+
+  @Override
+  public void close() {
   }
 
   @Override
@@ -141,28 +121,6 @@ public class Domain extends AbstractCodeTable implements Cloneable {
   }
 
   @Override
-  public Identifier getIdentifier(final List<Object> values) {
-    if (this.codedValues.isEmpty()) {
-      return null;
-    } else if (values.size() == 1) {
-      final Object value = values.get(0);
-      if (value == null) {
-        return null;
-      } else if (this.idValueMap.containsKey(value)) {
-        return Identifier.newIdentifier(value);
-      } else if (this.stringIdMap.containsKey(value.toString())) {
-        return this.stringIdMap.get(value.toString());
-      } else {
-        final String lowerValue = ((String)value).toLowerCase();
-        final Identifier id = this.valueIdMap.get(lowerValue);
-        return id;
-      }
-    } else {
-      throw new IllegalArgumentException("Expecting only a single value " + values);
-    }
-  }
-
-  @Override
   public Identifier getIdentifier(final Map<String, ? extends Object> values) {
     if (this.codedValues.isEmpty()) {
       return null;
@@ -173,19 +131,14 @@ public class Domain extends AbstractCodeTable implements Cloneable {
   }
 
   @Override
-  public List<Identifier> getIdentifiers() {
-    return new ArrayList<>(this.idValueMap.keySet());
-  }
-
-  @Override
   public String getIdFieldName() {
     return getDomainName() + "_ID";
   }
 
   @Override
-  public Map<String, ? extends Object> getMap(final Identifier id) {
+  public JsonObject getMap(final Identifier id) {
     final Object value = getValue(id);
-    return Collections.singletonMap("NAME", value);
+    return JsonObject.hash("NAME", value);
   }
 
   public String getMaxValue() {
@@ -223,62 +176,12 @@ public class Domain extends AbstractCodeTable implements Cloneable {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public <V> V getValue(final Identifier id) {
-    final List<Object> values = getValues(id);
-    if (values == null) {
-      return null;
-    } else {
-      final Object value = values.get(0);
-      return (V)value;
-    }
-  }
-
-  @Override
-  public <V> V getValue(final Object id) {
-    return getValue(Identifier.newIdentifier(id));
-  }
-
-  @Override
   public List<String> getValueFieldNames() {
     return Arrays.asList("NAME");
   }
 
-  @Override
-  public List<Object> getValues(final Identifier id) {
-    if (id == null) {
-      return null;
-    } else {
-      List<Object> values = this.idValueMap.get(id);
-      if (values == null) {
-        final Identifier objectId = this.stringIdMap.get(id.toString());
-        if (objectId == null) {
-          return null;
-        } else {
-          values = this.idValueMap.get(objectId);
-        }
-      }
-      return Collections.unmodifiableList(values);
-    }
-  }
-
   public boolean hasCodedValues() {
-    return !this.idValueMap.isEmpty();
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return this.idValueMap.isEmpty();
-  }
-
-  @Override
-  public boolean isLoaded() {
-    return true;
-  }
-
-  @Override
-  public boolean isLoading() {
-    return false;
+    return !isEmpty();
   }
 
   public synchronized Identifier newCodedValue(final String name) {
@@ -296,10 +199,6 @@ public class Domain extends AbstractCodeTable implements Cloneable {
     }
     addCodedValue(id, name);
     return Identifier.newIdentifier(id);
-  }
-
-  @Override
-  public void refresh() {
   }
 
   public synchronized void setCodedValues(final List<CodedValue> codedValues) {

@@ -9,6 +9,8 @@ import java.util.Map;
 import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.date.Dates;
 
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.util.Property;
 
 public class JdbcDateFieldDefinition extends JdbcFieldDefinition {
@@ -19,14 +21,17 @@ public class JdbcDateFieldDefinition extends JdbcFieldDefinition {
 
   @Override
   public JdbcDateFieldDefinition clone() {
-    return new JdbcDateFieldDefinition(getDbName(), getName(), getSqlType(), isRequired(),
-      getDescription(), getProperties());
+    final JdbcDateFieldDefinition clone = new JdbcDateFieldDefinition(getDbName(), getName(),
+      getSqlType(), isRequired(), getDescription(), getProperties());
+    postClone(clone);
+    return clone;
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    return resultSet.getDate(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    return resultSet.getDate(indexes.incrementAndGet());
   }
 
   @Override

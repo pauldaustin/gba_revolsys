@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.jeometry.common.data.type.DataTypes;
 
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.util.Property;
 
 public class JdbcStringFieldDefinition extends JdbcFieldDefinition {
@@ -21,14 +23,17 @@ public class JdbcStringFieldDefinition extends JdbcFieldDefinition {
 
   @Override
   public JdbcStringFieldDefinition clone() {
-    return new JdbcStringFieldDefinition(getDbName(), getName(), getSqlType(), getLength(),
-      isRequired(), getDescription(), getProperties());
+    final JdbcStringFieldDefinition clone = new JdbcStringFieldDefinition(getDbName(), getName(),
+      getSqlType(), getLength(), isRequired(), getDescription(), getProperties());
+    postClone(clone);
+    return clone;
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    String value = resultSet.getString(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    String value = resultSet.getString(indexes.incrementAndGet());
     if (value != null && (this.intern || internStrings)) {
       value = value.intern();
     }

@@ -6,14 +6,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Map;
 
-import com.revolsys.jdbc.JdbcConnection;
-import com.revolsys.jdbc.io.JdbcQueryIterator;
 import com.revolsys.jdbc.io.JdbcQueryResultPager;
 import com.revolsys.jdbc.io.JdbcRecordStore;
 import com.revolsys.record.Record;
-import com.revolsys.record.RecordFactory;
 import com.revolsys.record.query.Query;
-import com.revolsys.record.schema.RecordDefinition;
 
 public class OracleJdbcQueryResultPager extends JdbcQueryResultPager {
 
@@ -43,27 +39,19 @@ public class OracleJdbcQueryResultPager extends JdbcQueryResultPager {
         final int endRowNum = startRowNum + pageSize - 1;
         sql = "SELECT * FROM ( SELECT  T2.*, ROWNUM TROWNUM FROM ( " + sql
           + ") T2 ) WHERE TROWNUM BETWEEN " + startRowNum + " AND " + endRowNum;
-
         try (
-          final JdbcConnection connection = getRecordStore().getJdbcConnection()) {
-          final RecordFactory<Record> recordFactory = getRecordFactory();
-          final RecordDefinition recordDefinition = getRecordDefinition();
-
-          try (
-            final PreparedStatement statement = connection.prepareStatement(sql);
-            final ResultSet resultSet = recordStore.getResultSet(statement, getQuery());) {
-            if (resultSet.next()) {
-              int i = 0;
-              do {
-                final Record record = JdbcQueryIterator.getNextRecord(recordStore, recordDefinition,
-                  this.fields, recordFactory, resultSet, this.internStrings);
-                results.add(record);
-                i++;
-              } while (resultSet.next() && i < pageSize);
-            }
-          } catch (final SQLException e) {
-            throw connection.getException("updateResults", sql, e);
+          final PreparedStatement statement = this.connection.prepareStatement(sql);
+          final ResultSet resultSet = createResultSet(statement);) {
+          if (resultSet.next()) {
+            int i = 0;
+            do {
+              final Record record = getNextRecord(resultSet);
+              results.add(record);
+              i++;
+            } while (resultSet.next() && i < pageSize);
           }
+        } catch (final SQLException e) {
+          throw this.connection.getException("updateResults", sql, e);
         }
         setResults(results);
       }

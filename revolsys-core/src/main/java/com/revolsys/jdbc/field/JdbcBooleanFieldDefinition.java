@@ -7,6 +7,9 @@ import java.util.Map;
 
 import org.jeometry.common.data.type.DataTypes;
 
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
+
 public class JdbcBooleanFieldDefinition extends JdbcFieldDefinition {
   public JdbcBooleanFieldDefinition(final String dbName, final String name, final int sqlType,
     final int length, final boolean required, final String description,
@@ -16,14 +19,17 @@ public class JdbcBooleanFieldDefinition extends JdbcFieldDefinition {
 
   @Override
   public JdbcBooleanFieldDefinition clone() {
-    return new JdbcBooleanFieldDefinition(getDbName(), getName(), getSqlType(), getLength(),
-      isRequired(), getDescription(), getProperties());
+    final JdbcBooleanFieldDefinition clone = new JdbcBooleanFieldDefinition(getDbName(), getName(),
+      getSqlType(), getLength(), isRequired(), getDescription(), getProperties());
+    postClone(clone);
+    return clone;
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final boolean value = resultSet.getBoolean(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final boolean value = resultSet.getBoolean(indexes.incrementAndGet());
     if (resultSet.wasNull()) {
       return null;
     } else {

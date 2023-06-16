@@ -2,6 +2,8 @@ package com.revolsys.record.io.format.csv;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collection;
+import java.util.Map;
 
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.exception.Exceptions;
@@ -9,6 +11,9 @@ import org.jeometry.common.exception.Exceptions;
 import com.revolsys.geometry.model.Geometry;
 import com.revolsys.io.AbstractRecordWriter;
 import com.revolsys.record.Record;
+import com.revolsys.record.io.format.json.JsonList;
+import com.revolsys.record.io.format.json.JsonObject;
+import com.revolsys.record.io.format.json.JsonType;
 import com.revolsys.record.io.format.wkt.EWktWriter;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinitionProxy;
@@ -24,9 +29,17 @@ public class CsvRecordWriter extends AbstractRecordWriter {
 
   private boolean useQuotes;
 
+  private boolean useJson;
+
   private boolean paused = false;
 
   private String newLine = "\n";
+
+  private int maxFieldLength = Integer.MAX_VALUE;
+
+  private boolean initialized = false;
+
+  private boolean writePrjFile = true;
 
   public CsvRecordWriter(final RecordDefinitionProxy recordDefinition, final Object target,
     final char fieldSeparator, final boolean useQuotes, final boolean ewkt) {
@@ -37,7 +50,6 @@ public class CsvRecordWriter extends AbstractRecordWriter {
     final char fieldSeparator, final boolean useQuotes, final boolean ewkt) {
     this(recordDefinition, resource.newWriter(), fieldSeparator, useQuotes, ewkt);
     setResource(resource);
-    recordDefinition.writePrjFile(resource);
   }
 
   public CsvRecordWriter(final RecordDefinitionProxy recordDefinition, final Writer out,
@@ -96,6 +108,10 @@ public class CsvRecordWriter extends AbstractRecordWriter {
     return this.newLine;
   }
 
+  public boolean isWritePrjFile() {
+    return this.writePrjFile;
+  }
+
   public void pause() {
     final Resource resource = getResource();
     if (resource == null) {
@@ -123,21 +139,37 @@ public class CsvRecordWriter extends AbstractRecordWriter {
     this.ewkt = ewkt;
   }
 
+  public void setMaxFieldLength(final int maxFieldLength) {
+    this.maxFieldLength = maxFieldLength;
+  }
+
   public void setNewLine(final String newLine) {
     this.newLine = newLine;
+  }
+
+  public void setUseJson(final boolean useJson) {
+    this.useJson = useJson;
   }
 
   public void setUseQuotes(final boolean useQuotes) {
     this.useQuotes = useQuotes;
   }
 
+  public void setWritePrjFile(final boolean writePrjFile) {
+    this.writePrjFile = writePrjFile;
+  }
+
   private void string(final Object value) throws IOException {
     final Writer out = this.out;
     if (out != null) {
       final String string = value.toString();
+      int length = string.length();
+      if (length > this.maxFieldLength) {
+        length = this.maxFieldLength;
+      }
       if (this.useQuotes) {
         out.write('"');
-        for (int i = 0; i < string.length(); i++) {
+        for (int i = 0; i < length; i++) {
           final char c = string.charAt(i);
           if (c == '"') {
             out.write('"');
@@ -146,13 +178,19 @@ public class CsvRecordWriter extends AbstractRecordWriter {
         }
         out.write('"');
       } else {
-        out.write(string, 0, string.length());
+        out.write(string, 0, length);
       }
     }
   }
 
   @Override
   public void write(final Record record) {
+    if (!this.initialized) {
+      this.initialized = true;
+      if (this.writePrjFile) {
+        this.recordDefinition.writePrjFile(getResource());
+      }
+    }
     Writer out = this.out;
     if (this.paused) {
       this.paused = false;
@@ -186,12 +224,30 @@ public class CsvRecordWriter extends AbstractRecordWriter {
               EWktWriter.write(out, geometry, this.ewkt);
             }
           } else if (value != null) {
-            final DataType dataType = field.getDataType();
-            final String stringValue = dataType.toString(value);
-            if (this.useQuotes && dataType.isRequiresQuotes()) {
-              string(stringValue);
+            if (this.useJson && value instanceof JsonType) {
+              final String string = ((JsonType)value).toJsonString(false);
+              string(string);
+            } else if (this.useJson && value instanceof Collection) {
+              final JsonList list = JsonList.array((Collection<?>)value);
+              final String string = list.toJsonString(false);
+              string(string);
+            } else if (this.useJson && value instanceof Map) {
+              final JsonObject map = JsonObject.hash((Map<String, ?>)value);
+              final String string = map.toJsonString(false);
+              string(string);
             } else {
-              out.write(stringValue, 0, stringValue.length());
+              final DataType dataType = field.getDataType();
+              final String stringValue = dataType.toString(value);
+
+              if (this.useQuotes && dataType.isRequiresQuotes()) {
+                string(stringValue);
+              } else {
+                int length = stringValue.length();
+                if (length > this.maxFieldLength) {
+                  length = this.maxFieldLength;
+                }
+                out.write(stringValue, 0, length);
+              }
             }
           }
         }

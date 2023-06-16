@@ -15,9 +15,9 @@ import java.util.Set;
 
 import org.jeometry.common.logging.Logs;
 
-import com.revolsys.collection.map.LinkedHashMapEx;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.util.Property;
 
 public class MavenPom extends GroupArtifactVersion {
@@ -277,10 +277,10 @@ public class MavenPom extends GroupArtifactVersion {
   @Override
   public MapEx getPomProperties() {
     if (this.pomProperties == null) {
-      return MapEx.EMPTY;
+      return JsonObject.EMPTY;
     } else {
       if (this.mergedPomProperties == null) {
-        final MapEx properties = new LinkedHashMapEx();
+        final MapEx properties = JsonObject.hash();
         final MavenPom parentPom = getParentPom();
         if (parentPom != null) {
           final MapEx parentProperties = parentPom.getPomProperties();

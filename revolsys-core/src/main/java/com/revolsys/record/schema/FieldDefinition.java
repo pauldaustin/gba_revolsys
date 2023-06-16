@@ -1,23 +1,26 @@
 package com.revolsys.record.schema;
 
+import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 
 import org.jeometry.common.compare.NumericComparator;
-import org.jeometry.common.data.identifier.Code;
 import org.jeometry.common.data.identifier.Identifier;
+import org.jeometry.common.data.type.CollectionDataType;
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypeProxy;
 import org.jeometry.common.data.type.DataTypes;
+import org.jeometry.common.exception.Exceptions;
 
 import com.revolsys.beans.ObjectPropertyException;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.geometry.model.Geometry;
 import com.revolsys.geometry.model.GeometryFactory;
@@ -25,11 +28,16 @@ import com.revolsys.geometry.operation.valid.IsValidOp;
 import com.revolsys.io.map.MapSerializer;
 import com.revolsys.properties.BaseObjectWithProperties;
 import com.revolsys.record.Record;
+import com.revolsys.record.RecordState;
 import com.revolsys.record.code.CodeTable;
+import com.revolsys.record.code.CodeTableEntry;
 import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.io.format.json.JsonObjectHash;
+import com.revolsys.record.query.ColumnReference;
+import com.revolsys.record.query.Query;
+import com.revolsys.record.query.TableReference;
+import com.revolsys.util.BaseCloneable;
 import com.revolsys.util.CaseConverter;
-import com.revolsys.util.JavaBeanUtil;
 import com.revolsys.util.Property;
 import com.revolsys.util.Strings;
 
@@ -40,8 +48,8 @@ import com.revolsys.util.Strings;
  * @see Record
  * @see RecordDefinition
  */
-public class FieldDefinition extends BaseObjectWithProperties
-  implements CharSequence, Cloneable, MapSerializer, RecordDefinitionProxy, DataTypeProxy {
+public class FieldDefinition extends BaseObjectWithProperties implements CharSequence, Cloneable,
+  MapSerializer, RecordDefinitionProxy, DataTypeProxy, ColumnReference {
   public static FieldDefinition newFieldDefinition(final Map<String, ? extends Object> config) {
     return new FieldDefinition(config);
   }
@@ -84,6 +92,8 @@ public class FieldDefinition extends BaseObjectWithProperties
   /** The data type of the field value. */
   private DataType type = DataTypes.STRING;
 
+  private boolean generated;
+
   public FieldDefinition() {
   }
 
@@ -101,6 +111,7 @@ public class FieldDefinition extends BaseObjectWithProperties
     this.type = field.getDataType();
     this.codeTable = field.getCodeTable();
     this.geometryFactory = field.getGeometryFactory();
+    this.recordDefinition = field.recordDefinition;
 
     final Map<String, Object> properties = field.getProperties();
     setProperties(properties);
@@ -298,30 +309,56 @@ public class FieldDefinition extends BaseObjectWithProperties
     this.allowedValues.put(value, text);
   }
 
-  public void appendColumnName(final StringBuilder sql) {
-    sql.append(this.name);
-  }
-
-  public void appendColumnName(final StringBuilder sql, final boolean quoteName) {
-    if (quoteName) {
-      sql.append('"');
-    }
-    sql.append(this.name);
-    if (quoteName) {
-      sql.append('"');
+  public void appendColumnName(final Appendable sql) {
+    try {
+      sql.append(this.name);
+    } catch (final IOException e) {
+      Exceptions.throwUncheckedException(e);
     }
   }
 
-  public void appendColumnName(final StringBuilder sql, final String tablePrefix) {
-    if (tablePrefix != null) {
-      sql.append(tablePrefix);
-      sql.append(".");
+  public void appendColumnName(final Appendable sql, final boolean quoteName) {
+    try {
+      if (quoteName) {
+        sql.append('"');
+      }
+      sql.append(this.name);
+      if (quoteName) {
+        sql.append('"');
+      }
+    } catch (final IOException e) {
+      Exceptions.throwUncheckedException(e);
     }
-    appendColumnName(sql);
   }
 
-  public void appendSelectColumnName(final StringBuilder sql, final String tablePrefix) {
-    appendColumnName(sql, tablePrefix);
+  public void appendColumnName(final Appendable sql, final String tablePrefix) {
+    try {
+      if (tablePrefix != null) {
+        sql.append(tablePrefix);
+        sql.append(".");
+      }
+      appendColumnName(sql);
+    } catch (final IOException e) {
+      Exceptions.throwUncheckedException(e);
+    }
+  }
+
+  @Override
+  public void appendDefaultSelect(final Query query, final RecordStore recordStore,
+    final Appendable sql) {
+    appendName(sql);
+  }
+
+  @Override
+  public void appendDefaultSql(final Query query, final RecordStore recordStore,
+    final Appendable sql) {
+    appendName(sql);
+  }
+
+  @Override
+  public void appendName(final Appendable sql) {
+    final String tableAlias = getTableAlias();
+    appendColumnName(sql, tableAlias);
   }
 
   public void appendType(final StringBuilder string) {
@@ -345,6 +382,16 @@ public class FieldDefinition extends BaseObjectWithProperties
   @Override
   public FieldDefinition clone() {
     return new FieldDefinition(this);
+  }
+
+  @Override
+  public ColumnReference clone(final TableReference oldTable, final TableReference newTable) {
+    if (oldTable != newTable) {
+      if (oldTable == getRecordDefinition()) {
+        return newTable.getColumn(this.name);
+      }
+    }
+    return this;
   }
 
   @Override
@@ -400,6 +447,11 @@ public class FieldDefinition extends BaseObjectWithProperties
   }
 
   @Override
+  public FieldDefinition getFieldDefinition() {
+    return this;
+  }
+
+  @Override
   public GeometryFactory getGeometryFactory() {
     return this.geometryFactory;
   }
@@ -448,6 +500,7 @@ public class FieldDefinition extends BaseObjectWithProperties
    *
    * @return The name of the field.
    */
+  @Override
   public String getName() {
     return this.name;
   }
@@ -493,6 +546,26 @@ public class FieldDefinition extends BaseObjectWithProperties
     return string.toString();
   }
 
+  @Override
+  public String getStringValue(final MapEx record) {
+    final Object value = getValue(record);
+    return toString(value);
+  }
+
+  @Override
+  public RecordDefinition getTable() {
+    return getRecordDefinition();
+  }
+
+  public String getTableAlias() {
+    final RecordDefinition recordDefinition = getRecordDefinition();
+    if (recordDefinition == null) {
+      return "t";
+    } else {
+      return recordDefinition.getTableAlias();
+    }
+  }
+
   public String getTitle() {
     return this.title;
   }
@@ -521,6 +594,12 @@ public class FieldDefinition extends BaseObjectWithProperties
     return typeDescription.toString();
   }
 
+  @Override
+  public <V> V getValue(final MapEx record) {
+    final Object value = record.get(this.name);
+    return this.type.toObject(value);
+  }
+
   public boolean hasCodeTable() {
     return this.codeTable != null;
   }
@@ -543,8 +622,12 @@ public class FieldDefinition extends BaseObjectWithProperties
     }
   }
 
+  public boolean isDataTypeCollection() {
+    return this.type instanceof CollectionDataType;
+  }
+
   public boolean isGenerated() {
-    return false;
+    return this.generated;
   }
 
   public boolean isIdField() {
@@ -579,6 +662,10 @@ public class FieldDefinition extends BaseObjectWithProperties
     return this.name.length();
   }
 
+  protected void postClone(final FieldDefinition clone) {
+    clone.generated = this.generated;
+  }
+
   public FieldDefinition setAllowedValues(final Collection<?> allowedValues) {
     for (final Object allowedValue : allowedValues) {
       final Object fieldValue = toFieldValue(allowedValue);
@@ -609,6 +696,11 @@ public class FieldDefinition extends BaseObjectWithProperties
 
   public FieldDefinition setDescription(final String description) {
     this.description = description;
+    return this;
+  }
+
+  public FieldDefinition setGenerated(final boolean generated) {
+    this.generated = generated;
     return this;
   }
 
@@ -653,7 +745,7 @@ public class FieldDefinition extends BaseObjectWithProperties
     return this;
   }
 
-  protected void setRecordDefinition(final RecordDefinition recordDefinition) {
+  public void setRecordDefinition(final RecordDefinition recordDefinition) {
     this.recordDefinition = new WeakReference<>(recordDefinition);
   }
 
@@ -694,7 +786,7 @@ public class FieldDefinition extends BaseObjectWithProperties
     if (record != null) {
       final int index = getIndex();
       value = toFieldValue(value);
-      value = JavaBeanUtil.clone(value);
+      value = BaseCloneable.clone(value);
       record.setValue(index, value);
     }
   }
@@ -704,37 +796,33 @@ public class FieldDefinition extends BaseObjectWithProperties
     return this.name.subSequence(beginIndex, endIndex);
   }
 
+  public String toCodeString(Consumer<CodeTableEntry> callback, final Object value) {
+    return CodeTable.toCodeString(callback, this.codeTable, this.type, value);
+  }
+
   public String toCodeString(final Object value) {
+    return toCodeString(null, value);
+  }
+
+  @Override
+  public <V> V toColumnTypeException(final Object value) {
     if (value == null) {
       return null;
-    } else if (this.codeTable == null) {
-      if (value instanceof String) {
-        final String string = (String)value;
-        if (!Property.hasValue(string)) {
-          return null;
-        }
-      }
-      return this.type.toString(value);
     } else {
-      final List<Object> values = this.codeTable.getValues(Identifier.newIdentifier(value));
-      if (values == null || values.isEmpty()) {
-        return this.type.toString(value);
-      } else if (values.size() == 1) {
-        final Object codeValue = values.get(0);
-        if (codeValue instanceof Code) {
-          return ((Code)codeValue).getDescription();
-        } else if (codeValue instanceof String) {
-          final String string = (String)codeValue;
-          if (Property.hasValue(string)) {
-            return string;
-          } else {
+      try {
+        if (value instanceof String) {
+          final String string = (String)value;
+          if (!Property.hasValue(string)) {
             return null;
           }
-        } else {
-          return DataTypes.toString(codeValue);
         }
-      } else {
-        return Strings.toString(values);
+        final V fieldValue = this.type.toObject(value);
+        return fieldValue;
+      } catch (final IllegalArgumentException e) {
+        throw e;
+      } catch (final Throwable e) {
+        throw new IllegalArgumentException(
+          getName() + "='" + value + "' is not a valid " + getDataType().getValidationName(), e);
       }
     }
   }
@@ -747,6 +835,7 @@ public class FieldDefinition extends BaseObjectWithProperties
    * @param value
    * @return
    */
+  @Override
   @SuppressWarnings("unchecked")
   public <V> V toFieldValue(final Object value) {
     try {
@@ -756,7 +845,26 @@ public class FieldDefinition extends BaseObjectWithProperties
     }
   }
 
-  public <V> V toFieldValueException(final Object value) {
+  /**
+   * Convert the object to a value that is valid for the field. If the value can't be converted then
+   * the original value will be returned. This can result in invalid values in the record but those can be picked up
+   * with validation. Otherwise invalid values would silently be removed.
+   *
+   * @param value
+   * @return
+   */
+  @SuppressWarnings("unchecked")
+  public <V> V toFieldValue(final RecordState state, final Object value) {
+    try {
+      return toFieldValueException(state, value);
+    } catch (final Throwable e) {
+      return (V)value;
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <V> V toFieldValueException(Object value) {
     if (value == null) {
       return null;
     } else {
@@ -768,6 +876,42 @@ public class FieldDefinition extends BaseObjectWithProperties
           }
         }
         if (this.codeTable != null) {
+          final Identifier identifier = this.codeTable.getIdentifier(value);
+          if (identifier != null) {
+            value = identifier.toSingleValue();
+          }
+        }
+
+        V fieldValue = this.type.toObject(value);
+        if (fieldValue instanceof Geometry && this.geometryFactory != null) {
+          final Geometry geometry = (Geometry)fieldValue;
+          fieldValue = (V)this.geometryFactory.geometry(geometry);
+        }
+        return fieldValue;
+      } catch (final IllegalArgumentException e) {
+        throw e;
+      } catch (final Error e) {
+        throw e;
+      } catch (final Throwable e) {
+        throw new IllegalArgumentException(
+          getName() + "='" + value + "' is not a valid " + getDataType().getValidationName(), e);
+      }
+    }
+  }
+
+  @Override
+  public <V> V toFieldValueException(final RecordState state, final Object value) {
+    if (value == null) {
+      return null;
+    } else {
+      try {
+        if (value instanceof String) {
+          final String string = (String)value;
+          if (!Property.hasValue(string)) {
+            return null;
+          }
+        }
+        if (this.codeTable != null && !state.isInitializing()) {
           final Identifier identifier = this.codeTable.getIdentifier(value);
           if (identifier == null) {
             throw new IllegalArgumentException(getName() + "='" + value
@@ -792,13 +936,14 @@ public class FieldDefinition extends BaseObjectWithProperties
   public JsonObject toMap() {
     final JsonObject map = new JsonObjectHash();
     addTypeToMap(map, "field");
-    map.put("name", getName());
-    map.put("title", getTitle());
+    final String name = getName();
+    map.put("name", name);
+    addToMap(map, "title", getTitle());
     addToMap(map, "description", getDescription(), "");
     map.put("dataType", getDataType().getName());
-    map.put("length", getLength());
-    map.put("scale", getScale());
-    map.put("required", isRequired());
+    addToMap(map, "length", getLength(), 0);
+    addToMap(map, "scale", getScale(), 0);
+    addToMap(map, "required", isRequired(), false);
     addToMap(map, "minValue", getMinValue(), null);
     addToMap(map, "maxValue", getMaxValue(), null);
     addToMap(map, "defaultValue", getDefaultValue(), null);
@@ -811,6 +956,7 @@ public class FieldDefinition extends BaseObjectWithProperties
     return this.name;
   }
 
+  @Override
   public String toString(final Object value) {
     if (value == null) {
       return null;
@@ -825,16 +971,29 @@ public class FieldDefinition extends BaseObjectWithProperties
     }
   }
 
+  public Object validate(final MapEx record) {
+    final String fieldName = getName();
+    try {
+      final Object value = record.getValue(fieldName);
+      return validate(value);
+    } catch (final Throwable e) {
+      throw new ObjectPropertyException(record, fieldName, e.getMessage(), e);
+    }
+  }
+
   public Object validate(Object value) {
     final String fieldName = getName();
     value = toFieldValueException(value);
     if (value == null) {
-      if (isRequired()) {
+      if (isRequired() && !isGenerated() && !isIdField()) {
         throw new IllegalArgumentException(fieldName + " is required");
       }
     } else {
       final RecordDefinition recordDefinition = getRecordDefinition();
-      final CodeTable codeTable = recordDefinition.getCodeTableByFieldName(fieldName);
+      CodeTable codeTable = this.codeTable;
+      if (codeTable == null && recordDefinition != null) {
+        codeTable = recordDefinition.getCodeTableByFieldName(fieldName);
+      }
       if (codeTable == null) {
         final int maxLength = getLength();
         if (value instanceof Number) {
@@ -907,9 +1066,7 @@ public class FieldDefinition extends BaseObjectWithProperties
     try {
       return validate(value);
     } catch (final Throwable e) {
-      throw new ObjectPropertyException(record, fieldName, e.getMessage(), e
-
-      );
+      throw new ObjectPropertyException(record, fieldName, e.getMessage(), e);
     }
   }
 }

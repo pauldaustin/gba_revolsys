@@ -11,7 +11,9 @@ import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.jdbc.ByteArrayBlob;
 
 import com.revolsys.jdbc.LocalBlob;
-import com.revolsys.record.Record;
+import com.revolsys.record.RecordState;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.spring.resource.Resource;
 
 public class JdbcBlobFieldDefinition extends JdbcFieldDefinition {
@@ -22,22 +24,24 @@ public class JdbcBlobFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    return resultSet.getBlob(columnIndex);
+  public JdbcBlobFieldDefinition clone() {
+    final JdbcBlobFieldDefinition clone = new JdbcBlobFieldDefinition(getDbName(), getName(),
+      getSqlType(), getLength(), isRequired(), getDescription(), getProperties());
+    postClone(clone);
+    return clone;
+  }
+
+  @Override
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final Blob blob = resultSet.getBlob(indexes.incrementAndGet());
+    return toFieldValue(blob);
   }
 
   @Override
   public boolean isSortable() {
     return false;
-  }
-
-  @Override
-  public int setFieldValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final Record record, final boolean internStrings) throws SQLException {
-    final Blob value = resultSet.getBlob(columnIndex);
-    setValue(record, value);
-    return columnIndex + 1;
   }
 
   @Override
@@ -80,5 +84,11 @@ public class JdbcBlobFieldDefinition extends JdbcFieldDefinition {
     } else {
       return (V)value;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <V> V toFieldValueException(final RecordState state, final Object value) {
+    return toFieldValueException(value);
   }
 }

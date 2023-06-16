@@ -678,6 +678,9 @@ public interface Property {
   static boolean hasValue(final Object value) {
     if (value == null) {
       return false;
+    } else if (value instanceof String) {
+      final String string = (String)value;
+      return hasValue(string);
     } else if (value instanceof CharSequence) {
       final CharSequence string = (CharSequence)value;
       return hasValue(string);
@@ -701,6 +704,13 @@ public interface Property {
     } else {
       return true;
     }
+  }
+
+  static boolean hasValue(final String string) {
+    if (string != null) {
+      return !string.isBlank();
+    }
+    return false;
   }
 
   static boolean hasValuesAll(final Object... values) {
@@ -780,6 +790,9 @@ public interface Property {
   static boolean isEmpty(final Object value) {
     if (value == null) {
       return true;
+    } else if (value instanceof String) {
+      final String string = (String)value;
+      return !hasValue(string);
     } else if (value instanceof CharSequence) {
       final CharSequence string = (CharSequence)value;
       return !hasValue(string);
@@ -802,6 +815,14 @@ public interface Property {
       return true;
     } else {
       return false;
+    }
+  }
+
+  static boolean isEmpty(final String string) {
+    if (string == null) {
+      return true;
+    } else {
+      return string.isBlank();
     }
   }
 

@@ -17,7 +17,7 @@ import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import com.revolsys.collection.map.LinkedHashMapEx;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.geometry.graph.attribute.NodeProperties;
@@ -205,12 +205,31 @@ public class Node<T> extends PointDoubleXY implements ObjectWithProperties, Exte
     super.finalize();
   }
 
+  public void forEachEdge(final Consumer<Edge<T>> action) {
+    final Graph<T> graph = this.graph;
+    for (final int edgeId : this.inEdgeIds) {
+      final Edge<T> edge = graph.getEdge(edgeId);
+      action.accept(edge);
+    }
+    for (final int edgeId : this.outEdgeIds) {
+      final Edge<T> edge = graph.getEdge(edgeId);
+      action.accept(edge);
+    }
+  }
+
   public void forEachInEdge(final Consumer<Edge<T>> action) {
     final Graph<T> graph = this.graph;
     for (final int edgeId : this.inEdgeIds) {
       final Edge<T> edge = graph.getEdge(edgeId);
       action.accept(edge);
     }
+  }
+
+  public void forEachObject(final Consumer<T> action) {
+    forEachEdge((e) -> {
+      final T object = e.getObject();
+      action.accept(object);
+    });
   }
 
   public void forEachOutEdge(final Consumer<Edge<T>> action) {
@@ -491,12 +510,12 @@ public class Node<T> extends PointDoubleXY implements ObjectWithProperties, Exte
   @Override
   public MapEx getProperties() {
     if (this.graph == null) {
-      return MapEx.EMPTY;
+      return JsonObject.EMPTY;
     } else {
       final Map<Integer, MapEx> propertiesById = this.graph.getNodePropertiesById();
       MapEx properties = propertiesById.get(this.id);
       if (properties == null) {
-        properties = new LinkedHashMapEx();
+        properties = JsonObject.hash();
         propertiesById.put(this.id, properties);
       }
       return properties;
@@ -511,10 +530,6 @@ public class Node<T> extends PointDoubleXY implements ObjectWithProperties, Exte
       return ObjectWithProperties.getProperty(this, properties, name);
     }
     return null;
-  }
-
-  public boolean ha(final String name) {
-    return getProperties().containsKey(name);
   }
 
   public boolean hasEdge(final Edge<T> edge) {

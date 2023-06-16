@@ -11,13 +11,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.connection.AbstractConnectionRegistryManager;
 import com.revolsys.io.FileUtil;
 import com.revolsys.io.file.Paths;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.schema.RecordStore;
 import com.revolsys.spring.resource.PathResource;
 import com.revolsys.spring.resource.Resource;
-import com.revolsys.util.JavaBeanUtil;
+import com.revolsys.util.BaseCloneable;
 import com.revolsys.util.OS;
 import com.revolsys.util.Property;
 
@@ -51,10 +53,8 @@ public class RecordStoreConnectionManager
   }
 
   public static <V extends RecordStore> V getRecordStore(final File file) {
-    final Map<String, String> connectionProperties = Collections.singletonMap("url",
-      FileUtil.toUrlString(file));
-    final Map<String, Object> config = Collections.<String, Object> singletonMap("connection",
-      connectionProperties);
+    final JsonObject connectionProperties = JsonObject.hash("url", FileUtil.toUrlString(file));
+    final JsonObject config = JsonObject.hash("connection", connectionProperties);
     return getRecordStore(config);
   }
 
@@ -64,10 +64,9 @@ public class RecordStoreConnectionManager
    * @return
    */
   @SuppressWarnings("unchecked")
-  public static <T extends RecordStore> T getRecordStore(
-    final Map<String, ? extends Object> config) {
+  public static <T extends RecordStore> T getRecordStore(final MapEx config) {
     @SuppressWarnings("rawtypes")
-    final Map<String, Object> configClone = (Map)JavaBeanUtil.clone(config);
+    final MapEx configClone = config.clone();
     synchronized (recordStoreByConfig) {
       RecordStore recordStore = recordStoreByConfig.get(configClone);
       if (recordStore != null && recordStore.isClosed()) {
@@ -76,8 +75,7 @@ public class RecordStoreConnectionManager
         recordStore = null;
       }
       if (recordStore == null) {
-        final Map<String, ? extends Object> connectionProperties = (Map<String, ? extends Object>)configClone
-          .get("connection");
+        final MapEx connectionProperties = configClone.getValue("connection");
         final String name = (String)connectionProperties.get("name");
         if (Property.hasValue(name)) {
           recordStore = getRecordStore(name);
@@ -105,10 +103,8 @@ public class RecordStoreConnectionManager
   }
 
   public static <V extends RecordStore> V getRecordStore(final Path path) {
-    final Map<String, String> connectionProperties = Collections.singletonMap("url",
-      Paths.toUrlString(path));
-    final Map<String, Object> config = Collections.<String, Object> singletonMap("connection",
-      connectionProperties);
+    final JsonObject connectionProperties = JsonObject.hash("url", Paths.toUrlString(path));
+    final JsonObject config = JsonObject.hash("connection", connectionProperties);
     return getRecordStore(config);
   }
 
@@ -138,7 +134,7 @@ public class RecordStoreConnectionManager
   @SuppressWarnings("unchecked")
   public static void releaseRecordStore(final Map<String, ? extends Object> config) {
     @SuppressWarnings("rawtypes")
-    final Map<String, Object> configClone = (Map)JavaBeanUtil.clone(config);
+    final Map<String, Object> configClone = (Map)BaseCloneable.clone(config);
     synchronized (recordStoreByConfig) {
       final RecordStore recordStore = recordStoreByConfig.get(configClone);
       if (recordStore != null) {

@@ -259,7 +259,7 @@ public interface Layer extends GeometryFactoryProxy, PropertyChangeSupportProxy,
   }
 
   default void showTableView() {
-    showTableView(MapEx.EMPTY);
+    showTableView(JsonObject.EMPTY);
   }
 
   default void showTableView(final MapEx config) {

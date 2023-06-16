@@ -19,6 +19,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import javax.annotation.PreDestroy;
 import javax.sql.DataSource;
 
 import org.jeometry.common.data.identifier.Identifier;
@@ -67,8 +68,6 @@ import com.revolsys.transaction.Transaction;
 import com.revolsys.transaction.TransactionOptions;
 import com.revolsys.util.Booleans;
 import com.revolsys.util.Property;
-
-import jakarta.annotation.PreDestroy;
 
 public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   implements JdbcRecordStore, RecordStoreExtension {

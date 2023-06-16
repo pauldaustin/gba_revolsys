@@ -14,9 +14,9 @@ import com.revolsys.record.Record;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.SqlCondition;
 import com.revolsys.record.query.functions.F;
-import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.record.schema.RecordStore;
+import com.revolsys.transaction.Transaction;
 import com.revolsys.util.Property;
 
 public class RecordStoreQueryReader extends IteratorReader<Record> implements RecordReader {
@@ -32,6 +32,7 @@ public class RecordStoreQueryReader extends IteratorReader<Record> implements Re
   private String whereClause;
 
   public RecordStoreQueryReader() {
+    Transaction.assertInTransaction();
     setIterator(new RecordStoreMultipleQueryIterator(this));
   }
 
@@ -78,8 +79,12 @@ public class RecordStoreQueryReader extends IteratorReader<Record> implements Re
   }
 
   @Override
-  public RecordStoreMultipleQueryIterator iterator() {
-    return (RecordStoreMultipleQueryIterator)super.iterator();
+  public RecordIterator iterator() {
+    if (this.queries.size() == 1) {
+      return newQueryIterator(0);
+    } else {
+      return (RecordIterator)super.iterator();
+    }
   }
 
   protected RecordIterator newQueryIterator(final int i) {
@@ -89,8 +94,7 @@ public class RecordStoreQueryReader extends IteratorReader<Record> implements Re
         query.and(new SqlCondition(this.whereClause));
       }
       if (this.boundingBox != null) {
-        final FieldDefinition geometryField = query.getRecordDefinition().getGeometryField();
-        query.and(F.envelopeIntersects(geometryField, this.boundingBox));
+        F.envelopeIntersects(query, this.boundingBox);
       }
 
       return this.recordStore.newIterator(query, getProperties());

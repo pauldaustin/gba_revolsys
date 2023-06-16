@@ -9,7 +9,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,12 +18,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
+import org.jeometry.common.data.type.AbstractDataType;
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.data.type.FunctionDataType;
 import org.jeometry.common.exception.Exceptions;
 
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.io.AbstractIoFactory;
 import com.revolsys.io.FileUtil;
 import com.revolsys.io.IoConstants;
@@ -41,122 +44,270 @@ import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.record.schema.RecordDefinitionProxy;
 import com.revolsys.spring.resource.PathResource;
 import com.revolsys.spring.resource.Resource;
-import com.revolsys.util.JavaBeanUtil;
 import com.revolsys.util.Property;
 
 public class Json extends AbstractIoFactory
   implements MapReaderFactory, MapWriterFactory, RecordWriterFactory {
-  public static final String FILE_EXTENSION = "json";
+  private static class JsonDataType extends AbstractDataType {
 
-  public static final String MIME_TYPE = "application/json";
+    public JsonDataType() {
+      super("JsonType", JsonType.class, true);
+    }
 
-  @SuppressWarnings({
-    "rawtypes", "unchecked"
-  })
-  public static final DataType JSON_OBJECT = new FunctionDataType("JsonObject", JsonObject.class,
-    true, value -> {
-      if (value instanceof JsonObject) {
-        return (JsonObject)value;
-      } else if (value instanceof Map) {
-        return new JsonObjectHash((Map)value);
-      } else if (value instanceof String) {
-        final JsonObject map = Json.toObjectMap((String)value);
-        if (map == null) {
-          return null;
-        } else {
-          return new JsonObjectHash(map);
-        }
-      } else {
-        return JsonParser.read(value);
-      }
-    }, (value) -> {
-      if (value instanceof Map) {
-        return Json.toString((Map)value);
-      } else if (value == null) {
-        return null;
-      } else {
-        return value.toString();
-      }
+    @Override
+    public boolean equalsNotNull(final Object object1, final Object object2) {
+      return object1.equals(object2);
+    }
 
-    }, FunctionDataType.MAP_EQUALS, FunctionDataType.MAP_EQUALS_EXCLUDES);
+    @Override
+    protected boolean equalsNotNull(final Object object1, final Object object2,
+      final Collection<? extends CharSequence> exclude) {
+      final JsonType json = (JsonType)object1;
+      return json.equals(object2, exclude);
+    }
 
-  @SuppressWarnings({
-    "rawtypes", "unchecked"
-  })
-  public static final DataType JSON_OBJECT_TREE = new FunctionDataType("JsonObjectTree",
-    JsonObjectTree.class, true, value -> {
-      if (value instanceof JsonObject) {
-        return new JsonObjectTree((JsonObject)value);
-      } else if (value instanceof Map) {
-        return new JsonObjectTree((Map)value);
-      } else if (value instanceof String) {
-        final JsonObject map = Json.toObjectMap((String)value);
-        if (map == null) {
-          return null;
-        } else {
-          return new JsonObjectTree(map);
-        }
-      } else {
-        return new JsonObjectTree(JsonParser.read(value));
-      }
-    }, (value) -> {
-      if (value instanceof Map) {
-        return Json.toString((Map)value);
-      } else if (value == null) {
-        return null;
-      } else {
-        return value.toString();
-      }
-
-    }, FunctionDataType.MAP_EQUALS, FunctionDataType.MAP_EQUALS_EXCLUDES);
-
-  @SuppressWarnings({
-    "rawtypes", "unchecked"
-  })
-  public static final DataType JSON_TYPE = new FunctionDataType("JsonType", JsonType.class, true,
-    value -> {
+    @SuppressWarnings("unchecked")
+    @Override
+    protected Object toObjectDo(final Object value) {
       if (value instanceof JsonType) {
-        return (JsonType)value;
+        return value;
+      } else if (value instanceof Jsonable) {
+        return ((Jsonable)value).asJson();
       } else if (value instanceof Map) {
-        return new JsonObjectHash((Map)value);
+        return new JsonObjectHash((Map<? extends String, ? extends Object>)value);
       } else if (value instanceof List) {
-        return JsonList.array((List)value);
+        return JsonList.array((List<?>)value);
       } else if (value instanceof String) {
         final Object read = JsonParser.read((String)value);
         if (read instanceof JsonType) {
-          return (JsonType)read;
+          return read;
         } else {
           return value;
         }
       } else {
         return value;
       }
-    }, (value) -> Json.toString(value), DataType::equal, DataType::equal);
+    }
 
-  public static DataType JSON_LIST = new FunctionDataType("JsonList", JsonList.class, true,
-    (value) -> {
+    @Override
+    protected String toStringDo(final Object value) {
+      if (value instanceof Jsonable) {
+        final Jsonable json = (Jsonable)value;
+        return json.toJsonString(true);
+      } else {
+        return Json.toString(value);
+      }
+    }
+  }
+
+  public static class JsonListDataType extends AbstractDataType {
+
+    public JsonListDataType() {
+      super("JsonList", JsonList.class, true);
+    }
+
+    @Override
+    public boolean equalsNotNull(final Object object1, final Object object2) {
+      return object1.equals(object2);
+    }
+
+    @Override
+    protected boolean equalsNotNull(final Object object1, final Object object2,
+      final Collection<? extends CharSequence> exclude) {
+      final JsonList list1 = (JsonList)object1;
+      return list1.equals(object2);
+    }
+
+    @Override
+    protected Object toObjectDo(final Object value) {
       if (value instanceof JsonList) {
-        return (JsonList)value;
+        return value;
+      } else if (value instanceof Jsonable) {
+        return ((Jsonable)value).asJson();
       } else if (value instanceof Collection<?>) {
         return JsonList.array((Collection<?>)value);
       } else {
         final Object json = JsonParser.read(value);
         if (json instanceof JsonList) {
-          return (JsonList)json;
+          return json;
         } else {
           return JsonList.array(json);
         }
       }
-    }, (value) -> {
-      if (value instanceof List<?>) {
+    }
+
+    @Override
+    protected String toStringDo(final Object value) {
+      if (value instanceof JsonList) {
+        return ((JsonList)value).toJsonString();
+      } else if (value instanceof List<?>) {
         return Json.toString(value);
       } else if (value == null) {
         return null;
       } else {
         return value.toString();
       }
+    }
+  }
 
-    }, (o1, o2) -> o1.equals(o2), DataType::equal);
+  private static class JsonObjectDataType extends AbstractDataType {
+
+    public JsonObjectDataType(final String name, final Class<?> javaClass) {
+      super(name, javaClass, true);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public boolean equalsNotNull(final Object object1, final Object object2) {
+      final Map<Object, Object> map1 = (Map<Object, Object>)object1;
+      final Map<Object, Object> map2 = (Map<Object, Object>)object2;
+      if (map1.size() == map2.size()) {
+        final Set<Object> keys1 = map1.keySet();
+        final Set<Object> keys2 = map2.keySet();
+        if (keys1.equals(keys2)) {
+          for (final Object key : keys1) {
+            final Object value1 = map1.get(key);
+            final Object value2 = map2.get(key);
+            if (!DataType.equal(value1, value2)) {
+              return false;
+            }
+          }
+        } else {
+          return false;
+        }
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    @SuppressWarnings({
+      "unchecked"
+    })
+    @Override
+    protected boolean equalsNotNull(final Object object1, final Object object2,
+      final Collection<? extends CharSequence> exclude) {
+      final Map<Object, Object> map1 = (Map<Object, Object>)object1;
+      final Map<Object, Object> map2 = (Map<Object, Object>)object2;
+      final Set<Object> keys = new TreeSet<>();
+      keys.addAll(map1.keySet());
+      keys.addAll(map2.keySet());
+      keys.removeAll(exclude);
+
+      for (final Object key : keys) {
+        final Object value1 = map1.get(key);
+        final Object value2 = map2.get(key);
+        if (!DataType.equal(value1, value2, exclude)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    protected JsonObject toJsonObject(final Map<? extends String, ? extends Object> map) {
+      return new JsonObjectHash(map);
+    }
+
+    @SuppressWarnings({
+      "unchecked"
+    })
+    @Override
+    protected Object toObjectDo(final Object value) {
+      if (value instanceof JsonObject) {
+        return toJsonObject((JsonObject)value);
+      } else if (value instanceof Jsonable) {
+        return ((Jsonable)value).asJson();
+      } else if (value instanceof Map) {
+        final Map<? extends String, ? extends Object> map = (Map<? extends String, ? extends Object>)value;
+        return toJsonObject(map);
+      } else if (value instanceof String) {
+        final JsonObject map = Json.toObjectMap((String)value);
+        if (map == null) {
+          return null;
+        } else {
+          return toJsonObject(map);
+        }
+      } else {
+        return toJsonObject(JsonParser.read(value));
+      }
+    }
+
+    @SuppressWarnings({
+      "unchecked"
+    })
+    @Override
+    protected String toStringDo(final Object value) {
+      if (value instanceof Jsonable) {
+        return ((Jsonable)value).toJsonString();
+      } else if (value instanceof Map) {
+        final Map<? extends String, ? extends Object> map = (Map<? extends String, ? extends Object>)value;
+        return Json.toString(map);
+      } else if (value == null) {
+        return null;
+      } else {
+        return value.toString();
+      }
+    }
+  }
+
+  private static class JsonObjectTreeDataType extends JsonObjectDataType {
+    public JsonObjectTreeDataType() {
+      super("JsonObjectTree", JsonObjectTree.class);
+    }
+
+    @Override
+    protected JsonObject toJsonObject(final Map<? extends String, ? extends Object> map) {
+      if (map instanceof JsonObjectTree) {
+        return (JsonObjectTree)map;
+      } else {
+        return new JsonObjectTree(map);
+      }
+    }
+  }
+
+  @SuppressWarnings({
+    "rawtypes", "unchecked"
+  })
+  public static final DataType TREE_MAP_TYPE = new FunctionDataType("TreeMap", JsonObjectTree.class,
+    true, value -> {
+      if (value instanceof JsonObjectTree) {
+        return (JsonObjectTree)value;
+      } else if (value instanceof Map) {
+        return new JsonObjectTree((Map)value);
+      } else if (value instanceof String) {
+        final MapEx map = Json.toObjectMap((String)value);
+        if (map == null) {
+          return null;
+        } else {
+          return new JsonObjectTree(map);
+        }
+      } else {
+        return value;
+      }
+    }, value -> {
+      if (value instanceof Map) {
+        return Json.toString((Map)value);
+      } else if (value == null) {
+        return null;
+      } else {
+        return value.toString();
+      }
+
+    }, FunctionDataType.MAP_EQUALS, FunctionDataType.MAP_EQUALS_EXCLUDES);
+
+  public static final String FILE_EXTENSION = "json";
+
+  public static final String MIME_TYPE = "application/json";
+
+  public static final String MIME_TYPE_UTF8 = "application/json;charset=utf-8";
+
+  public static final DataType JSON_OBJECT = new JsonObjectDataType("JsonObject", JsonObject.class);
+
+  public static final DataType JSON_OBJECT_TREE = new JsonObjectTreeDataType();
+
+  public static final DataType JSON_TYPE = new JsonDataType();
+
+  public static DataType JSON_LIST = new JsonListDataType();
 
   static {
     DataTypes.registerDataTypes(Json.class);
@@ -166,55 +317,7 @@ public class Json extends AbstractIoFactory
     if (object == null) {
       return null;
     } else {
-      final JsonObject clone = new JsonObjectHash();
-      for (final Entry<String, Object> entry : object.entrySet()) {
-        final String key = entry.getKey();
-        final Object originalValue = entry.getValue();
-        final Object cloneValue = clone(originalValue);
-        clone.put(key, cloneValue);
-      }
-      return clone;
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  public static <V> V clone(final Object value) {
-    if (value == null) {
-      return null;
-    } else if (value instanceof JsonObject) {
-      return (V)clone((JsonObject)value);
-    } else if (value instanceof Map) {
-      final Map<Object, Object> originalMap = (Map<Object, Object>)value;
-      final JsonObject clone = new JsonObjectHash();
-      for (final Entry<Object, Object> entry : originalMap.entrySet()) {
-        final String key = entry.getKey().toString();
-        final Object originalValue = entry.getValue();
-        final Object cloneValue = clone(originalValue);
-        clone.put(key, cloneValue);
-      }
-      return (V)clone;
-    } else if (value instanceof List) {
-      final List<?> list = (List<?>)value;
-      final JsonList clone = JsonList.array();
-      for (final Object object : list) {
-        final Object cloneValue = clone(object);
-        clone.add(cloneValue);
-      }
-      return (V)clone;
-    } else if (value instanceof Cloneable) {
-      try {
-        final Class<? extends Object> valueClass = value.getClass();
-        final Method method = valueClass.getMethod("clone", JavaBeanUtil.ARRAY_CLASS_0);
-        if (method == null) {
-          return (V)value;
-        } else {
-          return (V)method.invoke(value, JavaBeanUtil.ARRAY_OBJECT_0);
-        }
-      } catch (final Throwable e) {
-        return Exceptions.throwUncheckedException(e);
-      }
-    } else {
-      return (V)value;
+      return object.clone();
     }
   }
 

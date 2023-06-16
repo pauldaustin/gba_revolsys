@@ -17,6 +17,8 @@ import com.revolsys.geometry.model.GeometryFactory;
 import com.revolsys.geometry.wkb.WkbByteBufferReader;
 import com.revolsys.geometry.wkb.WkbChannelWriter;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 
 public class GeoPackageGeometryJdbcFieldDefinition extends JdbcFieldDefinition {
   public static Geometry parseWkb(GeometryFactory geometryFactory, final byte[] data) {
@@ -91,9 +93,10 @@ public class GeoPackageGeometryJdbcFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final Object databaseValue = resultSet.getObject(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final Object databaseValue = resultSet.getObject(indexes.incrementAndGet());
     return toJava(databaseValue);
   }
 

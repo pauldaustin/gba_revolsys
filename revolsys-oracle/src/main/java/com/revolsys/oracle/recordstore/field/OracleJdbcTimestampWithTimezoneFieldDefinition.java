@@ -14,6 +14,8 @@ import org.jeometry.common.date.Dates;
 import com.revolsys.jdbc.JdbcConnection;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
 import com.revolsys.jdbc.io.JdbcRecordStore;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 
 import oracle.jdbc.OracleConnection;
 import oracle.sql.TIMESTAMPTZ;
@@ -26,18 +28,18 @@ public class OracleJdbcTimestampWithTimezoneFieldDefinition extends JdbcFieldDef
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    TIMESTAMPTZ value = (TIMESTAMPTZ)resultSet.getObject(columnIndex);
+  public Object getValueFromResultSet(RecordDefinition recordDefinition, ResultSet resultSet,
+    ColumnIndexes indexes, boolean internStrings) throws SQLException {
+    final TIMESTAMPTZ value = (TIMESTAMPTZ)resultSet.getObject(indexes.incrementAndGet());
     if (value == null) {
       return null;
     } else {
-      JdbcRecordStore recordStore = getRecordStore();
+      final JdbcRecordStore recordStore = getRecordStore();
       try (
         JdbcConnection connection = recordStore.getJdbcConnection()) {
-        OracleConnection oracleConnection = connection.unwrap(OracleConnection.class);
-        Timestamp timestamp = value.timestampValue(oracleConnection);
-        ZoneId zoneId = value.getTimeZone().toZoneId();
+        final OracleConnection oracleConnection = connection.unwrap(OracleConnection.class);
+        final Timestamp timestamp = value.timestampValue(oracleConnection);
+        final ZoneId zoneId = value.getTimeZone().toZoneId();
 
         return timestamp.toInstant().atZone(zoneId).toInstant();
       }
@@ -56,13 +58,13 @@ public class OracleJdbcTimestampWithTimezoneFieldDefinition extends JdbcFieldDef
       final int sqlType = getSqlType();
       statement.setNull(parameterIndex, sqlType);
     } else {
-      Instant instant = DataTypes.INSTANT.toObject(value);
-      JdbcRecordStore recordStore = getRecordStore();
+      final Instant instant = DataTypes.INSTANT.toObject(value);
+      final JdbcRecordStore recordStore = getRecordStore();
       try (
         JdbcConnection connection = recordStore.getJdbcConnection()) {
-        OracleConnection oracleConnection = connection.unwrap(OracleConnection.class);
-        Timestamp timestamp = Timestamp.from(instant);
-        TIMESTAMPTZ timestampTz = new TIMESTAMPTZ(oracleConnection, timestamp, Dates.UTC);
+        final OracleConnection oracleConnection = connection.unwrap(OracleConnection.class);
+        final Timestamp timestamp = Timestamp.from(instant);
+        final TIMESTAMPTZ timestampTz = new TIMESTAMPTZ(oracleConnection, timestamp, Dates.UTC);
         statement.setObject(parameterIndex, timestampTz);
       }
     }

@@ -36,6 +36,11 @@ import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.io.format.json.JsonObjectHash;
 import com.revolsys.record.property.RecordDefinitionProperty;
 import com.revolsys.record.property.ValueRecordDefinitionProperty;
+import com.revolsys.record.query.ColumnReference;
+
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.One;
 
 public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
   implements RecordDefinition {
@@ -57,7 +62,7 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
 
   private String tableAlias;
 
-  private Map<String, Object> defaultValues = new HashMap<>();
+  private JsonObject defaultValues = JsonObject.hash();
 
   private BoundingBox boundingBox = BoundingBox.empty();
 
@@ -123,6 +128,11 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
 
   private GeometryFactory geometryFactory;
 
+  private final One<CodeTable> codeTableSink = Sinks.<CodeTable> one();
+
+  private final Mono<CodeTable> codeTable$ = this.codeTableSink.asMono()
+    .flatMap(codeTable -> codeTable.refreshIfNeeded$().thenReturn(codeTable));
+
   public RecordDefinitionImpl() {
     super(null, (PathName)null);
   }
@@ -185,7 +195,7 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
       recordDefinition.getFields());
     setPolygonRingDirection(recordDefinition.getPolygonRingDirection());
     setIdFieldIndex(recordDefinition.getIdFieldIndex());
-    this.codeTable = recordDefinition.getCodeTable();
+    setCodeTable(recordDefinition.getCodeTable());
   }
 
   public RecordDefinitionImpl(final RecordStoreSchema schema) {
@@ -264,12 +274,17 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
       if (Geometry.class.isAssignableFrom(dataClass)) {
         this.geometryFieldDefinitionIndexes.add(index);
         this.geometryFieldDefinitionNames.add(name);
+        GeometryFactory geometryFactory = field.getGeometryFactory();
+        if (geometryFactory == null && this.geometryFactory != null) {
+          geometryFactory = this.geometryFactory;
+          field.setGeometryFactory(geometryFactory);
+        }
         if (this.geometryFieldDefinitionIndex == -1) {
           this.geometryFieldDefinitionIndex = index;
-          final GeometryFactory geometryFactory = field.getGeometryFactory();
-          if (geometryFactory == null && this.geometryFactory != null) {
-            field.setGeometryFactory(this.geometryFactory);
+          if (this.geometryFactory == null) {
+            this.geometryFactory = geometryFactory;
           }
+
         }
       }
     }
@@ -317,6 +332,12 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
   public void addFieldCodeTable(final String fieldName, final CodeTable codeTable) {
     if (codeTable != null && fieldName != null) {
       this.codeTableByFieldNameMap.put(fieldName.toUpperCase(), codeTable);
+    }
+  }
+
+  public void addFields(final RecordDefinitionProxy recordDefinition) {
+    for (final FieldDefinition field : recordDefinition.getFieldDefinitions()) {
+      addField(field);
     }
   }
 
@@ -372,6 +393,14 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
     }
   }
 
+  @SuppressWarnings({
+    "unchecked", "rawtypes"
+  })
+  @Override
+  public <CT extends CodeTable> Mono<CT> codeTable$() {
+    return (Mono)this.codeTable$;
+  }
+
   @Override
   public void deleteRecord(final Record record) {
     final RecordStore recordStore = getRecordStore();
@@ -386,23 +415,23 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
   @PreDestroy
   public void destroy() {
     super.close();
-    this.fieldIdMap.clear();
-    this.fieldMap.clear();
-    this.internalFieldNames.clear();
-    this.fields = Collections.emptyList();
-    this.internalFields.clear();
-    this.fieldNames = Collections.emptyList();
-    this.fieldNamesSet = Collections.emptySet();
-    this.codeTableByFieldNameMap.clear();
-    this.recordFactory = null;
-    this.recordDefinitionFactory = new RecordDefinitionFactoryImpl();
-    this.defaultValues.clear();
-    this.description = "";
-    this.geometryFieldDefinitionIndex = -1;
-    this.geometryFieldDefinitionIndexes.clear();
-    this.geometryFieldDefinitionNames.clear();
-    this.restrictions.clear();
-    this.superClasses.clear();
+    // this.fieldIdMap.clear();
+    // this.fieldMap.clear();
+    // this.internalFieldNames.clear();
+    // this.fields = Collections.emptyList();
+    // this.internalFields.clear();
+    // this.fieldNames = Collections.emptyList();
+    // this.fieldNamesSet = Collections.emptySet();
+    // this.codeTableByFieldNameMap.clear();
+    // this.recordFactory = null;
+    // this.recordDefinitionFactory = new RecordDefinitionFactoryImpl();
+    // this.defaultValues.clear();
+    // this.description = "";
+    // this.geometryFieldDefinitionIndex = -1;
+    // this.geometryFieldDefinitionIndexes.clear();
+    // this.geometryFieldDefinitionNames.clear();
+    // this.restrictions.clear();
+    // this.superClasses.clear();
   }
 
   @Override
@@ -450,7 +479,25 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
       return codeTable;
     }
   }
-  
+
+  @Override
+  public ColumnReference getColumn(final CharSequence name) {
+    if (name == null) {
+      throw new IllegalArgumentException("Column name must not be null");
+    } else {
+      final String nameString = name.toString();
+      FieldDefinition field = this.fieldMap.get(nameString);
+      if (field == null) {
+        final String lowerName = nameString.toLowerCase();
+        field = this.fieldMap.get(lowerName);
+        if (field == null) {
+          throw new IllegalArgumentException("Column not found: " + getName() + "." + nameString);
+        }
+      }
+      return field;
+    }
+  }
+
   @Override
   public String getDbTableName() {
     return getName();
@@ -677,6 +724,11 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
   }
 
   @Override
+  public int getIdFieldCount() {
+    return getIdFieldIndexes().size();
+  }
+
+  @Override
   public int getIdFieldIndex() {
     return this.idFieldDefinitionIndex;
   }
@@ -726,12 +778,19 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
     return this.restrictions;
   }
 
+  @Override
   public String getTableAlias() {
     return this.tableAlias;
   }
 
+  @Override
   public PathName getTablePath() {
     return getPathName();
+  }
+
+  @Override
+  public boolean hasColumn(final CharSequence name) {
+    return hasField(name);
   }
 
   @Override
@@ -846,6 +905,7 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
 
   public void setCodeTable(final CodeTable codeTable) {
     this.codeTable = codeTable;
+    this.codeTableSink.tryEmitValue(codeTable);
   }
 
   public void setCodeTableByFieldNameMap(final Map<String, CodeTable> codeTableByFieldNameMap) {
@@ -854,7 +914,7 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
 
   @Override
   public void setDefaultValues(final Map<String, ? extends Object> defaultValues) {
-    this.defaultValues = Maps.newHash(defaultValues);
+    this.defaultValues = JsonObject.hash(defaultValues);
   }
 
   public void setDescription(final String description) {
@@ -973,6 +1033,7 @@ public class RecordDefinitionImpl extends AbstractRecordStoreSchemaElement
     this.recordDefinitionFactory = recordDefinitionFactory;
   }
 
+  @Override
   public void setTableAlias(final String tableAlias) {
     this.tableAlias = tableAlias;
   }

@@ -4,12 +4,12 @@ import java.util.Map;
 
 import org.jeometry.common.io.PathName;
 
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordFactory;
 import com.revolsys.record.io.RecordReader;
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.spring.resource.Resource;
@@ -81,13 +81,6 @@ public class MapGuideFeatureLayer implements WebServiceFeatureLayer {
   @Override
   public <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
     final BoundingBox boundingBox) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public <V extends Record> RecordReader getRecordReader(RecordFactory<V> recordFactory,
-    Query query) {
     // TODO Auto-generated method stub
     return null;
   }

@@ -1,6 +1,8 @@
 package com.revolsys.oracle.recordstore;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -11,7 +13,9 @@ import javax.sql.DataSource;
 
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.DataTypes;
+import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.logging.Logs;
+import org.jeometry.common.number.Doubles;
 import org.jeometry.coordinatesystem.io.WktCsParser;
 import org.jeometry.coordinatesystem.model.CoordinateSystem;
 import org.jeometry.coordinatesystem.model.systems.EpsgCoordinateSystems;
@@ -26,7 +30,6 @@ import com.revolsys.jdbc.field.JdbcFieldAdder;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
 import com.revolsys.jdbc.io.AbstractJdbcRecordStore;
 import com.revolsys.jdbc.io.JdbcRecordDefinition;
-import com.revolsys.jdbc.io.RecordStoreIteratorFactory;
 import com.revolsys.oracle.recordstore.esri.ArcSdeStGeometryFieldDefinition;
 import com.revolsys.oracle.recordstore.esri.ArcSdeStGeometryRecordStoreExtension;
 import com.revolsys.oracle.recordstore.field.OracleBlobFieldAdder;
@@ -41,15 +44,18 @@ import com.revolsys.record.RecordFactory;
 import com.revolsys.record.io.RecordIterator;
 import com.revolsys.record.property.ShortNameProperty;
 import com.revolsys.record.query.Column;
+import com.revolsys.record.query.ILike;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
+import com.revolsys.record.query.TableReference;
 import com.revolsys.record.query.Value;
 import com.revolsys.record.query.functions.EnvelopeIntersects;
 import com.revolsys.record.query.functions.GeometryEqual2d;
 import com.revolsys.record.query.functions.WithinDistance;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
-import com.revolsys.record.schema.RecordStore;
+import com.revolsys.transaction.Transaction;
+import com.revolsys.transaction.TransactionOptions;
 import com.revolsys.util.Property;
 
 public class OracleRecordStore extends AbstractJdbcRecordStore {
@@ -89,156 +95,192 @@ public class OracleRecordStore extends AbstractJdbcRecordStore {
     setDataSource(dataSource);
   }
 
-  private void appendEnvelopeIntersects(final Query query, final StringBuilder sql,
+  private void appendEnvelopeIntersects(final Query query, final Appendable sql,
     final QueryValue queryValue) {
-    final EnvelopeIntersects envelopeIntersects = (EnvelopeIntersects)queryValue;
-    final FieldDefinition geometryField = query.getGeometryField();
+    try {
+      final EnvelopeIntersects envelopeIntersects = (EnvelopeIntersects)queryValue;
+      final FieldDefinition geometryField = query.getGeometryField();
 
-    if (geometryField instanceof OracleSdoGeometryJdbcFieldDefinition) {
-      sql.append("SDO_RELATE(");
-      final QueryValue boundingBox1Value = envelopeIntersects.getBoundingBox1Value();
-      if (boundingBox1Value == null) {
-        sql.append("NULL");
+      if (geometryField instanceof OracleSdoGeometryJdbcFieldDefinition) {
+        sql.append("SDO_RELATE(");
+        final QueryValue boundingBox1Value = envelopeIntersects.getBoundingBox1Value();
+        if (boundingBox1Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, boundingBox1Value);
+        }
+        sql.append(",");
+        final QueryValue boundingBox2Value = envelopeIntersects.getBoundingBox2Value();
+        if (boundingBox2Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, boundingBox2Value);
+        }
+        sql.append(",'mask=ANYINTERACT querytype=WINDOW') = 'TRUE'");
+      } else if (geometryField instanceof ArcSdeStGeometryFieldDefinition) {
+        sql.append("SDE.ST_ENVINTERSECTS(");
+        final QueryValue boundingBox1Value = envelopeIntersects.getBoundingBox1Value();
+        if (boundingBox1Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, boundingBox1Value);
+        }
+        sql.append(",");
+        final QueryValue boundingBox2Value = envelopeIntersects.getBoundingBox2Value();
+        if (boundingBox2Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, boundingBox2Value);
+        }
+        sql.append(") = 1");
       } else {
-        appendQueryValue(query, sql, boundingBox1Value);
+        throw new IllegalArgumentException(
+          "Unknown geometry attribute type " + geometryField.getClass());
       }
-      sql.append(",");
-      final QueryValue boundingBox2Value = envelopeIntersects.getBoundingBox2Value();
-      if (boundingBox2Value == null) {
-        sql.append("NULL");
-      } else {
-        appendQueryValue(query, sql, boundingBox2Value);
-      }
-      sql.append(",'mask=ANYINTERACT querytype=WINDOW') = 'TRUE'");
-    } else if (geometryField instanceof ArcSdeStGeometryFieldDefinition) {
-      sql.append("SDE.ST_ENVINTERSECTS(");
-      final QueryValue boundingBox1Value = envelopeIntersects.getBoundingBox1Value();
-      if (boundingBox1Value == null) {
-        sql.append("NULL");
-      } else {
-        appendQueryValue(query, sql, boundingBox1Value);
-      }
-      sql.append(",");
-      final QueryValue boundingBox2Value = envelopeIntersects.getBoundingBox2Value();
-      if (boundingBox2Value == null) {
-        sql.append("NULL");
-      } else {
-        appendQueryValue(query, sql, boundingBox2Value);
-      }
-      sql.append(") = 1");
-    } else {
-      throw new IllegalArgumentException(
-        "Unknown geometry attribute type " + geometryField.getClass());
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
-  private void appendGeometryEqual2d(final Query query, final StringBuilder sql,
+  private void appendGeometryEqual2d(final Query query, final Appendable sql,
     final QueryValue queryValue) {
-    final GeometryEqual2d equals = (GeometryEqual2d)queryValue;
-    final FieldDefinition geometryField = query.getGeometryField();
+    try {
+      final GeometryEqual2d equals = (GeometryEqual2d)queryValue;
+      final FieldDefinition geometryField = query.getGeometryField();
 
-    if (geometryField instanceof OracleSdoGeometryJdbcFieldDefinition) {
-      sql.append("MDSYS.SDO_EQUAL(");
-      final QueryValue geometry1Value = equals.getGeometry1Value();
-      if (geometry1Value == null) {
-        sql.append("NULL");
+      if (geometryField instanceof OracleSdoGeometryJdbcFieldDefinition) {
+        sql.append("MDSYS.SDO_EQUAL(");
+        final QueryValue geometry1Value = equals.getGeometry1Value();
+        if (geometry1Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, geometry1Value);
+        }
+        sql.append(",");
+        final QueryValue geometry2Value = equals.getGeometry2Value();
+        if (geometry2Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, geometry2Value);
+        }
+        sql.append(") = 'TRUE'");
+      } else if (geometryField instanceof ArcSdeStGeometryFieldDefinition) {
+        sql.append("SDE.ST_EQUALS(");
+        final QueryValue geometry1Value = equals.getGeometry1Value();
+        if (geometry1Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, geometry1Value);
+        }
+        sql.append(",");
+        final QueryValue geometry2Value = equals.getGeometry2Value();
+        if (geometry2Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, geometry2Value);
+        }
+        sql.append(") = 1");
       } else {
-        appendQueryValue(query, sql, geometry1Value);
+        throw new IllegalArgumentException(
+          "Unknown geometry attribute type " + geometryField.getClass());
       }
-      sql.append(",");
-      final QueryValue geometry2Value = equals.getGeometry2Value();
-      if (geometry2Value == null) {
-        sql.append("NULL");
-      } else {
-        appendQueryValue(query, sql, geometry2Value);
-      }
-      sql.append(") = 'TRUE'");
-    } else if (geometryField instanceof ArcSdeStGeometryFieldDefinition) {
-      sql.append("SDE.ST_EQUALS(");
-      final QueryValue geometry1Value = equals.getGeometry1Value();
-      if (geometry1Value == null) {
-        sql.append("NULL");
-      } else {
-        appendQueryValue(query, sql, geometry1Value);
-      }
-      sql.append(",");
-      final QueryValue geometry2Value = equals.getGeometry2Value();
-      if (geometry2Value == null) {
-        sql.append("NULL");
-      } else {
-        appendQueryValue(query, sql, geometry2Value);
-      }
-      sql.append(") = 1");
-    } else {
-      throw new IllegalArgumentException(
-        "Unknown geometry attribute type " + geometryField.getClass());
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
-  private void appendWithinDistance(final Query query, final StringBuilder sql,
-    final QueryValue queryValue) {
-    final WithinDistance withinDistance = (WithinDistance)queryValue;
-    final FieldDefinition geometryField = query.getGeometryField();
-    if (geometryField instanceof OracleSdoGeometryJdbcFieldDefinition) {
-      sql.append("MDSYS.SDO_WITHIN_DISTANCE(");
-      final QueryValue geometry1Value = withinDistance.getGeometry1Value();
-      if (geometry1Value == null) {
+  private void appendILike(final Query query, final Appendable sql, final QueryValue queryValue) {
+    try {
+      final ILike iLike = (ILike)queryValue;
+      final QueryValue left = iLike.getLeft();
+      final QueryValue right = iLike.getRight();
+
+      sql.append("UPPER(CAST(");
+      if (left == null) {
         sql.append("NULL");
       } else {
-        appendQueryValue(query, sql, geometry1Value);
+        left.appendSql(query, this, sql);
       }
-      sql.append(", ");
-      final QueryValue geometry2Value = withinDistance.getGeometry2Value();
-      if (geometry2Value == null) {
+      sql.append(" AS VARCHAR(4000))) LIKE UPPER(");
+      if (right == null) {
         sql.append("NULL");
       } else {
-        appendQueryValue(query, sql, geometry2Value);
+        right.appendSql(query, this, sql);
       }
-      sql.append(",'distance = ' || ");
-      final QueryValue distanceValue = withinDistance.getDistanceValue();
-      if (distanceValue == null) {
-        sql.append("0");
-      } else {
-        appendQueryValue(query, sql, distanceValue);
-      }
-      sql.append(") = 'TRUE'");
-    } else if (geometryField instanceof ArcSdeStGeometryFieldDefinition) {
-      final Column column = (Column)withinDistance.getGeometry1Value();
-      final GeometryFactory geometryFactory = column.getFieldDefinition()
-        .getRecordDefinition()
-        .getGeometryFactory();
-      final Value geometry2Value = (Value)withinDistance.getGeometry2Value();
-      final Value distanceValue = (Value)withinDistance.getDistanceValue();
-      final Number distance = (Number)distanceValue.getValue();
-      final Object geometryObject = geometry2Value.getValue();
-      BoundingBoxEditor boundingBox;
-      if (geometryObject instanceof BoundingBoxProxy) {
-        boundingBox = ((BoundingBoxProxy)geometryObject).bboxEditor();
-      } else {
-        boundingBox = geometryFactory.bboxEditor();
-      }
-      boundingBox.expandDelta(distance.doubleValue());
-      boundingBox.setGeometryFactory(geometryFactory);
-      sql.append("(SDE.ST_ENVINTERSECTS(");
-      appendQueryValue(query, sql, column);
-      sql.append(",");
-      sql.append(boundingBox.getMinX());
-      sql.append(",");
-      sql.append(boundingBox.getMinY());
-      sql.append(",");
-      sql.append(boundingBox.getMaxX());
-      sql.append(",");
-      sql.append(boundingBox.getMaxY());
-      sql.append(") = 1 AND SDE.ST_DISTANCE(");
-      appendQueryValue(query, sql, column);
-      sql.append(", ");
-      appendQueryValue(query, sql, geometry2Value);
-      sql.append(") <= ");
-      appendQueryValue(query, sql, distanceValue);
       sql.append(")");
-    } else {
-      throw new IllegalArgumentException(
-        "Unknown geometry attribute type " + geometryField.getClass());
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
+  }
+
+  private void appendWithinDistance(final Query query, final Appendable sql,
+    final QueryValue queryValue) {
+    try {
+      final WithinDistance withinDistance = (WithinDistance)queryValue;
+      final FieldDefinition geometryField = query.getGeometryField();
+      if (geometryField instanceof OracleSdoGeometryJdbcFieldDefinition) {
+        sql.append("MDSYS.SDO_WITHIN_DISTANCE(");
+        final QueryValue geometry1Value = withinDistance.getGeometry1Value();
+        if (geometry1Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, geometry1Value);
+        }
+        sql.append(", ");
+        final QueryValue geometry2Value = withinDistance.getGeometry2Value();
+        if (geometry2Value == null) {
+          sql.append("NULL");
+        } else {
+          appendQueryValue(query, sql, geometry2Value);
+        }
+        sql.append(",'distance = ' || ");
+        final QueryValue distanceValue = withinDistance.getDistanceValue();
+        if (distanceValue == null) {
+          sql.append("0");
+        } else {
+          appendQueryValue(query, sql, distanceValue);
+        }
+        sql.append(") = 'TRUE'");
+      } else if (geometryField instanceof ArcSdeStGeometryFieldDefinition) {
+        final Column column = (Column)withinDistance.getGeometry1Value();
+        final GeometryFactory geometryFactory = column.getFieldDefinition()
+          .getRecordDefinition()
+          .getGeometryFactory();
+        final Value geometry2Value = (Value)withinDistance.getGeometry2Value();
+        final Value distanceValue = (Value)withinDistance.getDistanceValue();
+        final Number distance = (Number)distanceValue.getValue();
+        final Object geometryObject = geometry2Value.getValue();
+        BoundingBoxEditor boundingBox;
+        if (geometryObject instanceof BoundingBoxProxy) {
+          boundingBox = ((BoundingBoxProxy)geometryObject).bboxEditor();
+        } else {
+          boundingBox = geometryFactory.bboxEditor();
+        }
+        boundingBox.expandDelta(distance.doubleValue());
+        boundingBox.setGeometryFactory(geometryFactory);
+        sql.append("(SDE.ST_ENVINTERSECTS(");
+        appendQueryValue(query, sql, column);
+        sql.append(",");
+        sql.append(Doubles.toString(boundingBox.getMinX()));
+        sql.append(",");
+        sql.append(Doubles.toString(boundingBox.getMinY()));
+        sql.append(",");
+        sql.append(Doubles.toString(boundingBox.getMaxX()));
+        sql.append(",");
+        sql.append(Doubles.toString(boundingBox.getMaxY()));
+        sql.append(") = 1 AND SDE.ST_DISTANCE(");
+        appendQueryValue(query, sql, column);
+        sql.append(", ");
+        appendQueryValue(query, sql, geometry2Value);
+        sql.append(") <= ");
+        appendQueryValue(query, sql, distanceValue);
+        sql.append(")");
+      } else {
+        throw new IllegalArgumentException(
+          "Unknown geometry attribute type " + geometryField.getClass());
+      }
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
@@ -290,6 +332,42 @@ public class OracleRecordStore extends AbstractJdbcRecordStore {
   }
 
   @Override
+  public int getRecordCount(Query query) {
+    if (query == null) {
+      return 0;
+    } else {
+      final TableReference table = query.getTable();
+      query = query.clone(table, table);
+      query.setSql(null);
+      query.clearOrderBy();
+      final String sql = "select count(mainquery.rowid) from (" + query.getSelectSql()
+        + ") mainquery";
+      try (
+        Transaction transaction = newTransaction(TransactionOptions.REQUIRED);
+        JdbcConnection connection = getJdbcConnection()) {
+        try (
+          final PreparedStatement statement = connection.prepareStatement(sql)) {
+          setPreparedStatementParameters(statement, query);
+          try (
+            final ResultSet resultSet = statement.executeQuery()) {
+            if (resultSet.next()) {
+              final int rowCount = resultSet.getInt(1);
+              return rowCount;
+            } else {
+              return 0;
+            }
+          }
+        } catch (final SQLException e) {
+          throw connection.getException("getRecordCount", sql, e);
+        } catch (final IllegalArgumentException e) {
+          Logs.error(this, "Cannot get row count: " + query, e);
+          return 0;
+        }
+      }
+    }
+  }
+
+  @Override
   public String getRecordStoreType() {
     return "Oracle";
   }
@@ -299,7 +377,7 @@ public class OracleRecordStore extends AbstractJdbcRecordStore {
     if (recordDefinition == null) {
       return null;
     } else {
-      final String dbSchemaName = recordDefinition.getDbSchemaName();
+      final String dbSchemaName = recordDefinition.getQuotedDbSchemaName();
       final String shortName = ShortNameProperty.getShortName(recordDefinition);
       final String sequenceName;
       if (Property.hasValue(shortName)) {
@@ -372,10 +450,10 @@ public class OracleRecordStore extends AbstractJdbcRecordStore {
 
   private void initSettings() {
     setExcludeTablePatterns(".*\\$.*");
-    setIteratorFactory(new RecordStoreIteratorFactory(this::newOracleIterator));
     addSqlQueryAppender(GeometryEqual2d.class, this::appendGeometryEqual2d);
     addSqlQueryAppender(EnvelopeIntersects.class, this::appendEnvelopeIntersects);
     addSqlQueryAppender(WithinDistance.class, this::appendWithinDistance);
+    addSqlQueryAppender(ILike.class, this::appendILike);
   }
 
   @Override
@@ -410,9 +488,9 @@ public class OracleRecordStore extends AbstractJdbcRecordStore {
     return this.useSchemaSequencePrefix;
   }
 
-  private RecordIterator newOracleIterator(final RecordStore recordStore, final Query query,
-    final Map<String, Object> properties) {
-    return new OracleJdbcQueryIterator((OracleRecordStore)recordStore, query, properties);
+  @Override
+  public RecordIterator newIterator(final Query query, final Map<String, Object> properties) {
+    return new OracleJdbcQueryIterator(this, query, properties);
   }
 
   @Override

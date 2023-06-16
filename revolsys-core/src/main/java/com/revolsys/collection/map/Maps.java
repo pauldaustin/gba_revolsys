@@ -22,7 +22,8 @@ import java.util.prefs.Preferences;
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypes;
 
-import com.revolsys.util.JavaBeanUtil;
+import com.revolsys.record.io.format.json.JsonObject;
+import com.revolsys.util.BaseCloneable;
 import com.revolsys.util.Property;
 
 public interface Maps {
@@ -702,7 +703,7 @@ public interface Maps {
       Collection<V> collection = map.get(key);
       final Collection<V> otherCollection = otherMap.get(key);
       if (collection == null) {
-        collection = JavaBeanUtil.clone(otherCollection);
+        collection = BaseCloneable.clone(otherCollection);
         map.put(key, collection);
       } else {
         for (final V value : otherCollection) {
@@ -762,7 +763,7 @@ public interface Maps {
   }
 
   static MapEx newLinkedHashEx(final Map<String, ? extends Object> map) {
-    final MapEx copy = new LinkedHashMapEx();
+    final MapEx copy = JsonObject.hash();
     if (map != null) {
       copy.putAll(map);
     }

@@ -1,24 +1,19 @@
 package com.revolsys.gdal.record;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.PreDestroy;
-
 import org.gdal.ogr.DataSource;
 import org.gdal.ogr.Driver;
 import org.gdal.ogr.Feature;
-import org.gdal.ogr.FeatureDefn;
-import org.gdal.ogr.FieldDefn;
-import org.gdal.ogr.GeomFieldDefn;
 import org.gdal.ogr.Layer;
 import org.gdal.ogr.ogr;
 import org.gdal.ogr.ogrConstants;
@@ -26,8 +21,10 @@ import org.gdal.osr.SpatialReference;
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.date.Dates;
+import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.io.PathName;
 import org.jeometry.common.logging.Logs;
+import org.jeometry.common.number.Doubles;
 
 import com.revolsys.gdal.Gdal;
 import com.revolsys.geometry.model.BoundingBox;
@@ -39,11 +36,12 @@ import com.revolsys.record.io.RecordWriter;
 import com.revolsys.record.query.AbstractMultiCondition;
 import com.revolsys.record.query.BinaryCondition;
 import com.revolsys.record.query.CollectionValue;
-import com.revolsys.record.query.Column;
+import com.revolsys.record.query.ColumnReference;
 import com.revolsys.record.query.Condition;
 import com.revolsys.record.query.ILike;
 import com.revolsys.record.query.LeftUnaryCondition;
 import com.revolsys.record.query.Like;
+import com.revolsys.record.query.OrderBy;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
 import com.revolsys.record.query.RightUnaryCondition;
@@ -54,11 +52,8 @@ import com.revolsys.record.query.functions.WithinDistance;
 import com.revolsys.record.schema.AbstractRecordStore;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
-import com.revolsys.record.schema.RecordDefinitionImpl;
 import com.revolsys.record.schema.RecordStoreSchema;
 import com.revolsys.record.schema.RecordStoreSchemaElement;
-import com.revolsys.util.Property;
-import com.revolsys.util.StringBuilders;
 
 public class OgrRecordStore extends AbstractRecordStore {
 
@@ -75,8 +70,6 @@ public class OgrRecordStore extends AbstractRecordStore {
   private String driverName;
 
   private final File file;
-
-  private final Map<String, String> idFieldNames = new HashMap<>();
 
   private final Map<String, PathName> layerNameToPathMap = new HashMap<>();
 
@@ -95,156 +88,160 @@ public class OgrRecordStore extends AbstractRecordStore {
   }
 
   @Override
-  public void appendQueryValue(final Query query, final StringBuilder sql,
+  public void appendQueryValue(final Query query, final Appendable sql,
     final QueryValue condition) {
-    if (condition instanceof Like || condition instanceof ILike) {
-      final BinaryCondition like = (BinaryCondition)condition;
-      final QueryValue left = like.getLeft();
-      final QueryValue right = like.getRight();
-      sql.append("UPPER(");
-      appendQueryValue(query, sql, left);
-      sql.append(") LIKE ");
-      if (right instanceof Value) {
-        final Value valueCondition = (Value)right;
-        final Object value = valueCondition.getValue();
-        sql.append("'");
-        if (value != null) {
-          final String string = DataTypes.toString(value);
-          sql.append(string.toUpperCase());
-        }
-        sql.append("'");
-      } else {
-        appendQueryValue(query, sql, right);
-      }
-    } else if (condition instanceof LeftUnaryCondition) {
-      final LeftUnaryCondition unaryCondition = (LeftUnaryCondition)condition;
-      final String operator = unaryCondition.getOperator();
-      final QueryValue right = unaryCondition.getValue();
-      sql.append(operator);
-      sql.append(" ");
-      appendQueryValue(query, sql, right);
-    } else if (condition instanceof RightUnaryCondition) {
-      final RightUnaryCondition unaryCondition = (RightUnaryCondition)condition;
-      final QueryValue left = unaryCondition.getValue();
-      final String operator = unaryCondition.getOperator();
-      appendQueryValue(query, sql, left);
-      sql.append(" ");
-      sql.append(operator);
-    } else if (condition instanceof BinaryCondition) {
-      final BinaryCondition binaryCondition = (BinaryCondition)condition;
-      final QueryValue left = binaryCondition.getLeft();
-      final String operator = binaryCondition.getOperator();
-      final QueryValue right = binaryCondition.getRight();
-      appendQueryValue(query, sql, left);
-      sql.append(" ");
-      sql.append(operator);
-      sql.append(" ");
-      appendQueryValue(query, sql, right);
-    } else if (condition instanceof AbstractMultiCondition) {
-      final AbstractMultiCondition multipleCondition = (AbstractMultiCondition)condition;
-      sql.append("(");
-      boolean first = true;
-      final String operator = multipleCondition.getOperator();
-      for (final QueryValue subCondition : multipleCondition.getQueryValues()) {
-        if (first) {
-          first = false;
-        } else {
-          sql.append(" ");
-          sql.append(operator);
-          sql.append(" ");
-        }
-        appendQueryValue(query, sql, subCondition);
-      }
-      sql.append(")");
-    } else if (condition instanceof Value) {
-      final Value valueCondition = (Value)condition;
-      final Object value = valueCondition.getValue();
-      appendValue(sql, value);
-    } else if (condition instanceof CollectionValue) {
-      final CollectionValue collectionValue = (CollectionValue)condition;
-      final List<Object> values = collectionValue.getValues();
-      boolean first = true;
-      for (final Object value : values) {
-        if (first) {
-          first = false;
-        } else {
-          sql.append(", ");
-        }
-        appendValue(sql, value);
-      }
-    } else if (condition instanceof Column) {
-      final Column column = (Column)condition;
-      final Object name = column.getName();
-      sql.append(name);
-    } else if (condition instanceof SqlCondition) {
-      final SqlCondition sqlCondition = (SqlCondition)condition;
-      final String where = sqlCondition.getSql();
-      final List<Object> parameters = sqlCondition.getParameterValues();
-      if (parameters.isEmpty()) {
-        if (where.indexOf('?') > -1) {
-          throw new IllegalArgumentException(
-            "No arguments specified for a where clause with placeholders: " + where);
-        } else {
-          sql.append(where);
-        }
-      } else {
-        final Matcher matcher = PLACEHOLDER_PATTERN.matcher(where);
-        int i = 0;
-        while (matcher.find()) {
-          if (i >= parameters.size()) {
-            throw new IllegalArgumentException(
-              "Not enough arguments for where clause with placeholders: " + where);
+    try {
+      if (condition instanceof Like || condition instanceof ILike) {
+        final BinaryCondition like = (BinaryCondition)condition;
+        final QueryValue left = like.getLeft();
+        final QueryValue right = like.getRight();
+        sql.append("UPPER(");
+        appendQueryValue(query, sql, left);
+        sql.append(") LIKE ");
+        if (right instanceof Value) {
+          final Value valueCondition = (Value)right;
+          final Object value = valueCondition.getValue();
+          sql.append("'");
+          if (value != null) {
+            final String string = DataTypes.toString(value);
+            sql.append(string.toUpperCase());
           }
-          final Object argument = parameters.get(i);
-          final StringBuffer replacement = new StringBuffer();
-          matcher.appendReplacement(replacement, DataTypes.toString(argument));
-          sql.append(replacement);
-          appendValue(sql, argument);
-          i++;
+          sql.append("'");
+        } else {
+          appendQueryValue(query, sql, right);
         }
-        final StringBuffer tail = new StringBuffer();
-        matcher.appendTail(tail);
-        sql.append(tail);
-      }
-    } else if (condition instanceof EnvelopeIntersects) {
-      final EnvelopeIntersects envelopeIntersects = (EnvelopeIntersects)condition;
-      final QueryValue boundingBox1Value = envelopeIntersects.getBoundingBox1Value();
-      final QueryValue boundingBox2Value = envelopeIntersects.getBoundingBox2Value();
-      if (boundingBox1Value == null || boundingBox2Value == null) {
-        sql.append("1 = 0");
-      } else {
-        sql.append("Intersects(");
-        appendQueryValue(query, sql, boundingBox1Value);
-        sql.append(",");
-        appendQueryValue(query, sql, boundingBox2Value);
+      } else if (condition instanceof LeftUnaryCondition) {
+        final LeftUnaryCondition unaryCondition = (LeftUnaryCondition)condition;
+        final String operator = unaryCondition.getOperator();
+        final QueryValue right = unaryCondition.getValue();
+        sql.append(operator);
+        sql.append(" ");
+        appendQueryValue(query, sql, right);
+      } else if (condition instanceof RightUnaryCondition) {
+        final RightUnaryCondition unaryCondition = (RightUnaryCondition)condition;
+        final QueryValue left = unaryCondition.getValue();
+        final String operator = unaryCondition.getOperator();
+        appendQueryValue(query, sql, left);
+        sql.append(" ");
+        sql.append(operator);
+      } else if (condition instanceof BinaryCondition) {
+        final BinaryCondition binaryCondition = (BinaryCondition)condition;
+        final QueryValue left = binaryCondition.getLeft();
+        final String operator = binaryCondition.getOperator();
+        final QueryValue right = binaryCondition.getRight();
+        appendQueryValue(query, sql, left);
+        sql.append(" ");
+        sql.append(operator);
+        sql.append(" ");
+        appendQueryValue(query, sql, right);
+      } else if (condition instanceof AbstractMultiCondition) {
+        final AbstractMultiCondition multipleCondition = (AbstractMultiCondition)condition;
+        sql.append("(");
+        boolean first = true;
+        final String operator = multipleCondition.getOperator();
+        for (final QueryValue subCondition : multipleCondition.getQueryValues()) {
+          if (first) {
+            first = false;
+          } else {
+            sql.append(" ");
+            sql.append(operator);
+            sql.append(" ");
+          }
+          appendQueryValue(query, sql, subCondition);
+        }
         sql.append(")");
-      }
-    } else if (condition instanceof WithinDistance) {
-      final WithinDistance withinDistance = (WithinDistance)condition;
-      final QueryValue geometry1Value = withinDistance.getGeometry1Value();
-      final QueryValue geometry2Value = withinDistance.getGeometry2Value();
-      final QueryValue distanceValue = withinDistance.getDistanceValue();
-      if (geometry1Value == null || geometry2Value == null || distanceValue == null) {
-        sql.append("1 = 0");
+      } else if (condition instanceof Value) {
+        final Value valueCondition = (Value)condition;
+        final Object value = valueCondition.getValue();
+        appendValue(sql, value);
+      } else if (condition instanceof CollectionValue) {
+        final CollectionValue collectionValue = (CollectionValue)condition;
+        final List<Object> values = collectionValue.getValues();
+        boolean first = true;
+        for (final Object value : values) {
+          if (first) {
+            first = false;
+          } else {
+            sql.append(", ");
+          }
+          appendValue(sql, value);
+        }
+      } else if (condition instanceof ColumnReference) {
+        final ColumnReference column = (ColumnReference)condition;
+        final String name = column.getName();
+        sql.append(name);
+      } else if (condition instanceof SqlCondition) {
+        final SqlCondition sqlCondition = (SqlCondition)condition;
+        final String where = sqlCondition.getSql();
+        final List<Object> parameters = sqlCondition.getParameterValues();
+        if (parameters.isEmpty()) {
+          if (where.indexOf('?') > -1) {
+            throw new IllegalArgumentException(
+              "No arguments specified for a where clause with placeholders: " + where);
+          } else {
+            sql.append(where);
+          }
+        } else {
+          final Matcher matcher = PLACEHOLDER_PATTERN.matcher(where);
+          int i = 0;
+          while (matcher.find()) {
+            if (i >= parameters.size()) {
+              throw new IllegalArgumentException(
+                "Not enough arguments for where clause with placeholders: " + where);
+            }
+            final Object argument = parameters.get(i);
+            final StringBuilder replacement = new StringBuilder();
+            matcher.appendReplacement(replacement, DataTypes.toString(argument));
+            sql.append(replacement);
+            appendValue(sql, argument);
+            i++;
+          }
+          final StringBuilder tail = new StringBuilder();
+          matcher.appendTail(tail);
+          sql.append(tail);
+        }
+      } else if (condition instanceof EnvelopeIntersects) {
+        final EnvelopeIntersects envelopeIntersects = (EnvelopeIntersects)condition;
+        final QueryValue boundingBox1Value = envelopeIntersects.getBoundingBox1Value();
+        final QueryValue boundingBox2Value = envelopeIntersects.getBoundingBox2Value();
+        if (boundingBox1Value == null || boundingBox2Value == null) {
+          sql.append("1 = 0");
+        } else {
+          sql.append("Intersects(");
+          appendQueryValue(query, sql, boundingBox1Value);
+          sql.append(",");
+          appendQueryValue(query, sql, boundingBox2Value);
+          sql.append(")");
+        }
+      } else if (condition instanceof WithinDistance) {
+        final WithinDistance withinDistance = (WithinDistance)condition;
+        final QueryValue geometry1Value = withinDistance.getGeometry1Value();
+        final QueryValue geometry2Value = withinDistance.getGeometry2Value();
+        final QueryValue distanceValue = withinDistance.getDistanceValue();
+        if (geometry1Value == null || geometry2Value == null || distanceValue == null) {
+          sql.append("1 = 0");
+        } else {
+          sql.append("Distance(");
+          appendQueryValue(query, sql, geometry1Value);
+          sql.append(", ");
+          appendQueryValue(query, sql, geometry2Value);
+          sql.append(") <= ");
+          appendQueryValue(query, sql, distanceValue);
+          sql.append(")");
+        }
       } else {
-        sql.append("Distance(");
-        appendQueryValue(query, sql, geometry1Value);
-        sql.append(", ");
-        appendQueryValue(query, sql, geometry2Value);
-        sql.append(") <= ");
-        appendQueryValue(query, sql, distanceValue);
-        sql.append(")");
+        condition.appendDefaultSql(query, this, sql);
       }
-    } else {
-      condition.appendDefaultSql(query, this, sql);
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
-  public void appendValue(final StringBuilder sql, final Object value) {
+  private void appendValue(final Appendable sql, final Object value) throws IOException {
     if (value == null) {
       sql.append("''");
     } else if (value instanceof Number) {
-      sql.append(value);
+      sql.append(value.toString());
     } else if (value instanceof java.sql.Date) {
       final String stringValue = Dates.format("yyyy-MM-dd", (java.util.Date)value);
       sql.append("CAST('" + stringValue + "' AS DATE)");
@@ -254,13 +251,13 @@ public class OgrRecordStore extends AbstractRecordStore {
     } else if (value instanceof BoundingBox) {
       final BoundingBox boundingBox = (BoundingBox)value;
       sql.append("BuildMbr(");
-      sql.append(boundingBox.getMinX());
+      sql.append(Doubles.toString(boundingBox.getMinX()));
       sql.append(",");
-      sql.append(boundingBox.getMinY());
+      sql.append(Doubles.toString(boundingBox.getMinY()));
       sql.append(",");
-      sql.append(boundingBox.getMaxX());
+      sql.append(Doubles.toString(boundingBox.getMaxX()));
       sql.append(",");
-      sql.append(boundingBox.getMaxY());
+      sql.append(Doubles.toString(boundingBox.getMaxY()));
       sql.append(")");
     } else {
       final String stringValue = DataTypes.toString(value);
@@ -271,7 +268,6 @@ public class OgrRecordStore extends AbstractRecordStore {
   }
 
   @Override
-  @PreDestroy
   public void close() {
     if (!OgrRecordStoreFactory.release(this.file)) {
       closeDo();
@@ -313,6 +309,10 @@ public class OgrRecordStore extends AbstractRecordStore {
     return this.driverName;
   }
 
+  public File getFile() {
+    return this.file;
+  }
+
   private int getGeometryFieldType(final GeometryFactory geometryFactory,
     final FieldDefinition field) {
     int type;
@@ -342,27 +342,6 @@ public class OgrRecordStore extends AbstractRecordStore {
       type += 0x80000000;
     }
     return type;
-  }
-
-  public String getIdFieldName(final RecordDefinition recordDefinition) {
-    String path;
-    if (recordDefinition == null) {
-      path = null;
-    } else {
-      path = recordDefinition.getPath();
-    }
-
-    return getIdFieldName(path);
-  }
-
-  public String getIdFieldName(final String typePath) {
-    if (typePath != null) {
-      final String idFieldName = this.idFieldNames.get(typePath.toUpperCase());
-      if (idFieldName != null) {
-        return idFieldName;
-      }
-    }
-    return ROWID;
   }
 
   protected Layer getLayer(final String typePath) {
@@ -397,22 +376,22 @@ public class OgrRecordStore extends AbstractRecordStore {
     if (query == null) {
       return 0;
     } else {
-      String typePath = query.getTypeName();
+      PathName typePath = query.getTablePath();
       RecordDefinition recordDefinition = query.getRecordDefinition();
       if (recordDefinition == null) {
-        typePath = query.getTypeName();
+        typePath = query.getTablePath();
         recordDefinition = getRecordDefinition(typePath);
         if (recordDefinition == null) {
           return 0;
         }
       } else {
-        typePath = recordDefinition.getPath();
+        typePath = recordDefinition.getPathName();
       }
       final StringBuilder whereClause = getWhereClause(query);
 
       final StringBuilder sql = new StringBuilder();
       sql.append("SELECT COUNT(*) FROM ");
-      final String layerName = getLayerName(typePath);
+      final String layerName = getLayerName(typePath.toString());
       sql.append(layerName);
       if (whereClause.length() > 0) {
         sql.append(" WHERE ");
@@ -465,16 +444,10 @@ public class OgrRecordStore extends AbstractRecordStore {
   protected String getSql(final Query query) {
     final RecordDefinition recordDefinition = query.getRecordDefinition();
     final String typePath = recordDefinition.getPath();
-    final Map<? extends CharSequence, Boolean> orderBy = query.getOrderBy();
+    final List<OrderBy> orderBy = query.getOrderBy();
     final StringBuilder sql = new StringBuilder();
     sql.append("SELECT ");
-
-    List<String> fieldNames = query.getFieldNames();
-    if (fieldNames.isEmpty()) {
-      fieldNames = recordDefinition.getFieldNames();
-    }
-    fieldNames.remove("ROWID");
-    StringBuilders.append(sql, fieldNames);
+    query.appendSelect(sql);
     sql.append(" FROM ");
     final String layerName = getLayerName(typePath);
     sql.append(layerName);
@@ -484,21 +457,16 @@ public class OgrRecordStore extends AbstractRecordStore {
       sql.append(whereClause);
     }
     boolean first = true;
-    for (final Entry<? extends CharSequence, Boolean> entry : orderBy.entrySet()) {
-      final CharSequence fieldName = entry.getKey();
+    for (final OrderBy entry : orderBy) {
+      final QueryValue field = entry.getField();
       if (first) {
         sql.append(" ORDER BY ");
         first = false;
       } else {
         sql.append(", ");
       }
-      if (fieldName instanceof FieldDefinition) {
-        final FieldDefinition field = (FieldDefinition)fieldName;
-        field.appendColumnName(sql);
-      } else {
-        sql.append(fieldName);
-      }
-      final Boolean ascending = entry.getValue();
+      field.appendDefaultSql(query, null, sql);
+      final boolean ascending = entry.isAscending();
       if (!ascending) {
         sql.append(" DESC");
       }
@@ -529,10 +497,10 @@ public class OgrRecordStore extends AbstractRecordStore {
 
   @Override
   public RecordIterator newIterator(final Query query, final Map<String, Object> properties) {
-    String typePath = query.getTypeName();
+    PathName typePath = query.getTablePath();
     RecordDefinition recordDefinition = query.getRecordDefinition();
     if (recordDefinition == null) {
-      typePath = query.getTypeName();
+      typePath = query.getTablePath();
       recordDefinition = getRecordDefinition(typePath);
       if (recordDefinition == null) {
         throw new IllegalArgumentException("Type name does not exist " + typePath);
@@ -540,11 +508,10 @@ public class OgrRecordStore extends AbstractRecordStore {
         query.setRecordDefinition(recordDefinition);
       }
     } else {
-      typePath = recordDefinition.getPath();
+      typePath = recordDefinition.getPathName();
     }
 
-    final OgrQueryIterator iterator = new OgrQueryIterator(this, query);
-    return iterator;
+    return new OgrQueryIterator(this, query);
   }
 
   private RecordDefinition newLayerRecordDefinition(final DataSource dataSource,
@@ -566,135 +533,7 @@ public class OgrRecordStore extends AbstractRecordStore {
     if (dataSource.TestCapability(ogrConstants.ODsCCreateLayer) == false) {
       System.err.println("CreateLayer not supported by driver.");
     }
-    return newLayerRecordDefinition(schema, layer);
-  }
-
-  protected RecordDefinitionImpl newLayerRecordDefinition(final RecordStoreSchema schema,
-    final Layer layer) {
-    final String layerName = layer.GetName();
-    final PathName typePath = PathName.newPathName(layerName);
-
-    /** This primes the layer so that the fidColumn is loaded correctly. */
-    layer.GetNextFeature();
-
-    final RecordDefinitionImpl recordDefinition = new RecordDefinitionImpl(schema, typePath);
-    String idFieldName = layer.GetFIDColumn();
-    if (!Property.hasValue(idFieldName)) {
-      idFieldName = "rowid";
-    }
-    this.idFieldNames.put(typePath.getUpperPath(), idFieldName);
-    final FeatureDefn layerDefinition = layer.GetLayerDefn();
-    if (SQLITE.equals(this.driverName) || GEO_PAKCAGE.equals(this.driverName)) {
-      recordDefinition.addField(idFieldName, DataTypes.LONG, true);
-      recordDefinition.setIdFieldName(idFieldName);
-    }
-    for (int fieldIndex = 0; fieldIndex < layerDefinition.GetFieldCount(); fieldIndex++) {
-      final FieldDefn fieldDefinition = layerDefinition.GetFieldDefn(fieldIndex);
-      final String fieldName = fieldDefinition.GetName();
-      final int fieldType = fieldDefinition.GetFieldType();
-      final int fieldWidth = fieldDefinition.GetWidth();
-      final int fieldPrecision = fieldDefinition.GetPrecision();
-      DataType fieldDataType;
-      switch (fieldType) {
-        case 0:
-          fieldDataType = DataTypes.INT;
-        break;
-        case 2:
-          fieldDataType = DataTypes.DOUBLE;
-        break;
-        case 4:
-        case 6:
-          fieldDataType = DataTypes.STRING;
-        break;
-        case 9:
-          fieldDataType = DataTypes.SQL_DATE;
-        break;
-        case 11:
-          fieldDataType = DataTypes.DATE_TIME;
-        break;
-
-        default:
-          fieldDataType = DataTypes.STRING;
-          final String fieldTypeName = fieldDefinition.GetFieldTypeName(fieldType);
-          Logs.error(this,
-            "Unsupported field type " + this.file + " " + fieldName + ": " + fieldTypeName);
-        break;
-      }
-      final FieldDefinition field = new FieldDefinition(fieldName, fieldDataType, fieldWidth,
-        fieldPrecision, false);
-      recordDefinition.addField(field);
-    }
-    for (int fieldIndex = 0; fieldIndex < layerDefinition.GetGeomFieldCount(); fieldIndex++) {
-      final GeomFieldDefn fieldDefinition = layerDefinition.GetGeomFieldDefn(fieldIndex);
-      final String fieldName = fieldDefinition.GetName();
-      final int geometryFieldType = fieldDefinition.GetFieldType();
-      DataType geometryFieldDataType;
-      int axisCount = 2;
-      switch (geometryFieldType) {
-        case 1:
-          geometryFieldDataType = GeometryDataTypes.POINT;
-        break;
-        case 2:
-          geometryFieldDataType = GeometryDataTypes.LINE_STRING;
-        break;
-        case 3:
-          geometryFieldDataType = GeometryDataTypes.POLYGON;
-        break;
-        case 4:
-          geometryFieldDataType = GeometryDataTypes.MULTI_POINT;
-        break;
-        case 5:
-          geometryFieldDataType = GeometryDataTypes.MULTI_LINE_STRING;
-        break;
-        case 6:
-          geometryFieldDataType = GeometryDataTypes.MULTI_POLYGON;
-        break;
-        case 7:
-          geometryFieldDataType = GeometryDataTypes.GEOMETRY_COLLECTION;
-        break;
-        case 101:
-          geometryFieldDataType = GeometryDataTypes.LINEAR_RING;
-        break;
-        case 0x80000000 + 1:
-          geometryFieldDataType = GeometryDataTypes.POINT;
-          axisCount = 3;
-        break;
-        case 0x80000000 + 2:
-          geometryFieldDataType = GeometryDataTypes.LINE_STRING;
-          axisCount = 3;
-        break;
-        case 0x80000000 + 3:
-          geometryFieldDataType = GeometryDataTypes.POLYGON;
-          axisCount = 3;
-        break;
-        case 0x80000000 + 4:
-          geometryFieldDataType = GeometryDataTypes.MULTI_POINT;
-          axisCount = 3;
-        break;
-        case 0x80000000 + 5:
-          geometryFieldDataType = GeometryDataTypes.MULTI_LINE_STRING;
-          axisCount = 3;
-        break;
-        case 0x80000000 + 6:
-          geometryFieldDataType = GeometryDataTypes.MULTI_POLYGON;
-          axisCount = 3;
-        break;
-        case 0x80000000 + 7:
-          geometryFieldDataType = GeometryDataTypes.GEOMETRY_COLLECTION;
-          axisCount = 3;
-        break;
-
-        default:
-          geometryFieldDataType = GeometryDataTypes.GEOMETRY;
-        break;
-      }
-      final SpatialReference spatialReference = fieldDefinition.GetSpatialRef();
-      final GeometryFactory geometryFactory = Gdal.getGeometryFactory(spatialReference, axisCount);
-      final FieldDefinition field = new FieldDefinition(fieldName, geometryFieldDataType, false);
-      field.setGeometryFactory(geometryFactory);
-      recordDefinition.addField(field);
-    }
-    return recordDefinition;
+    return OgrRecordDefinition.newRecordDefinition(this, schema, layer);
   }
 
   @Override
@@ -713,7 +552,8 @@ public class OgrRecordStore extends AbstractRecordStore {
           final Layer layer = dataSource.GetLayer(layerIndex);
           if (layer != null) {
             try {
-              final RecordDefinitionImpl recordDefinition = newLayerRecordDefinition(schema, layer);
+              final OgrRecordDefinition recordDefinition = OgrRecordDefinition
+                .newRecordDefinition(this, schema, layer);
               final PathName typePath = recordDefinition.getPathName();
               final String layerName = layer.GetName();
               this.layerNameToPathMap.put(layerName.toUpperCase(), typePath);

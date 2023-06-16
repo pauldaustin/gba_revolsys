@@ -165,7 +165,14 @@ public interface RecordDefinitionProxy extends PathNameProxy, IconNameProxy, Geo
     if (recordStore == null) {
       throw new IllegalStateException(String.format("%s doesn't have a record store", pathName));
     } else {
-      return recordStore.getRecord(pathName, condition, lockMode);
+      final Query query = newQuery();
+      if (condition != null) {
+        query.and(condition);
+      }
+      if (lockMode != null) {
+        query.setLockMode(lockMode);
+      }
+      return getRecord(query);
     }
   }
 
@@ -176,6 +183,26 @@ public interface RecordDefinitionProxy extends PathNameProxy, IconNameProxy, Geo
       throw new IllegalStateException(String.format("%s doesn't have a record store", pathName));
     } else {
       return recordStore.getRecord(pathName, id);
+    }
+  }
+
+  default Record getRecord(final Object id) {
+    final PathName pathName = getPathName();
+    final RecordStore recordStore = getRecordStore();
+    if (recordStore == null) {
+      throw new IllegalStateException(String.format("%s doesn't have a record store", pathName));
+    } else {
+      return recordStore.getRecord(pathName, id);
+    }
+  }
+
+  default Record getRecord(final Query query) {
+    final PathName pathName = getPathName();
+    final RecordStore recordStore = getRecordStore();
+    if (recordStore == null) {
+      throw new IllegalStateException(String.format("%s doesn't have a record store", pathName));
+    } else {
+      return recordStore.getRecord(query);
     }
   }
 

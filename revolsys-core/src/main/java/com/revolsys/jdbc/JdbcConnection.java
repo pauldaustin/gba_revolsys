@@ -138,6 +138,20 @@ public class JdbcConnection implements Connection {
     return getConnection().createStruct(typeName, attributes);
   }
 
+  public int executeCall(final String sql, final Object... parameters) {
+    try {
+      final PreparedStatement statement = this.connection.prepareCall(sql);
+      try {
+        JdbcUtils.setParameters(statement, parameters);
+        return statement.executeUpdate();
+      } finally {
+        JdbcUtils.close(statement);
+      }
+    } catch (final SQLException e) {
+      throw getException("Update:\n" + sql, sql, e);
+    }
+  }
+
   public int executeUpdate(final String sql, final Object... parameters) {
     try {
       final PreparedStatement statement = this.connection.prepareStatement(sql);
@@ -148,7 +162,7 @@ public class JdbcConnection implements Connection {
         JdbcUtils.close(statement);
       }
     } catch (final SQLException e) {
-      throw this.getException("Update:\n" + sql, sql, e);
+      throw getException("Update:\n" + sql, sql, e);
     }
   }
 
@@ -192,11 +206,12 @@ public class JdbcConnection implements Connection {
     } else {
       exceptionTransaltor = new SQLErrorCodeSQLExceptionTranslator(this.dataSource);
     }
-    DataAccessException translatedException = exceptionTransaltor.translate(task, sql, e);
+    final DataAccessException translatedException = exceptionTransaltor.translate(task, sql, e);
     if (translatedException == null) {
       return new UncategorizedSQLException(task, sql, e);
+    } else {
+      return translatedException;
     }
-    return translatedException;
   }
 
   @Override

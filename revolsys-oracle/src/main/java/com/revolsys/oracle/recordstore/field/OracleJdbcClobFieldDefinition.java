@@ -12,6 +12,9 @@ import java.util.Collections;
 import org.jeometry.common.data.type.DataTypes;
 
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
+import com.revolsys.record.RecordState;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.spring.resource.PathResource;
 import com.revolsys.spring.resource.Resource;
 
@@ -25,9 +28,18 @@ public class OracleJdbcClobFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    return resultSet.getClob(columnIndex);
+  public OracleJdbcClobFieldDefinition clone() {
+    final OracleJdbcClobFieldDefinition clone = new OracleJdbcClobFieldDefinition(getDbName(),
+      getName(), getSqlType(), isRequired(), getDescription());
+    postClone(clone);
+    return clone;
+  }
+
+  @Override
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    return resultSet.getClob(indexes.incrementAndGet());
   }
 
   @Override
@@ -79,5 +91,10 @@ public class OracleJdbcClobFieldDefinition extends JdbcFieldDefinition {
     } else {
       return DataTypes.CLOB.toObject(value);
     }
+  }
+
+  @Override
+  public <V> V toFieldValueException(final RecordState state, final Object value) {
+    return toFieldValueException(value);
   }
 }

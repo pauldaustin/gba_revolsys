@@ -7,6 +7,9 @@ import java.util.Map;
 
 import org.jeometry.common.data.type.DataTypes;
 
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
+
 public class JdbcLongFieldDefinition extends JdbcFieldDefinition {
   public JdbcLongFieldDefinition(final String dbName, final String name, final int sqlType,
     final boolean required, final String description, final Map<String, Object> properties) {
@@ -15,14 +18,17 @@ public class JdbcLongFieldDefinition extends JdbcFieldDefinition {
 
   @Override
   public JdbcLongFieldDefinition clone() {
-    return new JdbcLongFieldDefinition(getDbName(), getName(), getSqlType(), isRequired(),
-      getDescription(), getProperties());
+    final JdbcLongFieldDefinition clone = new JdbcLongFieldDefinition(getDbName(), getName(),
+      getSqlType(), isRequired(), getDescription(), getProperties());
+    postClone(clone);
+    return clone;
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final long value = resultSet.getLong(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final long value = resultSet.getLong(indexes.incrementAndGet());
     if (resultSet.wasNull()) {
       return null;
     } else {

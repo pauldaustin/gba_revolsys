@@ -9,6 +9,8 @@ import org.postgresql.util.PGobject;
 
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
 import com.revolsys.record.io.format.json.Json;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 
 public class PostgreSQLJsonbFieldDefinition extends JdbcFieldDefinition {
 
@@ -19,13 +21,23 @@ public class PostgreSQLJsonbFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    String value = resultSet.getString(columnIndex);
+  public JdbcFieldDefinition clone() {
+    final PostgreSQLJsonbFieldDefinition clone = new PostgreSQLJsonbFieldDefinition(getDbName(),
+      getName(), null, getSqlType(), getLength(), getScale(), isRequired(), getDescription(),
+      getProperties());
+    postClone(clone);
+    return clone;
+  }
+
+  @Override
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    String value = resultSet.getString(indexes.incrementAndGet());
     if (value != null && internStrings) {
       value = value.intern();
     }
-    return value;
+    return toColumnType(value);
   }
 
   @Override
@@ -37,7 +49,8 @@ public class PostgreSQLJsonbFieldDefinition extends JdbcFieldDefinition {
     } else {
       final PGobject json = new PGobject();
       json.setType("jsonb");
-      json.setValue(value.toString());
+      final String string = Json.JSON_OBJECT.toString(value);
+      json.setValue(string);
       statement.setObject(parameterIndex, json);
     }
     return parameterIndex + 1;

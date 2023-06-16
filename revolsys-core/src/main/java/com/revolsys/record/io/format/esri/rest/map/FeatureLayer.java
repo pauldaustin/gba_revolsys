@@ -12,8 +12,6 @@ import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.ClockDirection;
 import com.revolsys.geometry.model.GeometryFactory;
-import com.revolsys.jdbc.JdbcUtils;
-import com.revolsys.record.ArrayRecord;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordFactory;
 import com.revolsys.record.code.SingleValueCodeTable;
@@ -25,6 +23,7 @@ import com.revolsys.record.io.format.esri.rest.ArcGisRestCatalog;
 import com.revolsys.record.io.format.esri.rest.CatalogElement;
 import com.revolsys.record.io.format.json.Json;
 import com.revolsys.record.query.Condition;
+import com.revolsys.record.query.OrderBy;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
@@ -182,9 +181,9 @@ public class FeatureLayer extends LayerDescription implements WebServiceFeatureL
     return this.recordDefinition;
   }
 
-  public <V extends Record> RecordReader getRecordReader(final Query query,
-    final boolean pageByObjectId) {
-    return getRecordReader(ArrayRecord.FACTORY, query, pageByObjectId);
+  @Override
+  public RecordReader getRecordReader(final Query query) {
+    return newRecordReader(query, false);
   }
 
   @Override
@@ -194,27 +193,6 @@ public class FeatureLayer extends LayerDescription implements WebServiceFeatureL
     final ArcGisRestServerFeatureReader reader = new ArcGisRestServerFeatureReader(this, parameters,
       0, Integer.MAX_VALUE, recordFactory, !isSupportsPagination());
     return reader;
-  }
-
-  @Override
-  public <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
-    final Query query) {
-    return getRecordReader(recordFactory, query, false);
-  }
-
-  public <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
-    final Query query, final boolean pageByObjectId) {
-    refreshIfNeeded();
-    final Map<String, Object> parameters = newQueryParameters(query);
-    addDefaultRecordQueryParameters(parameters);
-    int offset = 0;
-    int limit = Integer.MAX_VALUE;
-    if (query != null) {
-      offset = query.getOffset();
-      limit = query.getLimit();
-    }
-    return new ArcGisRestServerFeatureReader(this, parameters, offset, limit, recordFactory,
-      pageByObjectId);
   }
 
   @Override
@@ -263,6 +241,11 @@ public class FeatureLayer extends LayerDescription implements WebServiceFeatureL
     return this.supportsPagination;
   }
 
+  @Override
+  public ArcGisRestFeatureLayerQuery newQuery() {
+    return new ArcGisRestFeatureLayerQuery(this);
+  }
+
   public Map<String, Object> newQueryParameters(BoundingBox boundingBox) {
     refreshIfNeeded();
     boundingBox = convertBoundingBox(boundingBox);
@@ -297,15 +280,30 @@ public class FeatureLayer extends LayerDescription implements WebServiceFeatureL
       }
 
       // ORDER BY
-      final Map<? extends CharSequence, Boolean> orderBy = query.getOrderBy();
-      if (Property.hasValue(orderBy)) {
-        final String orderByFields = JdbcUtils
+      final List<OrderBy> orderBy = query.getOrderBy();
+      if (!orderBy.isEmpty()) {
+        final String orderByFields = query
           .appendOrderByFields(new StringBuilder(), this.recordDefinition, orderBy)
           .toString();
         parameters.put("orderByFields", orderByFields);
       }
     }
     return parameters;
+  }
+
+  public RecordReader newRecordReader(final Query query, final boolean pageByObjectId) {
+    final RecordFactory<?> recordFactory = query.getRecordFactory();
+    refreshIfNeeded();
+    final Map<String, Object> parameters = newQueryParameters(query);
+    addDefaultRecordQueryParameters(parameters);
+    int offset = 0;
+    int limit = Integer.MAX_VALUE;
+    if (query != null) {
+      offset = query.getOffset();
+      limit = query.getLimit();
+    }
+    return new ArcGisRestServerFeatureReader(this, parameters, offset, limit, recordFactory,
+      pageByObjectId);
   }
 
   public void setAdvancedQueryCapabilities(final MapEx advancedQueryCapabilities) {

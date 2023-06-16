@@ -11,6 +11,8 @@ import org.jeometry.common.date.Dates;
 
 import com.revolsys.jdbc.field.JdbcDateFieldDefinition;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.util.Property;
 
 public class GeoPackageDateField extends JdbcFieldDefinition {
@@ -26,9 +28,10 @@ public class GeoPackageDateField extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final String dateString = resultSet.getString(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final String dateString = resultSet.getString(indexes.incrementAndGet());
     return Dates.getSqlDate(dateString);
   }
 

@@ -1,6 +1,9 @@
 package com.revolsys.util;
 
 import java.io.PrintStream;
+import java.lang.Character.UnicodeBlock;
+import java.text.Normalizer;
+import java.text.Normalizer.Form;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +36,77 @@ public interface Strings {
     + "\u00C7"//
     + "\u0150\u0170"//
   ;
+
+  static final Pattern InCombiningDiacriticalMarks = Pattern
+    .compile("\\p{InCombiningDiacriticalMarks}+");
+
+  static String cleanString(String text) {
+    if (text == null) {
+      return "";
+    } else {
+      text = normalizeNfc(text);
+      int startIndex = 0;
+      final int length = text.length();
+      int endIndex = length;
+      for (; startIndex < length && Character.isWhitespace(text.charAt(startIndex)); startIndex++) {
+      }
+      for (; endIndex > startIndex
+        && Character.isWhitespace(text.charAt(endIndex - 1)); endIndex--) {
+      }
+      if (startIndex == endIndex) {
+        return "";
+      } else {
+        StringBuilder result = null;
+        if (startIndex > 0) {
+          result = new StringBuilder();
+        } else if (endIndex < length) {
+          result = new StringBuilder();
+        }
+        for (int i = startIndex; i < endIndex; i++) {
+          final char c = text.charAt(i);
+          char replaceC = c;
+          switch (c) {
+            case '’':
+            case '‘':
+            case '‛':
+              replaceC = '\'';
+            break;
+            case '“':
+            case '”':
+            case '‟':
+              replaceC = '"';
+            break;
+            case '‐':
+            case '‑':
+            case '‒':
+            case '–':
+            case '—':
+            case '―':
+              replaceC = '-';
+            default:
+            break;
+          }
+          if (c == replaceC) {
+            if (result != null) {
+              result.append(c);
+            }
+          } else {
+            if (result == null) {
+              result = new StringBuilder(endIndex - startIndex);
+              result.append(text, startIndex, i);
+            }
+            result.append(replaceC);
+          }
+        }
+        if (result == null) {
+          return text;
+        } else {
+          return result.toString();
+        }
+      }
+    }
+
+  }
 
   static String cleanWhitespace(final String string) {
     if (string == null) {
@@ -269,6 +343,49 @@ public interface Strings {
     }
   }
 
+  // Normalize splitting characters into base + combining mark
+  static String normalize(final CharSequence text) {
+    return Normalizer.normalize(text, Form.NFD);
+  }
+
+  // Normalize preferring combined characters
+  static String normalizeNfc(final CharSequence text) {
+    return Normalizer.normalize(text, Form.NFC);
+  }
+
+  static String normalizeNfd(final CharSequence text) {
+    return Normalizer.normalize(text, Form.NFD);
+  }
+
+  public static String normalizeToUsAscii(final CharSequence cs) {
+    if (cs == null) {
+      return null;
+    } else {
+      final String s = Normalizer.normalize(cs, Normalizer.Form.NFD);
+      final StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        if (c == '\u0141') {
+          c = 'L';
+        } else if (c == '\u0142') {
+          c = 'l';
+        } else {
+          final UnicodeBlock block = UnicodeBlock.of(c);
+          if (block == UnicodeBlock.COMBINING_DIACRITICAL_MARKS
+            || block == UnicodeBlock.COMBINING_DIACRITICAL_MARKS_EXTENDED
+            || block == UnicodeBlock.COMBINING_DIACRITICAL_MARKS_SUPPLEMENT) {
+          } else if (' ' <= c && c <= '~') {
+            // US ASCII Visible characters
+            sb.append(c);
+          } else {
+            sb.append('_');
+          }
+        }
+      }
+      return sb.toString();
+    }
+  }
+
   static void print(final PrintStream out, final char separator, final Object... values) {
     if (values != null) {
       boolean first = true;
@@ -315,7 +432,7 @@ public interface Strings {
   static String replaceAll(String value, final Pattern pattern, final String replacement) {
     final Matcher matcher = pattern.matcher(value);
     if (matcher.find()) {
-      final StringBuffer sb = new StringBuffer();
+      final StringBuilder sb = new StringBuilder();
       do {
         matcher.appendReplacement(sb, replacement);
       } while (matcher.find());
@@ -394,6 +511,32 @@ public interface Strings {
       return text.startsWith(prefix);
     } else {
       return false;
+    }
+  }
+
+  public static String stripAccents(String s) {
+    if (s == null) {
+      return null;
+    } else {
+      s = Normalizer.normalize(s, Normalizer.Form.NFD);
+      final StringBuilder sb = new StringBuilder(s);
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        if (c == '\u0141') {
+          c = 'L';
+        } else if (c == '\u0142') {
+          c = 'l';
+        } else {
+          final UnicodeBlock block = UnicodeBlock.of(c);
+          if (block == UnicodeBlock.COMBINING_DIACRITICAL_MARKS
+            || block == UnicodeBlock.COMBINING_DIACRITICAL_MARKS_EXTENDED
+            || block == UnicodeBlock.COMBINING_DIACRITICAL_MARKS_SUPPLEMENT) {
+          } else {
+            sb.append(c);
+          }
+        }
+      }
+      return sb.toString();
     }
   }
 
@@ -597,7 +740,7 @@ public interface Strings {
     return strings;
   }
 
-  public static String toUpperCaseSansAccent(final String text) {
+  static String toUpperCaseSansAccent(final String text) {
     if (text == null) {
       return null;
     } else {

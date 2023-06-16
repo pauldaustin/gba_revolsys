@@ -17,7 +17,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import com.revolsys.collection.map.LinkedHashMapEx;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.DelegatingLineString;
 import com.revolsys.geometry.model.Direction;
@@ -365,6 +365,41 @@ public class Edge<T> implements DelegatingLineString, ObjectWithProperties, Exte
     return edges;
   }
 
+  public End getEnd(final Node<T> node) {
+    if (getGraph() == node.getGraph()) {
+      if (isLoop()) {
+        throw new IllegalArgumentException(
+          "Cannot get the node end for a loop, without specifying the angle");
+      } else {
+        final int nodeId = node.getId();
+        if (this.fromNodeId == nodeId) {
+          return End.FROM;
+        } else if (this.toNodeId == nodeId) {
+          return End.TO;
+        }
+      }
+    }
+    return null;
+  }
+
+  public End getEnd(final Node<T> node, final double angle) {
+    if (getGraph() == node.getGraph()) {
+      if (isLoop()) {
+        final int nodeId = node.getId();
+        if (this.fromNodeId == nodeId) {
+          if (getFromAngle() == angle) {
+            return End.FROM;
+          } else {
+            return End.TO;
+          }
+        }
+      } else {
+        return getEnd(node);
+      }
+    }
+    return null;
+  }
+
   /**
    * Get the direction of the edge from the specified node. If the node is at
    * the start of the edge then return {@link End#FROM}. If the node is at the end of the
@@ -456,12 +491,12 @@ public class Edge<T> implements DelegatingLineString, ObjectWithProperties, Exte
   @Override
   public MapEx getProperties() {
     if (this.graph == null) {
-      return MapEx.EMPTY;
+      return JsonObject.EMPTY;
     } else {
       final Map<Integer, MapEx> propertiesById = this.graph.getEdgePropertiesById();
       MapEx properties = propertiesById.get(this.id);
       if (properties == null) {
-        properties = new LinkedHashMapEx();
+        properties = JsonObject.hash();
         propertiesById.put(this.id, properties);
       }
       return properties;

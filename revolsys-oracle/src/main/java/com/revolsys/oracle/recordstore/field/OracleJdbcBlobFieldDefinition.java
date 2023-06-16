@@ -14,6 +14,8 @@ import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.exception.Exceptions;
 
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.spring.resource.Resource;
 
 public class OracleJdbcBlobFieldDefinition extends JdbcFieldDefinition {
@@ -24,9 +26,18 @@ public class OracleJdbcBlobFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    return resultSet.getBlob(columnIndex);
+  public OracleJdbcBlobFieldDefinition clone() {
+    final OracleJdbcBlobFieldDefinition clone = new OracleJdbcBlobFieldDefinition(getDbName(),
+      getName(), getSqlType(), isRequired(), getDescription());
+    postClone(clone);
+    return clone;
+  }
+
+  @Override
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    return resultSet.getBlob(indexes.incrementAndGet());
   }
 
   @Override

@@ -25,7 +25,10 @@ import com.revolsys.geometry.model.LinearRing;
 import com.revolsys.geometry.model.Point;
 import com.revolsys.geometry.model.Polygon;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
-import com.revolsys.record.Record;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.query.Query;
+import com.revolsys.record.schema.RecordDefinition;
+import com.revolsys.record.schema.RecordStore;
 
 public class ArcSdeStGeometryFieldDefinition extends JdbcFieldDefinition {
 
@@ -89,18 +92,26 @@ public class ArcSdeStGeometryFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public void addStatementPlaceHolder(final StringBuilder sql) {
-    sql.append("SDE.ST_GEOMETRY(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+  public void addStatementPlaceHolder(final Appendable sql) {
+    try {
+      sql.append("SDE.ST_GEOMETRY(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
-  public void appendSelectColumnName(final StringBuilder sql, final String tablePrefix) {
-    super.appendSelectColumnName(sql, tablePrefix);
-    sql.append(".ENTITY, ");
-    super.appendSelectColumnName(sql, tablePrefix);
-    sql.append(".NUMPTS, ");
-    super.appendSelectColumnName(sql, tablePrefix);
-    sql.append(".POINTS");
+  public void appendSelect(final Query query, final RecordStore recordStore, final Appendable sql) {
+    try {
+      super.appendName(sql);
+      sql.append(".ENTITY, ");
+      super.appendName(sql);
+      sql.append(".NUMPTS, ");
+      super.appendName(sql);
+      sql.append(".POINTS");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
@@ -110,14 +121,15 @@ public class ArcSdeStGeometryFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final int geometryType = resultSet.getInt(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final int geometryType = resultSet.getInt(indexes.incrementAndGet());
     if (resultSet.wasNull()) {
       return null;
     } else {
-      final int numPoints = resultSet.getInt(columnIndex + 1);
-      final Blob blob = resultSet.getBlob(columnIndex + 2);
+      final int numPoints = resultSet.getInt(indexes.incrementAndGet());
+      final Blob blob = resultSet.getBlob(indexes.incrementAndGet());
       try (
         final InputStream pointsIn = new BufferedInputStream(blob.getBinaryStream(), 32000)) {
 
@@ -142,13 +154,6 @@ public class ArcSdeStGeometryFieldDefinition extends JdbcFieldDefinition {
   @Override
   public boolean isSortable() {
     return false;
-  }
-
-  @Override
-  public int setFieldValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final Record object, final boolean internStrings) throws SQLException {
-    super.setFieldValueFromResultSet(resultSet, columnIndex, object, internStrings);
-    return columnIndex + 3;
   }
 
   public void setFloat(final PreparedStatement statement, int index, final Double value,

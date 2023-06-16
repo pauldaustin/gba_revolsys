@@ -16,14 +16,20 @@
 package com.revolsys.io;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import com.revolsys.properties.ObjectWithProperties;
+import com.revolsys.util.Cancellable;
 import com.revolsys.util.ExitLoopException;
+
+import reactor.core.publisher.Flux;
 
 /**
  * <p>
@@ -46,12 +52,28 @@ import com.revolsys.util.ExitLoopException;
  * @author Paul Austin
  * @param <T> The type of the item to read.
  */
-public interface Reader<T> extends Iterable<T>, ObjectWithProperties, BaseCloseable {
-  Reader<?> EMPTY = new ListReader<>();
+public interface Reader<T> extends Iterable<T>, ObjectWithProperties, BaseCloseable, Cancellable {
+  Reader<?> EMPTY = wrap(Collections.emptyIterator());
 
   @SuppressWarnings("unchecked")
   static <V> Reader<V> empty() {
     return (Reader<V>)EMPTY;
+  }
+
+  static <I, O> Reader<O> wrap(final Iterable<I> iterable, final Function<I, O> converter) {
+    return wrap(iterable.iterator(), converter);
+  }
+
+  static <V> Reader<V> wrap(final Iterable<V> iterable) {
+    return wrap(iterable.iterator());
+  }
+
+  static <I, O> Reader<O> wrap(final Iterator<I> iterator, final Function<I, O> converter) {
+    return new IteratorConvertReader<>(iterator, converter);
+  }
+
+  static <V> Reader<V> wrap(final Iterator<V> iterator) {
+    return new IteratorReader<>(iterator);
   }
 
   /**
@@ -59,6 +81,51 @@ public interface Reader<T> extends Iterable<T>, ObjectWithProperties, BaseClosea
    */
   @Override
   default void close() {
+  }
+
+  default Flux<T> flux() {
+    return Flux.fromIterable(this);
+  }
+
+  default void forEach(final BiConsumer<Cancellable, ? super T> action) {
+    forEach(this, action);
+  }
+
+  default void forEach(final Cancellable cancellable,
+    final BiConsumer<Cancellable, ? super T> action) {
+    try (
+      Reader<?> reader = this) {
+      if (iterator() != null) {
+        try {
+          for (final T item : this) {
+            if (cancellable.isCancelled()) {
+              return;
+            } else {
+              action.accept(cancellable, item);
+            }
+          }
+        } catch (final ExitLoopException e) {
+        }
+      }
+    }
+  }
+
+  default void forEach(final Cancellable cancellable, final Consumer<? super T> action) {
+    try (
+      Reader<?> reader = this) {
+      if (iterator() != null) {
+        try {
+          for (final T item : this) {
+            if (cancellable.isCancelled()) {
+              return;
+            } else {
+              action.accept(item);
+            }
+          }
+        } catch (final ExitLoopException e) {
+        }
+      }
+    }
   }
 
   /**

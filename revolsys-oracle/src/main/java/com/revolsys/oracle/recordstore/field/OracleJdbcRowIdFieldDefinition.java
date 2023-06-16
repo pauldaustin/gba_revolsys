@@ -1,5 +1,6 @@
 package com.revolsys.oracle.recordstore.field;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -7,10 +8,15 @@ import java.sql.Types;
 import java.util.Collections;
 
 import org.jeometry.common.data.type.DataTypes;
+import org.jeometry.common.exception.Exceptions;
 
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordState;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.query.Query;
+import com.revolsys.record.schema.RecordDefinition;
+import com.revolsys.record.schema.RecordStore;
 
 import oracle.sql.ROWID;
 
@@ -25,22 +31,37 @@ public class OracleJdbcRowIdFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public void addStatementPlaceHolder(final StringBuilder sql) {
-    sql.append("chartorowid(");
-    super.addStatementPlaceHolder(sql);
-    sql.append(")");
+  public void addStatementPlaceHolder(final Appendable sql) {
+    try {
+      sql.append("chartorowid(");
+      super.addStatementPlaceHolder(sql);
+      sql.append(")");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
-  public void appendSelectColumnName(final StringBuilder sql, final String tablePrefix) {
-    super.appendSelectColumnName(sql, tablePrefix);
-    sql.append(" \"ORACLE_ROWID\"");
+  public void appendSelect(final Query query, final RecordStore recordStore, final Appendable sql) {
+    try {
+      sql.append(" \"ORACLE_ROWID\"");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final ROWID rowId = (ROWID)resultSet.getRowId(columnIndex);
+  public OracleJdbcRowIdFieldDefinition clone() {
+    final OracleJdbcRowIdFieldDefinition clone = new OracleJdbcRowIdFieldDefinition();
+    postClone(clone);
+    return clone;
+  }
+
+  @Override
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final ROWID rowId = (ROWID)resultSet.getRowId(indexes.incrementAndGet());
     if (rowId == null) {
       return null;
     } else {

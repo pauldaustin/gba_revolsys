@@ -14,6 +14,8 @@ import org.jeometry.common.data.type.DataType;
 import org.postgresql.jdbc.PgConnection;
 
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 
 public class PostgreSQLArrayFieldDefinition extends JdbcFieldDefinition {
 
@@ -34,16 +36,28 @@ public class PostgreSQLArrayFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final Object value = resultSet.getObject(columnIndex);
+  public PostgreSQLArrayFieldDefinition clone() {
+    final PostgreSQLArrayFieldDefinition clone = new PostgreSQLArrayFieldDefinition(getDbName(),
+      getName(), (CollectionDataType)getDataType(), this.elementDbDataType, getSqlType(),
+      getLength(), getScale(), isRequired(), getDescription(), this.elementField, getProperties());
+    postClone(clone);
+    return clone;
+  }
+
+  @Override
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final Object value = resultSet.getObject(indexes.incrementAndGet());
     if (value instanceof Array) {
       final Array array = (Array)value;
       final List<Object> values = new ArrayList<>();
       final ResultSet arrayResultSet = array.getResultSet();
+      final ColumnIndexes columnIndex = new ColumnIndexes();
       while (arrayResultSet.next()) {
-        final Object elementValue = this.elementField.getValueFromResultSet(arrayResultSet, 2,
-          internStrings);
+        columnIndex.columnIndex = 1;
+        final Object elementValue = this.elementField.getValueFromResultSet(recordDefinition,
+          arrayResultSet, columnIndex, internStrings);
         values.add(elementValue);
       }
       return values;
@@ -55,7 +69,10 @@ public class PostgreSQLArrayFieldDefinition extends JdbcFieldDefinition {
   public int setInsertPreparedStatementValue(final PreparedStatement statement,
     final int parameterIndex, final Object value) throws SQLException {
     Array array;
-    if (value instanceof Array) {
+    if (value == null) {
+      statement.setNull(parameterIndex, getSqlType());
+      return parameterIndex + 1;
+    } else if (value instanceof Array) {
       array = (Array)value;
     } else if (value instanceof Collection) {
       final Collection<?> elements = (Collection<?>)value;

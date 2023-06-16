@@ -15,9 +15,10 @@ import com.revolsys.collection.list.Lists;
 import com.revolsys.record.io.format.json.Json;
 import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.io.format.json.JsonObjectHash;
+import com.revolsys.record.io.format.json.Jsonable;
 import com.revolsys.util.Property;
 
-public interface MapSerializer {
+public interface MapSerializer extends Jsonable {
   default void addAllToMap(final JsonObject map, final Map<String, ? extends Object> values) {
     if (map != null && values != null) {
       for (final Entry<String, ? extends Object> entry : values.entrySet()) {
@@ -38,11 +39,13 @@ public interface MapSerializer {
    * @param value
    */
   default void addToMap(final JsonObject map, final CharSequence name, final Object value) {
-    final Object mapValue = toMapValue(value);
-    if (Property.hasValue(mapValue)) {
-      map.put(name.toString(), mapValue);
-    } else {
-      map.remove(name);
+    if (name != null) {
+      final Object mapValue = toMapValue(value);
+      if (Property.hasValue(mapValue)) {
+        map.put(name.toString(), mapValue);
+      } else {
+        map.remove(name);
+      }
     }
   }
 
@@ -79,6 +82,11 @@ public interface MapSerializer {
     final JsonObject map = new JsonObjectHash();
     addTypeToMap(map, type);
     return map;
+  }
+
+  @Override
+  default JsonObject toJson() {
+    return toMap();
   }
 
   /**

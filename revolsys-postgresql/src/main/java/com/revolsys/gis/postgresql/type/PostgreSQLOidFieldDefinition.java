@@ -11,6 +11,8 @@ import org.jeometry.common.data.type.DataTypes;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordState;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 
 public class PostgreSQLOidFieldDefinition extends JdbcFieldDefinition {
 
@@ -24,9 +26,17 @@ public class PostgreSQLOidFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    Object value = resultSet.getObject(columnIndex);
+  public JdbcFieldDefinition clone() {
+    final PostgreSQLOidFieldDefinition clone = new PostgreSQLOidFieldDefinition();
+    postClone(clone);
+    return clone;
+  }
+
+  @Override
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    Object value = resultSet.getObject(indexes.incrementAndGet());
     if (value instanceof PostgreSQLTidWrapper) {
       final PostgreSQLTidWrapper wrapper = (PostgreSQLTidWrapper)value;
       value = wrapper.getTid();

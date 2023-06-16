@@ -89,13 +89,13 @@ import com.revolsys.geometry.model.impl.BoundingBoxDoubleXY;
 import com.revolsys.geometry.model.impl.BoundingBoxDoubleXYGeometryFactory;
 import com.revolsys.geometry.model.impl.BoundingBoxEmpty;
 import com.revolsys.geometry.model.impl.GeometryCollectionImpl;
-import com.revolsys.geometry.model.impl.LineStringDoubleGf;
-import com.revolsys.geometry.model.impl.LinearRingDoubleGf;
+import com.revolsys.geometry.model.impl.LineStringDoubleGeometryFactory;
+import com.revolsys.geometry.model.impl.LinearRingDoubleGeometryFactory;
 import com.revolsys.geometry.model.impl.MultiLineStringImpl;
 import com.revolsys.geometry.model.impl.MultiPointImpl;
 import com.revolsys.geometry.model.impl.MultiPolygonImpl;
 import com.revolsys.geometry.model.impl.PointDouble;
-import com.revolsys.geometry.model.impl.PointDoubleGf;
+import com.revolsys.geometry.model.impl.PointDoubleGeometryFactory;
 import com.revolsys.geometry.model.impl.PointDoubleXYGeometryFactory;
 import com.revolsys.geometry.model.impl.PointDoubleXYZGeometryFactory;
 import com.revolsys.geometry.model.impl.PolygonImpl;
@@ -105,8 +105,8 @@ import com.revolsys.geometry.model.segment.LineSegmentDoubleGF;
 import com.revolsys.geometry.operation.union.CascadedPolygonUnion;
 import com.revolsys.geometry.util.RectangleUtil;
 import com.revolsys.io.StringWriter;
-import com.revolsys.io.channels.ChannelReader;
 import com.revolsys.io.channels.ChannelWriter;
+import com.revolsys.io.channels.DataReader;
 import com.revolsys.io.map.MapSerializer;
 import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.io.format.json.JsonObjectHash;
@@ -836,7 +836,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     }
   }
 
-  public static GeometryFactory readOffsetScaled3d(final ChannelReader reader) {
+  public static GeometryFactory readOffsetScaled3d(final DataReader reader) {
     final int coordinateSystemId = reader.getInt();
     final double offsetX = reader.getDouble();
     final double scaleX = reader.getDouble();
@@ -1898,7 +1898,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
   }
 
   public LinearRing linearRing() {
-    return new LinearRingDoubleGf(this);
+    return new LinearRingDoubleGeometryFactory(this);
   }
 
   public LinearRing linearRing(final Collection<?> points) {
@@ -1912,13 +1912,15 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
 
   public LinearRing linearRing(final int axisCount, double... coordinates) {
     final int vertexCount = coordinates.length / axisCount;
-    coordinates = LineStringDoubleGf.getNewCoordinates(this, axisCount, vertexCount, coordinates);
-    return new LinearRingDoubleGf(this, this.axisCount, vertexCount, coordinates);
+    coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(this, axisCount, vertexCount,
+      coordinates);
+    return new LinearRingDoubleGeometryFactory(this, this.axisCount, vertexCount, coordinates);
   }
 
   public LinearRing linearRing(final int axisCount, final int vertexCount, double... coordinates) {
-    coordinates = LineStringDoubleGf.getNewCoordinates(this, axisCount, vertexCount, coordinates);
-    return new LinearRingDoubleGf(this, this.axisCount, vertexCount, coordinates);
+    coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(this, axisCount, vertexCount,
+      coordinates);
+    return new LinearRingDoubleGeometryFactory(this, this.axisCount, vertexCount, coordinates);
   }
 
   /**
@@ -1935,8 +1937,8 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
       return linearRing();
     } else {
       final int vertexCount = line.getVertexCount();
-      final double[] coordinates = LineStringDoubleGf.getNewCoordinates(this, line);
-      return new LinearRingDoubleGf(this, this.axisCount, vertexCount, coordinates);
+      final double[] coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(this, line);
+      return new LinearRingDoubleGeometryFactory(this, this.axisCount, vertexCount, coordinates);
     }
   }
 
@@ -1980,21 +1982,24 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
       return lineString();
     } else {
       final int vertexCount = coordinates.length / axisCount;
-      coordinates = LineStringDoubleGf.getNewCoordinates(this, axisCount, vertexCount, coordinates);
-      return new LineStringDoubleGf(this, this.axisCount, vertexCount, coordinates);
+      coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(this, axisCount, vertexCount,
+        coordinates);
+      return new LineStringDoubleGeometryFactory(this, this.axisCount, vertexCount, coordinates);
     }
   }
 
   public LineString lineString(final int axisCount, final int vertexCount, double... coordinates) {
-    coordinates = LineStringDoubleGf.getNewCoordinates(this, axisCount, vertexCount, coordinates);
-    return new LineStringDoubleGf(this, this.axisCount, vertexCount, coordinates);
+    coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(this, axisCount, vertexCount,
+      coordinates);
+    return new LineStringDoubleGeometryFactory(this, this.axisCount, vertexCount, coordinates);
   }
 
   public LineString lineString(final int axisCount, final Number[] coordinates) {
     final int vertexCount = coordinates.length / axisCount;
-    final double[] coordinatesDouble = LineStringDoubleGf.getNewCoordinates(this, axisCount,
-      vertexCount, coordinates);
-    return new LineStringDoubleGf(this, this.axisCount, vertexCount, coordinatesDouble);
+    final double[] coordinatesDouble = LineStringDoubleGeometryFactory.getNewCoordinates(this,
+      axisCount, vertexCount, coordinates);
+    return new LineStringDoubleGeometryFactory(this, this.axisCount, vertexCount,
+      coordinatesDouble);
   }
 
   public LineString lineString(final LineString line) {
@@ -2002,8 +2007,8 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
       return lineString();
     } else {
       final int vertexCount = line.getVertexCount();
-      final double[] coordinates = LineStringDoubleGf.getNewCoordinates(this, line);
-      return new LineStringDoubleGf(this, this.axisCount, vertexCount, coordinates);
+      final double[] coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(this, line);
+      return new LineStringDoubleGeometryFactory(this, this.axisCount, vertexCount, coordinates);
     }
   }
 
@@ -2276,18 +2281,21 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
       if (axisCount < 2) {
         return point();
       } else if (axisCount == 2) {
-        return new PointDoubleXYGeometryFactory(this, coordinates[0], coordinates[1]);
+        return point(coordinates[0], coordinates[1]);
       } else if (axisCount == 3) {
-        return new PointDoubleXYZGeometryFactory(this, coordinates[0], coordinates[1],
-          coordinates[2]);
+        return point(coordinates[0], coordinates[1], coordinates[2]);
       } else {
-        return new PointDoubleGf(this, coordinates);
+        return new PointDoubleGeometryFactory(this, coordinates);
       }
     }
   }
 
   public Point point(final double x, final double y) {
     return new PointDoubleXYGeometryFactory(this, x, y);
+  }
+
+  public Point point(final double x, double y, double z) {
+    return new PointDoubleXYZGeometryFactory(this, x, y, z);
   }
 
   /**
@@ -2368,12 +2376,32 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
   public Point point(final Point point) {
     if (point == null || point.isEmpty()) {
       return point();
+    } else if (point.isSameCoordinateSystem(this)) {
+      final double[] coordinates = point.getCoordinates();
+      return point(coordinates);
     } else {
-      if (point.isSameCoordinateSystem(this)) {
-        final double[] coordinates = point.getCoordinates();
-        return point(coordinates);
+      return point.newGeometry(this);
+    }
+  }
+
+  public Point pointFixed(double... coordinates) {
+    if (coordinates == null) {
+      return point();
+    } else {
+      final int axisCount = this.axisCount;
+      if (coordinates.length != this.axisCount) {
+        final double[] c = new double[this.axisCount];
+        System.arraycopy(coordinates, 0, c, 0, Math.min(this.axisCount, coordinates.length));
+        coordinates = c;
+      }
+      if (axisCount < 2) {
+        return point();
+      } else if (axisCount == 2) {
+        return point(coordinates[0], coordinates[1]);
+      } else if (axisCount == 3) {
+        return point(coordinates[0], coordinates[1], coordinates[2]);
       } else {
-        return point.newGeometry(this);
+        return new PointDoubleGeometryFactory(this, coordinates);
       }
     }
   }

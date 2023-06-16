@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.util.Property;
@@ -43,7 +44,7 @@ public abstract class AbstractRecord implements Record, Cloneable {
 
   protected boolean setValue(final FieldDefinition fieldDefinition, Object value) {
     final String propertyName = fieldDefinition.getName();
-    value = fieldDefinition.toFieldValueException(value);
+    value = fieldDefinition.toFieldValueException(getState(), value);
     Property.setSimple(this, propertyName, value);
     return true;
   }
@@ -75,7 +76,7 @@ public abstract class AbstractRecord implements Record, Cloneable {
   }
 
   @Override
-  public void setValues(final Object... values) {
+  public AbstractRecord setValues(final Object... values) {
     if (values != null) {
       int i = 0;
       final RecordDefinition recordDefinition = getRecordDefinition();
@@ -85,10 +86,16 @@ public abstract class AbstractRecord implements Record, Cloneable {
           setValue(fieldDefinition, value);
           i++;
         } else {
-          return;
+          return this;
         }
       }
     }
+    return this;
+  }
+
+  @Override
+  public JsonObject toJson() {
+    return Record.super.toJson();
   }
 
   /**

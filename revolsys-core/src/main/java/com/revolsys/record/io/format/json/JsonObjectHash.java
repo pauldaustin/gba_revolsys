@@ -1,14 +1,10 @@
 package com.revolsys.record.io.format.json;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.revolsys.collection.map.LinkedHashMapEx;
+public class JsonObjectHash extends LinkedHashMap<String, Object> implements JsonObject {
 
-public class JsonObjectHash extends LinkedHashMapEx implements JsonObject {
-
-  /**
-   *
-   */
   private static final long serialVersionUID = 1L;
 
   public JsonObjectHash() {
@@ -25,7 +21,8 @@ public class JsonObjectHash extends LinkedHashMapEx implements JsonObject {
 
   @Override
   public JsonObjectHash clone() {
-    return new JsonObjectHash(this);
+    return (JsonObjectHash)new JsonObjectHash()//
+      .addValuesClone(this);
   }
 
   @Override

@@ -75,7 +75,7 @@ public class ArcGisRestCatalog extends ArcGisResponse<CatalogElement> {
       if (layer == null) {
         throw new RuntimeException("Cannot find layer: " + layerPath + " on " + serverUrl);
       } else {
-        final RecordReader reader = layer.getRecordReader((Query)null, true);
+        final RecordReader reader = layer.newRecordReader((Query)null, true);
         final Map<String, Object> readerProperties = (Map<String, Object>)properties
           .get("readerProperties");
         reader.setProperties(readerProperties);

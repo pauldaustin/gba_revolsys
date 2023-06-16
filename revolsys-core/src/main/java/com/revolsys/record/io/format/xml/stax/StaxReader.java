@@ -21,6 +21,8 @@ import org.apache.commons.io.input.XmlStreamReader;
 import org.jeometry.common.exception.Exceptions;
 
 import com.revolsys.io.BaseCloseable;
+import com.revolsys.record.io.format.json.JsonObject;
+import com.revolsys.record.io.format.xml.XmlNameProxy;
 import com.revolsys.spring.resource.Resource;
 import com.revolsys.util.Property;
 
@@ -58,6 +60,8 @@ public class StaxReader extends StreamReaderDelegate implements BaseCloseable {
       return Exceptions.throwUncheckedException(e);
     }
   }
+
+  private final JsonObject contextProperties = JsonObject.hash();
 
   private int depth = 0;
 
@@ -144,6 +148,10 @@ public class StaxReader extends StreamReaderDelegate implements BaseCloseable {
     } else {
       return false;
     }
+  }
+
+  public Object getConextProperty(final String name) {
+    return this.contextProperties.getValue(name);
   }
 
   public int getDepth() {
@@ -250,6 +258,16 @@ public class StaxReader extends StreamReaderDelegate implements BaseCloseable {
       final String currentLocalName = getLocalName();
       final String requiredLocalName = name.getLocalPart();
       if (currentLocalName.equals(requiredLocalName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean isStartElement(final XmlNameProxy name) {
+    if (name != null && isStartElement()) {
+      final QName currentName = getName();
+      if (name.equalsXmlName(currentName)) {
         return true;
       }
     }
@@ -477,6 +495,23 @@ public class StaxReader extends StreamReaderDelegate implements BaseCloseable {
       }
     }
     return true;
+  }
+
+  public boolean skipToStartElement(final int depth) {
+    try {
+      while (this.depth >= depth) {
+        next();
+        if (this.depth < depth) {
+          return false;
+        } else if (getEventType() == END_DOCUMENT) {
+          return false;
+        } else if (getEventType() == START_ELEMENT) {
+          return true;
+        }
+      }
+    } catch (final NoSuchElementException e) {
+    }
+    return false;
   }
 
   public boolean skipToStartElement(final int depth, final QName elementName) {

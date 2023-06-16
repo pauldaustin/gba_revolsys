@@ -15,15 +15,16 @@
  */
 package com.revolsys.util;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -32,15 +33,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.net.UrlProxy;
 
-import com.revolsys.collection.map.LinkedHashMapEx;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.io.FileUtil;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.spring.resource.Resource;
 
 /**
@@ -69,6 +71,48 @@ public final class UrlUtil {
 
   private static final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_RE);
 
+  public static String appendPath(final String originalPath, final String path) {
+    final int length = path.length();
+    final StringBuilder pathBuilder = new StringBuilder(originalPath);
+    int startIndex = 0;
+    while (startIndex < length) {
+      if (path.charAt(startIndex) == '/') {
+        if (pathBuilder.length() > 0 && pathBuilder.charAt(pathBuilder.length() - 1) != '/') {
+          pathBuilder.append('/');
+        }
+        startIndex++;
+      } else {
+        final int endIndex = path.indexOf('/', startIndex);
+        String pathElement;
+        if (endIndex == -1) {
+          pathElement = path.substring(startIndex);
+          startIndex = length;
+        } else {
+          pathElement = path.substring(startIndex, endIndex);
+          startIndex = endIndex;
+        }
+        if (pathBuilder.length() == 0 || pathBuilder.charAt(pathBuilder.length() - 1) != '/') {
+          pathBuilder.append('/');
+        }
+        final String encoded = UrlUtil.encodePathSegment(pathElement);
+        pathBuilder.append(encoded);
+
+      }
+    }
+    final String newPath = pathBuilder.toString();
+    return newPath;
+  }
+
+  public static URI appendPath(final URI uri, final String path) {
+    if (path == null || path.length() == 0) {
+      return uri;
+    } else {
+      final String originalPath = uri.getPath();
+      final String newPath = appendPath(originalPath, path);
+      return uri.resolve(newPath);
+    }
+  }
+
   public static void appendQuery(final StringBuilder query,
     final Map<String, ? extends Object> parameters) throws Error {
     if (parameters != null) {
@@ -82,40 +126,37 @@ public final class UrlUtil {
           } else {
             firstParameter = false;
           }
-          try {
-            if (value instanceof String[]) {
-              final String[] values = (String[])value;
-              for (int i = 0; i < values.length; i++) {
-                query.append(name).append('=').append(URLEncoder.encode(values[i], "US-ASCII"));
-                if (i < values.length - 1) {
-                  query.append('&');
-                }
-              }
-            } else if (value instanceof Collection) {
-              boolean first = true;
-              final Collection<?> values = (Collection<?>)value;
-              for (final Object childValue : values) {
-                if (childValue != null) {
-                  if (first == true) {
-                    first = false;
-                  } else {
-                    query.append('&');
-                  }
-                  query.append(name)
-                    .append('=')
-                    .append(URLEncoder.encode(childValue.toString(), "US-ASCII"));
-                }
-              }
-
-            } else {
+          if (value instanceof String[]) {
+            final String[] values = (String[])value;
+            for (int i = 0; i < values.length; i++) {
               query.append(name)
                 .append('=')
-                .append(URLEncoder.encode(value.toString(), "US-ASCII"));
+                .append(URLEncoder.encode(values[i], StandardCharsets.US_ASCII));
+              if (i < values.length - 1) {
+                query.append('&');
+              }
             }
-          } catch (final UnsupportedEncodingException e) {
-            throw new Error(e);
-          }
+          } else if (value instanceof Collection) {
+            boolean first = true;
+            final Collection<?> values = (Collection<?>)value;
+            for (final Object childValue : values) {
+              if (childValue != null) {
+                if (first == true) {
+                  first = false;
+                } else {
+                  query.append('&');
+                }
+                query.append(name)
+                  .append('=')
+                  .append(URLEncoder.encode(childValue.toString(), StandardCharsets.US_ASCII));
+              }
+            }
 
+          } else {
+            query.append(name)
+              .append('=')
+              .append(URLEncoder.encode(value.toString(), StandardCharsets.US_ASCII));
+          }
         }
       }
     }
@@ -127,36 +168,36 @@ public final class UrlUtil {
       if (!firstParameter) {
         query.append('&');
       }
-      try {
-        if (value instanceof String[]) {
-          final String[] values = (String[])value;
-          for (int i = 0; i < values.length; i++) {
-            query.append(name).append('=').append(URLEncoder.encode(values[i], "US-ASCII"));
-            if (i < values.length - 1) {
+      if (value instanceof String[]) {
+        final String[] values = (String[])value;
+        for (int i = 0; i < values.length; i++) {
+          query.append(name)
+            .append('=')
+            .append(URLEncoder.encode(values[i], StandardCharsets.US_ASCII));
+          if (i < values.length - 1) {
+            query.append('&');
+          }
+        }
+      } else if (value instanceof Collection) {
+        boolean first = true;
+        final Collection<?> values = (Collection<?>)value;
+        for (final Object childValue : values) {
+          if (childValue != null) {
+            if (first == true) {
+              first = false;
+            } else {
               query.append('&');
             }
+            query.append(name)
+              .append('=')
+              .append(URLEncoder.encode(childValue.toString(), StandardCharsets.US_ASCII));
           }
-        } else if (value instanceof Collection) {
-          boolean first = true;
-          final Collection<?> values = (Collection<?>)value;
-          for (final Object childValue : values) {
-            if (childValue != null) {
-              if (first == true) {
-                first = false;
-              } else {
-                query.append('&');
-              }
-              query.append(name)
-                .append('=')
-                .append(URLEncoder.encode(childValue.toString(), "US-ASCII"));
-            }
-          }
-
-        } else {
-          query.append(name).append('=').append(URLEncoder.encode(value.toString(), "US-ASCII"));
         }
-      } catch (final UnsupportedEncodingException e) {
-        throw new Error(e);
+
+      } else {
+        query.append(name)
+          .append('=')
+          .append(URLEncoder.encode(value.toString(), StandardCharsets.US_ASCII));
       }
 
     }
@@ -172,6 +213,37 @@ public final class UrlUtil {
     return url.replaceAll("/+", "/")
       .replaceAll("^((\\w)+:)/", "$1//")
       .replaceAll("^file://", "file:///");
+  }
+
+  public static String encodePathSegment(final String segment) {
+
+    final byte[] bytes = segment.getBytes(StandardCharsets.UTF_8);
+    boolean valid = true;
+    int i = 0;
+    for (; i < segment.length(); i++) {
+      final char c = segment.charAt(i);
+      if (!isPathChar(c)) {
+        valid = false;
+        break;
+      }
+    }
+    if (valid) {
+      return segment;
+    } else {
+      final ByteArrayOutputStream baos = new ByteArrayOutputStream(bytes.length);
+      for (final byte b : bytes) {
+        if (isPathChar(b)) {
+          baos.write(b);
+        } else {
+          baos.write('%');
+          final char hex1 = Character.toUpperCase(Character.forDigit(b >> 4 & 0xF, 16));
+          final char hex2 = Character.toUpperCase(Character.forDigit(b & 0xF, 16));
+          baos.write(hex1);
+          baos.write(hex2);
+        }
+      }
+      return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    }
   }
 
   public static String getContent(final String urlString) {
@@ -273,7 +345,7 @@ public final class UrlUtil {
 
   @SuppressWarnings("unchecked")
   public static Map<String, Object> getQueryStringMap(final String queryString) {
-    final MapEx map = new LinkedHashMapEx();
+    final MapEx map = JsonObject.hash();
     if (Property.hasValue(queryString)) {
       for (final String part : queryString.split("\\&")) {
         final int equalsIndex = part.indexOf("=");
@@ -301,11 +373,7 @@ public final class UrlUtil {
   }
 
   public static URI getUri(final String uri) {
-    try {
-      return new URI(uri);
-    } catch (final URISyntaxException e) {
-      throw new IllegalArgumentException("Unknown URI: " + uri, e);
-    }
+    return URI.create(uri);
   }
 
   public static URI getUri(final URL url) {
@@ -420,6 +488,13 @@ public final class UrlUtil {
     }
   }
 
+  public static boolean isPathChar(final int c) {
+    // a-zA-Z0-9-._~!$&\()*+,;=:@
+    return c >= 'a' && c <= 'z' || c >= '@' && c <= 'Z' || c >= '0' && c <= ';'
+      || c >= '\'' && c <= '.' || '=' == c || '_' == c || '~' == c || '!' == c || '$' == c
+      || '&' == c;
+  }
+
   public static boolean isValidEmail(final String email) {
     return EMAIL_PATTERN.matcher(email).matches();
   }
@@ -442,6 +517,78 @@ public final class UrlUtil {
         params.put(key, value);
       }
     }
+  }
+
+  private static String parseName(final String s, final StringBuilder sb) {
+    sb.setLength(0);
+    for (int i = 0; i < s.length(); i++) {
+      final char c = s.charAt(i);
+      switch (c) {
+        case '+':
+          sb.append(' ');
+        break;
+        case '%':
+          try {
+            sb.append((char)Integer.parseInt(s.substring(i + 1, i + 3), 16));
+            i += 2;
+          } catch (final NumberFormatException e) {
+            // XXX
+            // need to be more specific about illegal arg
+            throw new IllegalArgumentException();
+          } catch (final StringIndexOutOfBoundsException e) {
+            final String rest = s.substring(i);
+            sb.append(rest);
+            if (rest.length() == 2) {
+              i++;
+            }
+          }
+
+        break;
+        default:
+          sb.append(c);
+        break;
+      }
+    }
+
+    return sb.toString();
+  }
+
+  public static Map<String, String[]> parseQueryString(final String s) {
+
+    String valArray[] = null;
+
+    if (s == null) {
+      throw new IllegalArgumentException();
+    }
+
+    final Map<String, String[]> ht = new LinkedHashMap<>();
+    final StringBuilder sb = new StringBuilder();
+    final StringTokenizer st = new StringTokenizer(s, "&");
+    while (st.hasMoreTokens()) {
+      final String pair = st.nextToken();
+      final int pos = pair.indexOf('=');
+      if (pos == -1) {
+        // XXX
+        // should give more detail about the illegal argument
+        throw new IllegalArgumentException();
+      }
+      final String key = parseName(pair.substring(0, pos), sb);
+      final String val = parseName(pair.substring(pos + 1, pair.length()), sb);
+      if (ht.containsKey(key)) {
+        final String oldVals[] = ht.get(key);
+        valArray = new String[oldVals.length + 1];
+        for (int i = 0; i < oldVals.length; i++) {
+          valArray[i] = oldVals[i];
+        }
+        valArray[oldVals.length] = val;
+      } else {
+        valArray = new String[1];
+        valArray[0] = val;
+      }
+      ht.put(key, valArray);
+    }
+
+    return ht;
   }
 
   public static String percentDecode(final String encodedText) {
@@ -511,7 +658,7 @@ public final class UrlUtil {
         return path.toUri();
       } else {
         final String string = DataTypes.toString(value);
-        return getUri(string);
+        return URI.create(string);
       }
     } catch (final Throwable e) {
       throw Exceptions.wrap(e);
@@ -543,4 +690,5 @@ public final class UrlUtil {
    */
   private UrlUtil() {
   }
+
 }

@@ -21,6 +21,7 @@ import org.jeometry.common.io.PathName;
 import org.jeometry.common.logging.Logs;
 
 import com.revolsys.collection.list.Lists;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.comparator.StringNumberComparator;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.Geometry;
@@ -32,12 +33,15 @@ import com.revolsys.predicate.Predicates;
 import com.revolsys.record.code.CodeTable;
 import com.revolsys.record.io.RecordReader;
 import com.revolsys.record.io.RecordWriter;
+import com.revolsys.record.query.ColumnReference;
+import com.revolsys.record.query.OrderBy;
 import com.revolsys.record.query.Query;
+import com.revolsys.record.query.QueryValue;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.record.schema.RecordDefinitionImpl;
 import com.revolsys.record.schema.RecordStore;
-import com.revolsys.util.JavaBeanUtil;
+import com.revolsys.util.BaseCloneable;
 import com.revolsys.util.Property;
 import com.revolsys.util.Strings;
 
@@ -244,7 +248,7 @@ public interface Records {
    * @param orderBy
    */
   static <V extends Record> void filterAndSort(final List<V> records,
-    final Predicate<? super V> filter, final Map<? extends CharSequence, Boolean> orderBy) {
+    final Predicate<? super V> filter, final List<OrderBy> orderBy) {
     // Filter records
     if (!Property.isEmpty(filter)) {
       Predicates.retain(records, filter);
@@ -301,6 +305,49 @@ public interface Records {
       return (Double)value;
     } else {
       return value.doubleValue();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  static <T> T getFieldByPath(final MapEx map, final String path) {
+    if (map instanceof Record) {
+      final Record record = (Record)map;
+      return getFieldByPath(record, path);
+    } else if (path == null) {
+      return null;
+    } else {
+
+      final String[] propertyPath = path.split("\\.");
+      Object propertyValue = map;
+      for (int i = 0; i < propertyPath.length && propertyValue != null; i++) {
+        final String propertyName = propertyPath[i];
+        if (propertyValue instanceof Record) {
+          final Record recordValue = (Record)propertyValue;
+
+          if (recordValue.hasField(propertyName)) {
+            propertyValue = getValue(recordValue, propertyName);
+            if (propertyValue == null) {
+              return null;
+            }
+          } else {
+            return null;
+          }
+        } else if (propertyValue instanceof Map) {
+          final Map<String, Object> map2 = (Map<String, Object>)propertyValue;
+          propertyValue = map2.get(propertyName);
+          if (propertyValue == null) {
+            return null;
+          }
+        } else {
+          try {
+            final Object object = propertyValue;
+            propertyValue = Property.getSimple(object, propertyName);
+          } catch (final IllegalArgumentException e) {
+            throw new IllegalArgumentException("Path does not exist " + path, e);
+          }
+        }
+      }
+      return (T)propertyValue;
     }
   }
 
@@ -527,13 +574,62 @@ public interface Records {
     };
   }
 
-  static <R extends Record> Comparator<R> newComparatorOrderBy(
-    final Map<? extends CharSequence, Boolean> orderBy) {
+  static <R extends MapEx> Comparator<R> newComparatorField(final CharSequence fieldName) {
+    return (record1, record2) -> {
+      if (record1 == record2) {
+        return 0;
+      } else {
+        final Object value1 = record1.getValue(fieldName);
+        final Object value2 = record2.getValue(fieldName);
+        final int compare = CompareUtil.compare(value1, value2);
+        if (compare != 0) {
+          return compare;
+        }
+      }
+      return 0;
+    };
+  }
+
+  static <R extends MapEx> Comparator<R> newComparatorOrderBy(final List<OrderBy> orderBy) {
     return (record1, record2) -> {
       if (record1 == record2) {
         return 0;
       } else {
         if (Property.hasValue(orderBy)) {
+          for (final OrderBy order : orderBy) {
+            final QueryValue field = order.getField();
+            if (field instanceof ColumnReference) {
+              final ColumnReference column = (ColumnReference)field;
+              final String fieldName = column.getAliasName();
+              final boolean ascending = order.isAscending();
+              final Object value1 = record1.getValue(fieldName);
+              final Object value2 = record2.getValue(fieldName);
+              final int compare = CompareUtil.compare(value1, value2);
+              if (compare != 0) {
+                if (ascending) {
+                  return compare;
+                } else {
+                  return -compare;
+                }
+              }
+            }
+
+          }
+          return 0;
+        } else {
+          return 0;
+        }
+      }
+    };
+  }
+
+  static <R extends Record> Comparator<R> newComparatorOrderBy(
+    final Map<? extends CharSequence, Boolean> orderBy) {
+    if (Property.hasValue(orderBy)) {
+      return (record1, record2) -> {
+        if (record1 == record2) {
+          return 0;
+        } else {
           for (final Entry<? extends CharSequence, Boolean> entry : orderBy.entrySet()) {
             final CharSequence fieldName = entry.getKey();
             final Boolean ascending = entry.getValue();
@@ -549,20 +645,20 @@ public interface Records {
             }
           }
           return 0;
-        } else {
-          return 0;
         }
-      }
-    };
+      };
+    } else {
+      return (record1, record2) -> 0;
+    }
   }
 
   static <R extends Record> Comparator<R> newComparatorOrderByIdentifier(
     final Map<? extends CharSequence, Boolean> orderBy) {
-    return (record1, record2) -> {
-      if (record1 == record2) {
-        return 0;
-      } else {
-        if (Property.hasValue(orderBy)) {
+    if (Property.hasValue(orderBy)) {
+      return (record1, record2) -> {
+        if (record1 == record2) {
+          return 0;
+        } else {
           for (final Entry<? extends CharSequence, Boolean> entry : orderBy.entrySet()) {
             final CharSequence fieldName = entry.getKey();
             final Boolean ascending = entry.getValue();
@@ -580,11 +676,17 @@ public interface Records {
           final Identifier identifier1 = record1.getIdentifier();
           final Identifier identifier2 = record2.getIdentifier();
           return CompareUtil.compare(identifier1, identifier2);
+        }
+      };
+    } else {
+      return (record1, record2) -> {
+        if (record1 == record2) {
+          return 0;
         } else {
           return -1;
         }
-      }
-    };
+      };
+    }
   }
 
   static <V extends Record> Predicate<V> newFilter(final BoundingBox boundingBox) {
@@ -691,9 +793,19 @@ public interface Records {
         final Object oldValue = getValue(target, fieldName);
         Object newValue = getValue(source, fieldName);
         if (!DataType.equal(oldValue, newValue)) {
-          newValue = JavaBeanUtil.clone(newValue);
+          newValue = BaseCloneable.clone(newValue);
           target.setValue(fieldName, newValue);
         }
+      }
+    }
+  }
+
+  static void toUpperCase(final MapEx record, final String fieldName) {
+    if (record != null) {
+      String value = record.getString(fieldName);
+      if (value != null) {
+        value = value.toUpperCase();
+        record.addValue(fieldName, value);
       }
     }
   }

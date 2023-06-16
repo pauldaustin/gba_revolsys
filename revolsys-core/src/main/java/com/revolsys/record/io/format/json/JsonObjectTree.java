@@ -1,14 +1,10 @@
 package com.revolsys.record.io.format.json;
 
 import java.util.Map;
+import java.util.TreeMap;
 
-import com.revolsys.collection.map.TreeMapEx;
+public class JsonObjectTree extends TreeMap<String, Object> implements JsonObject {
 
-public class JsonObjectTree extends TreeMapEx implements JsonObject {
-
-  /**
-  * 
-  */
   private static final long serialVersionUID = 1L;
 
   JsonObjectTree() {
@@ -25,7 +21,8 @@ public class JsonObjectTree extends TreeMapEx implements JsonObject {
 
   @Override
   public JsonObjectTree clone() {
-    return new JsonObjectTree(this);
+    return (JsonObjectTree)new JsonObjectTree()//
+      .addValuesClone(this);
   }
 
   @Override

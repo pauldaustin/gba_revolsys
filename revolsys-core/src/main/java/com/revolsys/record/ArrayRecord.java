@@ -135,8 +135,7 @@ public class ArrayRecord extends BaseRecord {
     } else {
       final int fieldCount = recordDefinition.getFieldCount();
       this.values = new Object[fieldCount];
-      final Map<String, Object> defaultValues = recordDefinition.getDefaultValues();
-      setValuesByPath(defaultValues);
+      initDefaultValues();
     }
   }
 
@@ -159,7 +158,7 @@ public class ArrayRecord extends BaseRecord {
       final SingleIdentifier identifier = (SingleIdentifier)value;
       value = identifier.getValue(0);
     }
-    final Object newValue = fieldDefinition.toFieldValue(value);
+    final Object newValue = fieldDefinition.toFieldValue(getState(), value);
     final int index = fieldDefinition.getIndex();
     final Object oldValue = getValueInternal(index);
     if (!isInitializing() && !fieldDefinition.equals(oldValue, newValue)) {

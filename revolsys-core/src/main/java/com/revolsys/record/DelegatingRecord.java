@@ -4,7 +4,7 @@ import java.util.AbstractMap;
 import java.util.Set;
 
 import com.revolsys.record.schema.RecordDefinition;
-import com.revolsys.util.JavaBeanUtil;
+import com.revolsys.util.BaseCloneable;
 
 public class DelegatingRecord extends AbstractMap<String, Object> implements Record {
   private final Record record;
@@ -15,7 +15,7 @@ public class DelegatingRecord extends AbstractMap<String, Object> implements Rec
 
   @Override
   public Record clone() {
-    final Record clone = JavaBeanUtil.clone(this.record);
+    final Record clone = BaseCloneable.clone(this.record);
     return new DelegatingRecord(clone);
   }
 
@@ -79,28 +79,14 @@ public class DelegatingRecord extends AbstractMap<String, Object> implements Rec
   }
 
   @Override
-  public void setValues(final Object... values) {
+  public Record setValues(final Object... values) {
     this.record.setValues(values);
+    return this;
   }
 
-  /**
-   * Return a String representation of the record. There is no guarantee as to
-   * the format of this string.
-   *
-   * @return The string value.
-   */
   @Override
   public String toString() {
-    final StringBuilder s = new StringBuilder();
-    s.append(this.getRecordDefinition().getPath()).append("(\n");
-    for (int i = 0; i < this.getRecordDefinition().getFieldCount(); i++) {
-      final Object value = getValue(i);
-      if (value != null) {
-        s.append(this.getRecordDefinition().getFieldName(i)).append('=').append(value).append('\n');
-      }
-    }
-    s.append(')');
-    return s.toString();
+    return Record.toString(this);
   }
 
 }

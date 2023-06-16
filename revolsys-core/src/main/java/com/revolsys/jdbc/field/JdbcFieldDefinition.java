@@ -1,16 +1,22 @@
 package com.revolsys.jdbc.field;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Map;
 
 import org.jeometry.common.data.type.DataType;
+import org.jeometry.common.exception.Exceptions;
 
+import com.revolsys.jdbc.io.AbstractJdbcRecordStore;
 import com.revolsys.jdbc.io.JdbcRecordDefinition;
 import com.revolsys.record.Record;
+import com.revolsys.record.query.ColumnIndexes;
 import com.revolsys.record.schema.FieldDefinition;
+import com.revolsys.record.schema.RecordDefinition;
 
 public class JdbcFieldDefinition extends FieldDefinition {
   private String dbName;
@@ -18,8 +24,6 @@ public class JdbcFieldDefinition extends FieldDefinition {
   private boolean quoteName = false;
 
   private int sqlType;
-
-  private boolean generated = false;
 
   JdbcFieldDefinition() {
     setName(JdbcFieldDefinitions.UNKNOWN);
@@ -33,40 +37,62 @@ public class JdbcFieldDefinition extends FieldDefinition {
     this.sqlType = sqlType;
   }
 
+  @Override
+  public JdbcFieldDefinition addField(final AbstractJdbcRecordStore recordStore,
+    final JdbcRecordDefinition recordDefinition, final ResultSetMetaData metaData,
+    final ColumnIndexes columnIndexes) throws SQLException {
+    final int columnIndex = columnIndexes.incrementAndGet();
+    final String name = metaData.getColumnName(columnIndex);
+    final JdbcFieldDefinition newField = clone();
+    newField.setName(name);
+    recordDefinition.addField(newField);
+    return newField;
+  }
+
   public void addInsertStatementPlaceHolder(final StringBuilder sql, final boolean generateKeys) {
     addStatementPlaceHolder(sql);
   }
 
-  public void addSelectStatementPlaceHolder(final StringBuilder sql) {
+  public void addSelectStatementPlaceHolder(final Appendable sql) throws IOException {
     addStatementPlaceHolder(sql);
   }
 
-  public void addStatementPlaceHolder(final StringBuilder sql) {
-    sql.append('?');
+  public void addStatementPlaceHolder(final Appendable sql) {
+    try {
+      sql.append('?');
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
-  public void appendColumnName(final StringBuilder sql) {
+  public void appendColumnName(final Appendable sql) {
     appendColumnName(sql, this.quoteName);
   }
 
   @Override
-  public void appendColumnName(final StringBuilder sql, boolean quoteName) {
-    quoteName |= this.quoteName;
-    if (quoteName) {
-      sql.append('"');
-    }
-    final String dbName = getDbName();
-    sql.append(dbName);
-    if (quoteName) {
-      sql.append('"');
+  public void appendColumnName(final Appendable sql, boolean quoteName) {
+    try {
+      quoteName |= this.quoteName;
+      if (quoteName) {
+        sql.append('"');
+      }
+      final String dbName = getDbName();
+      sql.append(dbName);
+      if (quoteName) {
+        sql.append('"');
+      }
+    } catch (final IOException e) {
+      Exceptions.throwUncheckedException(e);
     }
   }
 
   @Override
   public JdbcFieldDefinition clone() {
-    return new JdbcFieldDefinition(this.dbName, getName(), getDataType(), getSqlType(), getLength(),
-      getScale(), isRequired(), getDescription(), getProperties());
+    final JdbcFieldDefinition clone = new JdbcFieldDefinition(this.dbName, getName(), getDataType(),
+      getSqlType(), getLength(), getScale(), isRequired(), getDescription(), getProperties());
+    postClone(clone);
+    return clone;
   }
 
   public String getDbName() {
@@ -77,14 +103,11 @@ public class JdbcFieldDefinition extends FieldDefinition {
     return this.sqlType;
   }
 
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    return resultSet.getObject(columnIndex);
-  }
-
   @Override
-  public boolean isGenerated() {
-    return this.generated;
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    return resultSet.getObject(indexes.incrementAndGet());
   }
 
   public boolean isQuoteName() {
@@ -107,16 +130,16 @@ public class JdbcFieldDefinition extends FieldDefinition {
     }
   }
 
-  public int setFieldValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final Record record, final boolean internStrings) throws SQLException {
-    final Object value = getValueFromResultSet(resultSet, columnIndex, internStrings);
-    final int index = getIndex();
-    record.setValue(index, value);
-    return columnIndex + 1;
+  protected void postClone(final JdbcFieldDefinition clone) {
+    super.postClone(clone);
+    clone.dbName = this.dbName;
+    clone.quoteName = this.quoteName;
+    clone.sqlType = this.sqlType;
   }
 
+  @Override
   public JdbcFieldDefinition setGenerated(final boolean generated) {
-    this.generated = generated;
+    super.setGenerated(generated);
     if (generated) {
       ((JdbcRecordDefinition)getRecordDefinition()).setHasGeneratedFields(true);
     }

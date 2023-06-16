@@ -1,12 +1,21 @@
 package com.revolsys.record.io.format.json;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.jeometry.common.data.type.DataType;
+import org.jeometry.common.data.type.DataTypes;
+import org.jeometry.common.exception.Exceptions;
+
+import com.revolsys.util.Property;
 
 public interface JsonList extends List<Object>, JsonType {
 
@@ -33,6 +42,11 @@ public interface JsonList extends List<Object>, JsonType {
 
     @Override
     public void clear() {
+    }
+
+    @Override
+    public JsonList clone() {
+      return this;
     }
 
     @Override
@@ -133,6 +147,8 @@ public interface JsonList extends List<Object>, JsonType {
 
   };
 
+  static Supplier<JsonList> ARRAY_SUPPLIER = JsonListArray::new;
+
   static JsonList array() {
     return new JsonListArray();
   }
@@ -166,6 +182,41 @@ public interface JsonList extends List<Object>, JsonType {
     return notContains;
   }
 
+  default JsonList addValuesClone(final Collection<?> values) {
+    for (Object value : values) {
+      if (value != null) {
+        value = JsonType.toJsonClone(value);
+      }
+      add(value);
+    }
+    return this;
+  }
+
+  @Override
+  default Appendable appendJson(final Appendable appendable) {
+    try {
+      appendable.append('[');
+      boolean first = true;
+      for (final Object value : this) {
+        if (first) {
+          first = false;
+        } else {
+          appendable.append(',');
+        }
+        JsonWriterUtil.appendValue(appendable, value);
+      }
+      appendable.append(']');
+      return appendable;
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
+  }
+
+  @Override
+  default JsonList asJson() {
+    return (JsonList)JsonType.super.asJson();
+  }
+
   default boolean contains(final Object value,
     final Collection<? extends CharSequence> excludeFieldNames) {
     final int size = size();
@@ -196,9 +247,57 @@ public interface JsonList extends List<Object>, JsonType {
     return true;
   }
 
+  default <V> void forEachType(final Consumer<V> action) {
+    List.super.forEach(value -> {
+      action.accept((V)value);
+    });
+  }
+
+  default Double getDouble(final int index) {
+    return getValue(index, DataTypes.DOUBLE);
+  }
+
+  default Integer getInteger(final int index) {
+    return getValue(index, DataTypes.INT);
+  }
+
+  default int getInteger(final int index, final int defaultValue) {
+    final Integer value = getInteger(index);
+    if (value == null) {
+      return defaultValue;
+    } else {
+      return value;
+    }
+  }
+
+  default String getString(final int index) {
+    return getValue(index, DataTypes.STRING);
+  }
+
+  default String getString(final int index, final String defaultValue) {
+    final String value = getString(index);
+    if (value == null) {
+      return defaultValue;
+    } else {
+      return value;
+    }
+  }
+
   @SuppressWarnings("unchecked")
   default <V> V getValue(final int index) {
     return (V)get(index);
+  }
+
+  default <T extends Object> T getValue(final int index, final DataType dataType) {
+    final Object value = get(index);
+    return dataType.toObject(value);
+  }
+
+  @SuppressWarnings({
+    "unchecked", "rawtypes"
+  })
+  default <V> Iterable<V> iterable() {
+    return (Iterable)this;
   }
 
   @SuppressWarnings({
@@ -207,4 +306,44 @@ public interface JsonList extends List<Object>, JsonType {
   default Iterable<JsonObject> jsonObjects() {
     return (Iterable)this;
   }
+
+  default <V> List<V> mapTo(final Function<JsonObject, V> mapper) {
+    final List<V> objects = new ArrayList<>();
+    forEachType((final JsonObject record) -> {
+      final V object = mapper.apply(record);
+      objects.add(object);
+    });
+    return objects;
+  }
+
+  @Override
+  default boolean removeEmptyProperties() {
+    boolean removed = false;
+    for (final Iterator<Object> iterator = iterator(); iterator.hasNext();) {
+      final Object value = iterator.next();
+      if (value instanceof JsonType) {
+        final JsonType jsonValue = (JsonType)value;
+        jsonValue.removeEmptyProperties();
+        if (jsonValue.isEmpty()) {
+          iterator.remove();
+          removed = true;
+        }
+      } else if (!Property.hasValue(value)) {
+        iterator.remove();
+        removed = true;
+      }
+    }
+    return removed;
+  }
+
+  @Override
+  default JsonList toJson() {
+    return (JsonList)JsonType.super.toJson();
+  }
+
+  @Override
+  default String toJsonString(final boolean indent) {
+    return Json.toString(this, indent);
+  }
+
 }

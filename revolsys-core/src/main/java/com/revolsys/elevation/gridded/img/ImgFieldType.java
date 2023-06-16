@@ -3,8 +3,8 @@ package com.revolsys.elevation.gridded.img;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
+import com.revolsys.record.io.format.json.JsonObject;
 
 class ImgFieldType {
   private List<ImgField> fields = new ArrayList<>();

@@ -4,14 +4,20 @@ import javax.annotation.PreDestroy;
 
 import org.jeometry.common.exception.Exceptions;
 
-import com.revolsys.collection.map.LinkedHashMapEx;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
+import com.revolsys.record.io.format.json.JsonObject;
 
 public class BaseObjectWithProperties implements ObjectWithProperties {
-  private MapEx properties = new LinkedHashMapEx();
+  private MapEx properties = JsonObject.hash();
+
+  private boolean cancelled = false;
 
   public BaseObjectWithProperties() {
+  }
+
+  public void cancel() {
+    this.cancelled = true;
   }
 
   @Override
@@ -34,6 +40,10 @@ public class BaseObjectWithProperties implements ObjectWithProperties {
   @Override
   public MapEx getProperties() {
     return this.properties;
+  }
+
+  public boolean isCancelled() {
+    return this.cancelled;
   }
 
 }

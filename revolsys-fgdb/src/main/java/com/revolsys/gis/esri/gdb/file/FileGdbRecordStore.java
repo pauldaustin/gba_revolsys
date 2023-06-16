@@ -1,17 +1,14 @@
 package com.revolsys.gis.esri.gdb.file;
 
 import java.io.File;
-import java.util.Collections;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.annotation.PreDestroy;
 
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.identifier.SingleIdentifier;
@@ -40,7 +37,6 @@ import com.revolsys.jdbc.JdbcUtils;
 import com.revolsys.parallel.SingleThreadExecutor;
 import com.revolsys.record.Record;
 import com.revolsys.record.code.CodeTable;
-import com.revolsys.record.io.RecordIterator;
 import com.revolsys.record.io.format.esri.gdb.xml.model.DEFeatureClass;
 import com.revolsys.record.io.format.esri.gdb.xml.model.DEFeatureDataset;
 import com.revolsys.record.io.format.esri.gdb.xml.model.DETable;
@@ -50,11 +46,14 @@ import com.revolsys.record.io.format.esri.gdb.xml.model.EsriGdbXmlSerializer;
 import com.revolsys.record.io.format.esri.gdb.xml.model.EsriXmlRecordDefinitionUtil;
 import com.revolsys.record.io.format.esri.gdb.xml.model.Field;
 import com.revolsys.record.io.format.esri.gdb.xml.model.SpatialReference;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.query.BinaryCondition;
 import com.revolsys.record.query.CollectionValue;
+import com.revolsys.record.query.ColumnReference;
 import com.revolsys.record.query.Condition;
 import com.revolsys.record.query.ILike;
 import com.revolsys.record.query.Like;
+import com.revolsys.record.query.OrderBy;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
 import com.revolsys.record.query.SqlCondition;
@@ -69,7 +68,6 @@ import com.revolsys.record.schema.RecordDefinitionImpl;
 import com.revolsys.record.schema.RecordDefinitionProxy;
 import com.revolsys.record.schema.RecordStoreSchema;
 import com.revolsys.record.schema.RecordStoreSchemaElement;
-import com.revolsys.util.StringBuilders;
 
 public class FileGdbRecordStore extends AbstractRecordStore {
 
@@ -126,7 +124,7 @@ public class FileGdbRecordStore extends AbstractRecordStore {
 
   FileGdbRecordStore(final File file) {
     this.fileName = FileUtil.getCanonicalPath(file);
-    setConnectionProperties(Collections.singletonMap("url", FileUtil.toUrl(file).toString()));
+    setConnectionProperties(JsonObject.hash("url", FileUtil.toUrl(file).toString()));
     setCreateMissingRecordStore(true);
     setCreateMissingTables(true);
     addSqlQueryAppender(EnvelopeIntersects.class, this::appendFakeTrue);
@@ -157,91 +155,97 @@ public class FileGdbRecordStore extends AbstractRecordStore {
     this.geodatabase.alterDomain(domain);
   }
 
-  private void appendCollectionValue(final Query query, final StringBuilder sql,
+  private void appendCollectionValue(final Query query, final Appendable sql,
     final QueryValue condition) {
-    final CollectionValue collectionValue = (CollectionValue)condition;
-    final List<Object> values = collectionValue.getValues();
-    boolean first = true;
-    for (final Object value : values) {
-      if (first) {
-        first = false;
-      } else {
-        sql.append(", ");
-      }
-      appendValue(sql, value);
-    }
-  }
-
-  private void appendFakeTrue(final Query query, final StringBuilder sql,
-    final QueryValue queryValue) {
-    sql.append("1 = 1");
-  }
-
-  private void appendLike(final Query query, final StringBuilder sql, final QueryValue condition) {
-    final BinaryCondition like = (BinaryCondition)condition;
-    final QueryValue left = like.getLeft();
-    final QueryValue right = like.getRight();
-    sql.append("UPPER(CAST(");
-    appendQueryValue(query, sql, left);
-    sql.append(" AS VARCHAR(4000))) LIKE ");
-    if (right instanceof Value) {
-      final Value valueCondition = (Value)right;
-      final Object value = valueCondition.getValue();
-      sql.append("'");
-      if (value != null) {
-        final String string = DataTypes.toString(value);
-        sql.append(string.toUpperCase().replaceAll("'", "''"));
-      }
-      sql.append("'");
-    } else {
-      appendQueryValue(query, sql, right);
-    }
-  }
-
-  private void appendSqlCondition(final Query query, final StringBuilder sql,
-    final QueryValue condition) {
-    final SqlCondition sqlCondition = (SqlCondition)condition;
-    final String where = sqlCondition.getSql();
-    final List<Object> parameters = sqlCondition.getParameterValues();
-    if (parameters.isEmpty()) {
-      if (where.indexOf('?') > -1) {
-        throw new IllegalArgumentException(
-          "No arguments specified for a where clause with placeholders: " + where);
-      } else {
-        sql.append(where);
-      }
-    } else {
-      final Matcher matcher = PLACEHOLDER_PATTERN.matcher(where);
-      int i = 0;
-      while (matcher.find()) {
-        if (i >= parameters.size()) {
-          throw new IllegalArgumentException(
-            "Not enough arguments for where clause with placeholders: " + where);
+    try {
+      final CollectionValue collectionValue = (CollectionValue)condition;
+      final List<Object> values = collectionValue.getValues();
+      boolean first = true;
+      for (final Object value : values) {
+        if (first) {
+          first = false;
+        } else {
+          sql.append(", ");
         }
-        final Object argument = parameters.get(i);
-        final StringBuilder replacement = new StringBuilder();
-        matcher.appendReplacement(replacement, DataTypes.toString(argument));
-        sql.append(replacement);
-        appendValue(sql, argument);
-        i++;
+        appendValue(sql, value);
       }
-      final StringBuffer tail = new StringBuffer();
-      matcher.appendTail(tail);
-      sql.append(tail);
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
-  private void appendValue(final Query query, final StringBuilder sql, final QueryValue condition) {
-    final Value valueCondition = (Value)condition;
-    Object value = valueCondition.getValue();
-    if (value instanceof Identifier) {
-      final Identifier identifier = (Identifier)value;
-      value = identifier.getValue(0);
+  private void appendFakeTrue(final Query query, final Appendable sql,
+    final QueryValue queryValue) {
+    try {
+      sql.append("1 = 1");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
-    appendValue(sql, value);
   }
 
-  public void appendValue(final StringBuilder buffer, Object value) {
+  private void appendLike(final Query query, final Appendable sql, final QueryValue condition) {
+    try {
+      final BinaryCondition like = (BinaryCondition)condition;
+      final QueryValue left = like.getLeft();
+      final QueryValue right = like.getRight();
+      sql.append("UPPER(CAST(");
+      appendQueryValue(query, sql, left);
+      sql.append(" AS VARCHAR(4000))) LIKE ");
+      if (right instanceof Value) {
+        final Value valueCondition = (Value)right;
+        final Object value = valueCondition.getValue();
+        sql.append("'");
+        if (value != null) {
+          final String string = DataTypes.toString(value);
+          sql.append(string.toUpperCase().replaceAll("'", "''"));
+        }
+        sql.append("'");
+      } else {
+        appendQueryValue(query, sql, right);
+      }
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
+  }
+
+  private void appendSqlCondition(final Query query, final Appendable sql,
+    final QueryValue condition) {
+    try {
+      final SqlCondition sqlCondition = (SqlCondition)condition;
+      final String where = sqlCondition.getSql();
+      final List<Object> parameters = sqlCondition.getParameterValues();
+      if (parameters.isEmpty()) {
+        if (where.indexOf('?') > -1) {
+          throw new IllegalArgumentException(
+            "No arguments specified for a where clause with placeholders: " + where);
+        } else {
+          sql.append(where);
+        }
+      } else {
+        final Matcher matcher = PLACEHOLDER_PATTERN.matcher(where);
+        int i = 0;
+        while (matcher.find()) {
+          if (i >= parameters.size()) {
+            throw new IllegalArgumentException(
+              "Not enough arguments for where clause with placeholders: " + where);
+          }
+          final Object argument = parameters.get(i);
+          final StringBuilder replacement = new StringBuilder();
+          matcher.appendReplacement(replacement, DataTypes.toString(argument));
+          sql.append(replacement);
+          appendValue(sql, argument);
+          i++;
+        }
+        final StringBuilder tail = new StringBuilder();
+        matcher.appendTail(tail);
+        sql.append(tail);
+      }
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
+  }
+
+  private void appendValue(final Appendable buffer, Object value) throws IOException {
     if (value instanceof SingleIdentifier) {
       final SingleIdentifier identifier = (SingleIdentifier)value;
       value = identifier.getValue(0);
@@ -249,7 +253,7 @@ public class FileGdbRecordStore extends AbstractRecordStore {
     if (value == null) {
       buffer.append("''");
     } else if (value instanceof Number) {
-      buffer.append(value);
+      buffer.append(value.toString());
     } else if (value instanceof java.util.Date) {
       final String stringValue = Dates.format("yyyy-MM-dd", (java.util.Date)value);
       buffer.append("DATE '" + stringValue + "'");
@@ -262,8 +266,21 @@ public class FileGdbRecordStore extends AbstractRecordStore {
     }
   }
 
+  private void appendValue(final Query query, final Appendable sql, final QueryValue condition) {
+    try {
+      final Value valueCondition = (Value)condition;
+      Object value = valueCondition.getValue();
+      if (value instanceof Identifier) {
+        final Identifier identifier = (Identifier)value;
+        value = identifier.getValue(0);
+      }
+      appendValue(sql, value);
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
+  }
+
   @Override
-  @PreDestroy
   public void close() {
     if (FileGdbRecordStoreFactory.release(this)) {
       closeDo();
@@ -370,16 +387,16 @@ public class FileGdbRecordStore extends AbstractRecordStore {
     if (query == null) {
       return 0;
     } else {
-      String typePath = query.getTypeName();
+      PathName typePath = query.getTablePath();
       RecordDefinition recordDefinition = query.getRecordDefinition();
       if (recordDefinition == null) {
-        typePath = query.getTypeName();
+        typePath = query.getTablePath();
         recordDefinition = getRecordDefinition(typePath);
         if (recordDefinition == null) {
           return 0;
         }
       } else {
-        typePath = recordDefinition.getPath();
+        typePath = recordDefinition.getPathName();
       }
       final StringBuilder whereClause = getWhereClause(query);
       final BoundingBox boundingBox = QueryValue.getBoundingBox(query);
@@ -391,7 +408,7 @@ public class FileGdbRecordStore extends AbstractRecordStore {
         } else {
           final StringBuilder sql = new StringBuilder();
           sql.append("SELECT OBJECTID FROM ");
-          sql.append(JdbcUtils.getTableName(typePath));
+          sql.append(JdbcUtils.getTableName(typePath.toString()));
           if (whereClause.length() > 0) {
             sql.append(" WHERE ");
             sql.append(whereClause);
@@ -416,7 +433,7 @@ public class FileGdbRecordStore extends AbstractRecordStore {
         } else {
           final StringBuilder sql = new StringBuilder();
           sql.append("SELECT " + geometryField.getName() + " FROM ");
-          sql.append(JdbcUtils.getTableName(typePath));
+          sql.append(JdbcUtils.getTableName(typePath.toString()));
           if (whereClause.length() > 0) {
             sql.append(" WHERE ");
             sql.append(whereClause);
@@ -479,6 +496,11 @@ public class FileGdbRecordStore extends AbstractRecordStore {
         return (RD)recordDefinition;
       }
     }
+  }
+
+  @Override
+  public FileGdbQueryIterator getRecords(final Query query) {
+    return newIterator(query, null);
   }
 
   @Override
@@ -682,8 +704,8 @@ public class FileGdbRecordStore extends AbstractRecordStore {
   }
 
   @Override
-  public RecordIterator newIterator(final Query query, final Map<String, Object> properties) {
-    PathName pathName = query.getTypePath();
+  public FileGdbQueryIterator newIterator(final Query query, final Map<String, Object> properties) {
+    PathName pathName = query.getTablePath();
     final RecordDefinition recordDefinition = query.getRecordDefinition();
     if (recordDefinition != null) {
       pathName = recordDefinition.getPathName();
@@ -694,24 +716,18 @@ public class FileGdbRecordStore extends AbstractRecordStore {
     }
     final String catalogPath = fileGdbRecordDefinition.getCatalogPath();
     final BoundingBox boundingBox = QueryValue.getBoundingBox(query);
-    final Map<? extends CharSequence, Boolean> orderBy = query.getOrderBy();
+    final List<OrderBy> orderBy = query.getOrderBy();
     final StringBuilder whereClause = getWhereClause(query);
     StringBuilder sql = new StringBuilder();
     if (orderBy.isEmpty() || boundingBox != null) {
       if (!orderBy.isEmpty()) {
         Logs.error(this, "Unable to sort on " + fileGdbRecordDefinition.getPathName() + " "
-          + orderBy.keySet() + " as the ESRI library can't sort with a bounding box query");
+          + orderBy + " as the ESRI library can't sort with a bounding box query");
       }
       sql = whereClause;
     } else {
       sql.append("SELECT ");
-
-      final List<String> fieldNames = query.getFieldNames();
-      if (fieldNames.isEmpty()) {
-        StringBuilders.append(sql, fileGdbRecordDefinition.getFieldNames());
-      } else {
-        StringBuilders.append(sql, fieldNames);
-      }
+      query.appendSelect(sql);
       sql.append(" FROM ");
       sql.append(JdbcUtils.getTableName(catalogPath));
       if (whereClause.length() > 0) {
@@ -720,39 +736,46 @@ public class FileGdbRecordStore extends AbstractRecordStore {
       }
       boolean useOrderBy = true;
       if (orderBy.size() == 1) {
-        final Entry<? extends CharSequence, Boolean> entry = orderBy.entrySet().iterator().next();
-        final CharSequence fieldName = entry.getKey();
-        if (entry.getValue() == Boolean.TRUE && fieldName.toString().equals("OBJECTID")) {
-          useOrderBy = false;
+        final OrderBy order = orderBy.get(0);
+        final QueryValue field = order.getField();
+        if (field instanceof ColumnReference) {
+          final ColumnReference column = (ColumnReference)field;
+          final String fieldName = column.getAliasName();
+          if (order.isAscending() && fieldName.toString().equals("OBJECTID")) {
+            useOrderBy = false;
+          }
         }
       }
       if (useOrderBy) {
         boolean first = true;
-        for (final Entry<? extends CharSequence, Boolean> entry : orderBy.entrySet()) {
-          final CharSequence fieldName = entry.getKey();
+        for (final OrderBy order : orderBy) {
+          final QueryValue field = order.getField();
+          if (field instanceof ColumnReference) {
+            final ColumnReference column = (ColumnReference)field;
+            final String fieldName = column.getAliasName();
+            final DataType dataType = fileGdbRecordDefinition.getFieldType(fieldName);
+            if (dataType != null && !Geometry.class.isAssignableFrom(dataType.getJavaClass())) {
+              if (first) {
+                sql.append(" ORDER BY ");
+                first = false;
+              } else {
+                sql.append(", ");
+              }
+              if (field instanceof FieldDefinition) {
+                final FieldDefinition fieldDefinition = (FieldDefinition)field;
+                fieldDefinition.appendColumnName(sql);
+              } else {
+                sql.append(fieldName);
+              }
+              final boolean ascending = order.isAscending();
+              if (!ascending) {
+                sql.append(" DESC");
+              }
 
-          final DataType dataType = fileGdbRecordDefinition.getFieldType(fieldName);
-          if (dataType != null && !Geometry.class.isAssignableFrom(dataType.getJavaClass())) {
-            if (first) {
-              sql.append(" ORDER BY ");
-              first = false;
             } else {
-              sql.append(", ");
+              Logs.error(this, "Unable to sort on " + fileGdbRecordDefinition.getPath() + "."
+                + fieldName + " as the ESRI library can't sort on " + dataType + " columns");
             }
-            if (fieldName instanceof FieldDefinition) {
-              final FieldDefinition field = (FieldDefinition)fieldName;
-              field.appendColumnName(sql);
-            } else {
-              sql.append(fieldName);
-            }
-            final Boolean ascending = entry.getValue();
-            if (!ascending) {
-              sql.append(" DESC");
-            }
-
-          } else {
-            Logs.error(this, "Unable to sort on " + fileGdbRecordDefinition.getPath() + "."
-              + fieldName + " as the ESRI library can't sort on " + dataType + " columns");
           }
         }
       }

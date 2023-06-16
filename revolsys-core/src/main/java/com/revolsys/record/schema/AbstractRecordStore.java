@@ -19,7 +19,6 @@ import org.jeometry.common.logging.Logs;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.geometry.model.GeometryFactory;
-import com.revolsys.jdbc.io.RecordStoreIteratorFactory;
 import com.revolsys.properties.BaseObjectWithProperties;
 import com.revolsys.record.ArrayRecord;
 import com.revolsys.record.Record;
@@ -47,7 +46,7 @@ public abstract class AbstractRecordStore extends BaseObjectWithProperties imple
 
   private RecordStoreConnection recordStoreConnection;
 
-  private final Map<Class<?>, Consumer3<Query, StringBuilder, QueryValue>> sqlQueryAppenderByClass = new HashMap<>();
+  private final Map<Class<?>, Consumer3<Query, Appendable, QueryValue>> sqlQueryAppenderByClass = new HashMap<>();
 
   private GeometryFactory geometryFactory;
 
@@ -56,8 +55,6 @@ public abstract class AbstractRecordStore extends BaseObjectWithProperties imple
   private boolean createMissingRecordStore = false;
 
   private boolean createMissingTables = false;
-
-  private RecordStoreIteratorFactory iteratorFactory = new RecordStoreIteratorFactory();
 
   private String label;
 
@@ -157,15 +154,15 @@ public abstract class AbstractRecordStore extends BaseObjectWithProperties imple
   }
 
   protected void addSqlQueryAppender(final Class<?> clazz,
-    final Consumer3<Query, StringBuilder, QueryValue> appender) {
+    final Consumer3<Query, Appendable, QueryValue> appender) {
     this.sqlQueryAppenderByClass.put(clazz, appender);
   }
 
   @Override
-  public void appendQueryValue(final Query query, final StringBuilder sql,
+  public void appendQueryValue(final Query query, final Appendable sql,
     final QueryValue queryValue) {
     final Class<?> valueClass = queryValue.getClass();
-    final Consumer3<Query, StringBuilder, QueryValue> appender = this.sqlQueryAppenderByClass
+    final Consumer3<Query, Appendable, QueryValue> appender = this.sqlQueryAppenderByClass
       .get(valueClass);
     if (appender == null) {
       queryValue.appendDefaultSql(query, this, sql);
@@ -190,7 +187,6 @@ public abstract class AbstractRecordStore extends BaseObjectWithProperties imple
       this.connectionProperties.clear();
       this.recordFactory = null;
       this.recordStoreExtensions.clear();
-      this.iteratorFactory = null;
       this.label = "deleted";
       if (this.statistics != null) {
         this.statistics.clear();
@@ -249,15 +245,11 @@ public abstract class AbstractRecordStore extends BaseObjectWithProperties imple
   }
 
   @Override
-  public RecordStoreIteratorFactory getIteratorFactory() {
-    return this.iteratorFactory;
-  }
-
-  @Override
   public String getLabel() {
     return this.label;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <RD extends RecordDefinition> RD getRecordDefinition(
     final RecordDefinition recordDefinition) {
@@ -419,10 +411,6 @@ public abstract class AbstractRecordStore extends BaseObjectWithProperties imple
     this.geometryFactory = geometryFactory;
   }
 
-  public void setIteratorFactory(final RecordStoreIteratorFactory iteratorFactory) {
-    this.iteratorFactory = iteratorFactory;
-  }
-
   @Override
   public void setLabel(final String label) {
     this.label = label;
@@ -447,6 +435,7 @@ public abstract class AbstractRecordStore extends BaseObjectWithProperties imple
     }
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public void setRecordFactory(final RecordFactory<? extends Record> recordFactory) {
     this.recordFactory = (RecordFactory<Record>)recordFactory;

@@ -13,19 +13,23 @@ public class WebServiceFeatureLayerQuery extends Query {
     this.featureLayer = featureLayer;
   }
 
+  @Override
   @SuppressWarnings("unchecked")
   public <R extends Record> R getRecord() {
     return (R)this.featureLayer.getRecord(this);
   }
 
+  @Override
   public long getRecordCount() {
     return this.featureLayer.getRecordCount(this);
   }
 
+  @Override
   public RecordReader getRecordReader() {
     return this.featureLayer.getRecordReader(this);
   }
 
+  @Override
   public RecordReader getRecordReader(final Transaction transaction) {
     return getRecordReader();
   }

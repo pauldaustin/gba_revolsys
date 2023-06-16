@@ -2,44 +2,35 @@ package com.revolsys.collection.map;
 
 import java.sql.Clob;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
+import java.util.function.Supplier;
 
+import org.jeometry.common.compare.CompareUtil;
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.DataType;
+import org.jeometry.common.data.type.DataTypeProxy;
+import org.jeometry.common.data.type.DataTypeValueFactory;
 import org.jeometry.common.data.type.DataTypedValue;
 import org.jeometry.common.data.type.DataTypes;
+import org.jeometry.common.logging.Logs;
 
+import com.revolsys.record.Record;
 import com.revolsys.record.io.format.json.Json;
+import com.revolsys.record.io.format.json.JsonList;
 import com.revolsys.record.io.format.json.JsonObject;
+import com.revolsys.util.Property;
 
 public interface MapEx extends MapDefault<String, Object>, Cloneable, DataTypedValue {
-  MapEx EMPTY = new MapEx() {
-    @Override
-    public MapEx clone() {
-      return this;
-    }
-
-    @Override
-    public Set<Entry<String, Object>> entrySet() {
-      final Map<String, Object> emptyMap = Collections.emptyMap();
-      return emptyMap.entrySet();
-    }
-
-    @Override
-    public String toString() {
-      return "{}";
-    }
-  };
-
   static MapEx asEx(final Map<String, ? extends Object> map) {
     if (map instanceof MapEx) {
       return (MapEx)map;
     } else {
-      return new LinkedHashMapEx();
+      return JsonObject.hash();
     }
   }
 
@@ -74,6 +65,64 @@ public interface MapEx extends MapDefault<String, Object>, Cloneable, DataTypedV
   }
 
   MapEx clone();
+
+  default int compareValue(final CharSequence fieldName, final Object value) {
+    if (containsKey(fieldName)) {
+      final Object fieldValue = getValue(fieldName);
+      return CompareUtil.compare(fieldValue, value);
+    } else {
+      return -1;
+    }
+  }
+
+  default int compareValue(final MapEx map, final CharSequence fieldName) {
+    if (map != null) {
+      final Object value = map.get(fieldName);
+      return compareValue(fieldName, value);
+    }
+    return -1;
+  }
+
+  default int compareValue(final MapEx map, final CharSequence fieldName,
+    final boolean nullsFirst) {
+    final Comparable<Object> value1 = getValue(fieldName);
+    Object value2;
+    if (map == null) {
+      value2 = null;
+    } else {
+      value2 = map.getValue(fieldName);
+    }
+    return CompareUtil.compare(value1, value2, nullsFirst);
+  }
+
+  default <V> V ensureValue(final String key, final DataTypeProxy dataType,
+    final Supplier<V> supplier) {
+    final Object value = getValue(key);
+    if (value == null) {
+      final V newValue = supplier.get();
+      addValue(key, newValue);
+      return newValue;
+    } else {
+      final V convertedValue = dataType.toObject(value);
+      if (convertedValue != value) {
+        addValue(key, convertedValue);
+      }
+      return convertedValue;
+    }
+  }
+
+  default <V> V ensureValue(final String key, final DataTypeValueFactory<V> factory) {
+    return ensureValue(key, factory, factory);
+  }
+
+  default <V> V ensureValue(final String key, final Supplier<V> supplier) {
+    V value = getValue(key);
+    if (value == null) {
+      value = supplier.get();
+      addValue(key, value);
+    }
+    return value;
+  }
 
   @Override
   @SuppressWarnings("unchecked")
@@ -168,12 +217,34 @@ public interface MapEx extends MapDefault<String, Object>, Cloneable, DataTypedV
     return Identifier.newIdentifier(value);
   }
 
+  default Identifier getIdentifier(final CharSequence fieldName, final DataType dataType) {
+    final Object value = getValue(fieldName, dataType);
+    return Identifier.newIdentifier(value);
+  }
+
+  default Instant getInstant(final CharSequence name) {
+    return getValue(name, DataTypes.INSTANT);
+  }
+
   default Integer getInteger(final CharSequence name) {
     return getValue(name, DataTypes.INT);
   }
 
   default int getInteger(final CharSequence name, final int defaultValue) {
     final Integer value = getInteger(name);
+    if (value == null) {
+      return defaultValue;
+    } else {
+      return value;
+    }
+  }
+
+  default JsonList getJsonList(final CharSequence name) {
+    return getValue(name, Json.JSON_LIST);
+  }
+
+  default JsonList getJsonList(final CharSequence name, final JsonList defaultValue) {
+    final JsonList value = getJsonList(name);
     if (value == null) {
       return defaultValue;
     } else {
@@ -256,18 +327,22 @@ public interface MapEx extends MapDefault<String, Object>, Cloneable, DataTypedV
     }
   }
 
+  default UUID getUUID(final CharSequence name) {
+    return getValue(name, DataTypes.UUID);
+  }
+
   /**
    * Get the value of the field with the specified name.
    *
    * @param name The name of the field.
    * @return The field value.
    */
-  @SuppressWarnings("unchecked")
   default <T extends Object> T getValue(final CharSequence name) {
     if (name == null) {
       return null;
     } else {
-      return (T)get(name.toString());
+      final String nameString = name.toString();
+      return getValue(nameString);
     }
   }
 
@@ -281,6 +356,26 @@ public interface MapEx extends MapDefault<String, Object>, Cloneable, DataTypedV
     final T value = getValue(name, dataType);
     if (value == null) {
       return defaultValue;
+    } else {
+      return value;
+    }
+  }
+
+  default <T extends Object> T getValue(final CharSequence name,
+    final DataTypeValueFactory<T> defaultValueFactory) {
+    final DataType dataType = defaultValueFactory.getDataType();
+    final T value = getValue(name, dataType);
+    if (value == null) {
+      return defaultValueFactory.get();
+    } else {
+      return value;
+    }
+  }
+
+  default <T extends Object> T getValue(final CharSequence name, final Supplier<T> defaultValue) {
+    final T value = getValue(name);
+    if (value == null) {
+      return defaultValue.get();
     } else {
       return value;
     }
@@ -300,9 +395,71 @@ public interface MapEx extends MapDefault<String, Object>, Cloneable, DataTypedV
     return (T)get(name);
   }
 
+  @SuppressWarnings("unchecked")
+  default <T> T getValueByPath(final CharSequence path) {
+    final String[] propertyPath = path.toString().split("\\.");
+    Object propertyValue = this;
+    for (int i = 0; i < propertyPath.length && propertyValue != null; i++) {
+      final String propertyName = propertyPath[i];
+      if (propertyValue instanceof Record) {
+        final Record record = (Record)propertyValue;
+
+        if (record.hasField(propertyName)) {
+          propertyValue = record.getValue(propertyName);
+          if (propertyValue == null) {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      } else if (propertyValue instanceof Map) {
+        final Map<String, Object> map = (Map<String, Object>)propertyValue;
+        propertyValue = map.get(propertyName);
+        if (propertyValue == null) {
+          return null;
+        }
+      } else {
+        try {
+          final Object object = propertyValue;
+          propertyValue = Property.getSimple(object, propertyName);
+        } catch (final IllegalArgumentException e) {
+          Logs.debug(this, "Path does not exist " + path, e);
+          return null;
+        }
+      }
+    }
+    return (T)propertyValue;
+  }
+
   default boolean hasValue(final CharSequence name) {
     final Object value = getValue(name);
     return value != null;
+  }
+
+  default boolean hasValuesAll(final CharSequence... names) {
+    if (names == null || names.length == 0) {
+      return false;
+    } else {
+      for (final CharSequence name : names) {
+        if (!hasValue(name)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  default boolean hasValuesAny(final CharSequence... names) {
+    if (names == null || names.length == 0) {
+      return false;
+    } else {
+      for (final CharSequence name : names) {
+        if (hasValue(name)) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -317,6 +474,15 @@ public interface MapEx extends MapDefault<String, Object>, Cloneable, DataTypedV
   default <T extends Object> T removeValue(final CharSequence name, final DataType dataType) {
     final Object value = removeValue(name);
     return dataType.toObject(value);
+  }
+
+  default <V> V removeValue(final CharSequence name, final Supplier<V> defaultValue) {
+    final V value = removeValue(name);
+    if (value == null) {
+      return defaultValue.get();
+    } else {
+      return value;
+    }
   }
 
   default <V> V removeValue(final CharSequence name, final V defaultValue) {

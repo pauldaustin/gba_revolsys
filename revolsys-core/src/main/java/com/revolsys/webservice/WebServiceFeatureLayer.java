@@ -45,6 +45,7 @@ public interface WebServiceFeatureLayer extends RecordDefinitionProxy, WebServic
     return WebServiceResource.super.getPathName();
   }
 
+  @Override
   default Record getRecord(final Query query) {
     Record firstRecord = null;
     try (
@@ -72,23 +73,17 @@ public interface WebServiceFeatureLayer extends RecordDefinitionProxy, WebServic
     return getRecordReader(ArrayRecord.FACTORY, boundingBox);
   }
 
-  default RecordReader getRecordReader(final Query query) {
-    return getRecordReader(ArrayRecord.FACTORY, query);
-  }
+  RecordReader getRecordReader(final Query query);
 
   <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
     final BoundingBox boundingBox);
 
-  <V extends Record> RecordReader getRecordReader(final RecordFactory<V> recordFactory,
-    final Query query);
-
   @SuppressWarnings({
     "unchecked", "rawtypes"
   })
-  default <V extends Record> List<V> getRecords(final RecordFactory<V> recordFactory,
-    final BoundingBox boundingBox) {
+  default <V extends Record> List<V> getRecords(final Query query) {
     try (
-      RecordReader reader = getRecordReader(recordFactory, boundingBox)) {
+      RecordReader reader = getRecordReader(query)) {
       if (reader == null) {
         return Collections.emptyList();
       } else {
@@ -101,9 +96,9 @@ public interface WebServiceFeatureLayer extends RecordDefinitionProxy, WebServic
     "unchecked", "rawtypes"
   })
   default <V extends Record> List<V> getRecords(final RecordFactory<V> recordFactory,
-    final Query query) {
+    final BoundingBox boundingBox) {
     try (
-      RecordReader reader = getRecordReader(recordFactory, query)) {
+      RecordReader reader = getRecordReader(recordFactory, boundingBox)) {
       if (reader == null) {
         return Collections.emptyList();
       } else {

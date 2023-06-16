@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.jeometry.common.compare.CompareUtil;
 import org.jeometry.common.data.identifier.Identifiable;
@@ -27,8 +28,12 @@ import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.BoundingBoxProxy;
 import com.revolsys.geometry.model.Geometry;
+import com.revolsys.geometry.model.GeometryDataTypes;
 import com.revolsys.geometry.model.GeometryFactory;
 import com.revolsys.record.code.CodeTable;
+import com.revolsys.record.io.format.json.JsonObject;
+import com.revolsys.record.io.format.json.JsonType;
+import com.revolsys.record.io.format.json.Jsonable;
 import com.revolsys.record.query.Value;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
@@ -36,8 +41,8 @@ import com.revolsys.record.schema.RecordDefinitionProxy;
 import com.revolsys.util.Property;
 import com.revolsys.util.Strings;
 
-public interface Record
-  extends MapEx, Comparable<Object>, Identifiable, RecordDefinitionProxy, BoundingBoxProxy {
+public interface Record extends MapEx, Comparable<Object>, Identifiable, RecordDefinitionProxy,
+  BoundingBoxProxy, Jsonable {
   String EVENT_RECORD_CHANGED = "_recordChanged";
 
   String EXCLUDE_GEOMETRY = Record.class.getName() + ".excludeGeometry";
@@ -192,6 +197,11 @@ public interface Record
   }
 
   @Override
+  default JsonType asJson() {
+    return JsonObject.hash(this);
+  }
+
+  @Override
   Record clone();
 
   @Override
@@ -246,6 +256,7 @@ public interface Record
     }
   }
 
+  @Override
   default int compareValue(final CharSequence fieldName, final Object value) {
     final FieldDefinition fieldDefinition = getFieldDefinition(fieldName);
     if (fieldDefinition == null) {
@@ -283,6 +294,11 @@ public interface Record
       value2 = record.getValue(fieldName);
     }
     return CompareUtil.compare(value1, value2, nullsFirst);
+  }
+
+  default Record consume(final Consumer<Record> action) {
+    action.accept(this);
+    return this;
   }
 
   default boolean contains(final Iterable<? extends Record> records) {
@@ -619,6 +635,16 @@ public interface Record
     }
   }
 
+  default <E extends Enum<E>> E getEnum(final Class<E> enumType, final CharSequence fieldName,
+    final E defaultValue) {
+    final String value = getString(fieldName);
+    if (Property.hasValue(value)) {
+      return Enum.valueOf(enumType, value);
+    } else {
+      return defaultValue;
+    }
+  }
+
   @Override
   default Float getFloat(final CharSequence name) {
     final Object value = getValue(name);
@@ -647,7 +673,7 @@ public interface Record
       return null;
     } else {
       final int index = recordDefinition.getGeometryFieldIndex();
-      return (T)getValue(index);
+      return (T)getValue(index, GeometryDataTypes.GEOMETRY);
     }
   }
 
@@ -659,31 +685,29 @@ public interface Record
   @Override
   default Identifier getIdentifier() {
     final RecordDefinition recordDefinition = getRecordDefinition();
-    if (recordDefinition.hasIdField()) {
-      final List<Integer> idFieldIndexes = recordDefinition.getIdFieldIndexes();
-      final int idCount = idFieldIndexes.size();
-      if (idCount == 1) {
-        final Integer idFieldIndex = idFieldIndexes.get(0);
-        final Object idValue = getValue(idFieldIndex);
-        if (idValue == null) {
-          return null;
-        } else {
-          return Identifier.newIdentifier(idValue);
-        }
+    final int idFieldCount = recordDefinition.getIdFieldCount();
+    if (idFieldCount == 1) {
+      final Integer idFieldIndex = recordDefinition.getIdFieldIndex();
+      final Object idValue = getValue(idFieldIndex);
+      if (idValue == null) {
+        return null;
       } else {
-        boolean notNull = false;
-        final Object[] idValues = new Object[idCount];
-        for (int i = 0; i < idValues.length; i++) {
-          final Integer idFieldIndex = idFieldIndexes.get(i);
-          final Object value = getValue(idFieldIndex);
-          if (value != null) {
-            notNull = true;
-          }
-          idValues[i] = value;
+        return Identifier.newIdentifier(idValue);
+      }
+    } else if (idFieldCount > 0) {
+      boolean notNull = false;
+      final List<Integer> idFieldIndexes = recordDefinition.getIdFieldIndexes();
+      final Object[] idValues = new Object[idFieldCount];
+      for (int i = 0; i < idValues.length; i++) {
+        final Integer idFieldIndex = idFieldIndexes.get(i);
+        final Object value = getValue(idFieldIndex);
+        if (value != null) {
+          notNull = true;
         }
-        if (notNull) {
-          return new ListIdentifier(idValues);
-        }
+        idValues[i] = value;
+      }
+      if (notNull) {
+        return new ListIdentifier(idValues);
       }
     }
     return null;
@@ -695,6 +719,7 @@ public interface Record
     return Identifier.newIdentifier(value);
   }
 
+  @Override
   default Identifier getIdentifier(final CharSequence fieldName, final DataType dataType) {
     final Object value = getValue(fieldName, dataType);
     return Identifier.newIdentifier(value);
@@ -838,29 +863,6 @@ public interface Record
   }
 
   /**
-   * Get the value of the field with the specified name.
-   *
-   * @param name The name of the field.
-   * @return The field value.
-   */
-
-  @Override
-  default <T extends Object> T getValue(final CharSequence name) {
-    if (name == null) {
-      return null;
-    } else {
-      final String nameString = name.toString();
-      return getValue(nameString);
-    }
-  }
-
-  @Override
-  default <T extends Object> T getValue(final CharSequence name, final DataType dataType) {
-    final Object value = getValue(name);
-    return dataType.toObject(value);
-  }
-
-  /**
    * Get the value of the field with the specified index.
    *
    * @param index The index of the field.
@@ -900,6 +902,7 @@ public interface Record
     }
   }
 
+  @Override
   @SuppressWarnings("unchecked")
   default <T> T getValueByPath(final CharSequence path) {
     final int fieldIndex = getFieldIndex(path);
@@ -998,6 +1001,7 @@ public interface Record
     return Property.hasValue(value);
   }
 
+  @Override
   default boolean hasValuesAll(final CharSequence... fieldNames) {
     for (final CharSequence fieldName : fieldNames) {
       if (!hasValue(fieldName)) {
@@ -1013,6 +1017,7 @@ public interface Record
    * @param fieldNames
    * @return True if any of the fields have a value, false otherwise.
    */
+  @Override
   default boolean hasValuesAny(final CharSequence... fieldNames) {
     for (final CharSequence fieldName : fieldNames) {
       if (hasValue(fieldName)) {
@@ -1045,6 +1050,19 @@ public interface Record
       }
     }
     return -1;
+  }
+
+  default void initDefaultValues() {
+    final RecordDefinition recordDefinition = getRecordDefinition();
+    if (recordDefinition != null) {
+      final Map<String, Object> defaultValues = recordDefinition.getDefaultValues();
+      for (final String key : defaultValues.keySet()) {
+        if (getState().isInitializing() || !hasValue(key)) {
+          final Object value = defaultValues.get(key);
+          setValueByPath(key, value);
+        }
+      }
+    }
   }
 
   default boolean isChanged() {
@@ -1103,10 +1121,10 @@ public interface Record
         synchronized (this) {
           if (record.getRecordDefinition() == getRecordDefinition()) {
             final Identifier id = getIdentifier();
-            final Identifier otherId = record.getIdentifier();
-            if (id == null || otherId == null) {
+            final Identifier id2 = record.getIdentifier();
+            if (id == null || id2 == null) {
               return false;
-            } else if (DataType.equal(id, otherId)) {
+            } else if (DataType.equal(id, id2)) {
               return true;
             } else {
               return false;
@@ -1197,14 +1215,16 @@ public interface Record
    * Set the value of the primary geometry field.
    *
    * @param geometry The primary geometry.
+   * @return TODO
    */
 
-  default void setGeometryValue(final Geometry geometry) {
+  default Record setGeometryValue(final Geometry geometry) {
     final RecordDefinition recordDefinition = getRecordDefinition();
     final int index = recordDefinition.getGeometryFieldIndex();
     if (index > -1) {
       setValue(index, geometry);
     }
+    return this;
   }
 
   default void setGeometryValue(final Record record) {
@@ -1320,7 +1340,11 @@ public interface Record
           final List list = (List)value;
           id = codeTable.getIdentifier(list.toArray());
         } else {
-          id = codeTable.getIdentifier(value);
+          if (getState().isInitializing()) {
+            id = null;
+          } else {
+            id = codeTable.getIdentifier(value);
+          }
         }
         if (id == null) {
           targetValue = value;
@@ -1379,11 +1403,12 @@ public interface Record
     setValues(values, Arrays.asList(fieldNames));
   }
 
-  default void setValues(final Object... values) {
+  default Record setValues(final Object... values) {
     for (int fieldIndex = 0; fieldIndex < values.length; fieldIndex++) {
       final Object value = values[fieldIndex];
       setValue(fieldIndex, value);
     }
+    return this;
   }
 
   default void setValues(final Record record) {
@@ -1458,6 +1483,24 @@ public interface Record
   default int size() {
     final RecordDefinition recordDefinition = getRecordDefinition();
     return recordDefinition.getFieldCount();
+  }
+
+  @Override
+  default JsonObject toJson() {
+    final JsonObject json = JsonObject.hash();
+    for (int i = 0; i < getFieldCount(); i++) {
+      final Object value = getValue(i);
+      if (value != null) {
+        final String fieldName = getFieldName(i);
+        json.addValueClone(fieldName, value);
+      }
+    }
+    return json;
+  }
+
+  @Override
+  default String toJsonString() {
+    return toJson().toJsonString();
   }
 
   default void validateField(final FieldDefinition field) {

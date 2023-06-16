@@ -19,7 +19,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Vector;
 
-import com.revolsys.util.Base64InputStream;
+import org.apache.commons.codec.binary.Base64InputStream;
 
 /**
  * Get file format, image resolution, number of bits per pixel and optionally

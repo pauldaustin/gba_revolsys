@@ -3,9 +3,9 @@ package com.revolsys.geopackage.field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -14,6 +14,8 @@ import org.jeometry.common.date.Dates;
 
 import com.revolsys.jdbc.field.JdbcDateFieldDefinition;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.util.Property;
 
 public class GeoPackageDateTimeField extends JdbcFieldDefinition {
@@ -29,9 +31,10 @@ public class GeoPackageDateTimeField extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final String dateString = resultSet.getString(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final String dateString = resultSet.getString(indexes.incrementAndGet());
     if (dateString == null) {
       return null;
     } else {
@@ -52,12 +55,8 @@ public class GeoPackageDateTimeField extends JdbcFieldDefinition {
       final int sqlType = getSqlType();
       statement.setNull(parameterIndex, sqlType);
     } else {
-
-      final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-      dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-      final Timestamp date = Dates.getTimestamp(value);
-      final String dateString = dateFormat.format(date);
+      final Instant date = Dates.getInstant(value);
+      final String dateString = date.toString();
       statement.setString(parameterIndex, dateString);
     }
     return parameterIndex + 1;

@@ -9,10 +9,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+
+import org.reactivestreams.Publisher;
 
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
+import com.revolsys.io.BaseCloseable;
 import com.revolsys.io.FileUtil;
 import com.revolsys.io.IoFactoryRegistry;
 import com.revolsys.io.file.Paths;
@@ -20,7 +24,9 @@ import com.revolsys.record.io.FileRecordStoreFactory;
 import com.revolsys.record.io.RecordStoreRecordAndGeometryWriterFactory;
 import com.revolsys.record.schema.RecordStore;
 import com.revolsys.util.Property;
-import com.revolsys.util.UrlUtil;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class FileGdbRecordStoreFactory implements FileRecordStoreFactory {
   public static final String DESCRIPTION = "ESRI File Geodatabase";
@@ -39,6 +45,18 @@ public class FileGdbRecordStoreFactory implements FileRecordStoreFactory {
     final RecordStoreRecordAndGeometryWriterFactory writerFactory = new RecordStoreRecordAndGeometryWriterFactory(
       DESCRIPTION, "application/x-esri-gdb", true, true, "gdb");
     IoFactoryRegistry.addFactory(writerFactory);
+  }
+
+  public static <T> Flux<T> fluxFrom(final Path file,
+    final Function<FileGdbRecordStore, Publisher<T>> action) {
+    return BaseCloseable.fluxUsing(() -> FileGdbRecordStoreFactory.newRecordStoreInitialized(file),
+      action);
+  }
+
+  public static <T> Mono<T> monoFrom(final Path file,
+    final Function<FileGdbRecordStore, Mono<T>> action) {
+    return BaseCloseable.monoUsing(() -> FileGdbRecordStoreFactory.newRecordStoreInitialized(file),
+      action);
   }
 
   public static FileGdbRecordStore newRecordStore(final File file) {
@@ -69,9 +87,7 @@ public class FileGdbRecordStoreFactory implements FileRecordStoreFactory {
   }
 
   public static FileGdbRecordStore newRecordStoreInitialized(final File file) {
-    final FileGdbRecordStore recordStore = newRecordStore(file);
-    recordStore.initialize();
-    return recordStore;
+    return newRecordStoreInitialized(file.toPath());
   }
 
   public static FileGdbRecordStore newRecordStoreInitialized(final Path path) {
@@ -170,7 +186,7 @@ public class FileGdbRecordStoreFactory implements FileRecordStoreFactory {
   public Map<String, Object> parseUrl(final String url) {
     final Map<String, Object> parameters = new LinkedHashMap<>();
     try {
-      final URI uri = UrlUtil.getUri(url);
+      final URI uri = URI.create(url);
       final File file = FileUtil.getFile(uri);
       if (file != null) {
         parameters.put("recordStoreType", getName());

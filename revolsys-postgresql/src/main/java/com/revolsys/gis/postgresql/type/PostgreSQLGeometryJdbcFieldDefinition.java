@@ -12,6 +12,9 @@ import com.revolsys.geometry.model.Geometry;
 import com.revolsys.geometry.model.GeometryDataTypes;
 import com.revolsys.geometry.model.GeometryFactory;
 import com.revolsys.jdbc.field.JdbcFieldDefinition;
+import com.revolsys.record.RecordState;
+import com.revolsys.record.query.ColumnIndexes;
+import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.util.Property;
 
 public class PostgreSQLGeometryJdbcFieldDefinition extends JdbcFieldDefinition {
@@ -32,9 +35,11 @@ public class PostgreSQLGeometryJdbcFieldDefinition extends JdbcFieldDefinition {
   @Override
   public JdbcFieldDefinition clone() {
     final GeometryFactory geometryFactory = getGeometryFactory();
-    return new PostgreSQLGeometryJdbcFieldDefinition(getDbName(), getName(), getDataType(),
-      getSqlType(), isRequired(), getDescription(), getProperties(), this.srid, this.axisCount,
-      geometryFactory);
+    final PostgreSQLGeometryJdbcFieldDefinition clone = new PostgreSQLGeometryJdbcFieldDefinition(
+      getDbName(), getName(), getDataType(), getSqlType(), isRequired(), getDescription(),
+      getProperties(), this.srid, this.axisCount, geometryFactory);
+    postClone(clone);
+    return clone;
   }
 
   public Object getInsertUpdateValue(final Object value) throws SQLException {
@@ -61,9 +66,10 @@ public class PostgreSQLGeometryJdbcFieldDefinition extends JdbcFieldDefinition {
   }
 
   @Override
-  public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
-    final boolean internStrings) throws SQLException {
-    final Object postgresValue = resultSet.getObject(columnIndex);
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
+    final Object postgresValue = resultSet.getObject(indexes.incrementAndGet());
     final Object value = toJava(postgresValue);
     return value;
   }
@@ -104,6 +110,34 @@ public class PostgreSQLGeometryJdbcFieldDefinition extends JdbcFieldDefinition {
       statement.setObject(parameterIndex, jdbcValue);
     }
     return parameterIndex + 1;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <V> V toFieldValueException(Object value) {
+    Object v = super.toFieldValueException(value);
+    if (v instanceof Geometry) {
+      final Geometry geometry = (Geometry)v;
+      final GeometryFactory geometryFactory = getGeometryFactory();
+      if (geometry.getGeometryFactory() != geometryFactory) {
+        v = geometryFactory.geometry(geometry);
+      }
+    }
+    return (V)v;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <V> V toFieldValueException(RecordState state, Object value) {
+    Object v = super.toFieldValueException(state, value);
+    if (v instanceof Geometry) {
+      final Geometry geometry = (Geometry)v;
+      final GeometryFactory geometryFactory = getGeometryFactory();
+      if (geometry.getGeometryFactory() != geometryFactory) {
+        v = geometryFactory.geometry(geometry);
+      }
+    }
+    return (V)v;
   }
 
   public Object toJava(final Object object) throws SQLException {

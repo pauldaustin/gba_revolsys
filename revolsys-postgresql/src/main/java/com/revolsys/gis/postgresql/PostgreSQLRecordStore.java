@@ -1,5 +1,6 @@
 package com.revolsys.gis.postgresql;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -15,6 +16,7 @@ import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.CollectionDataType;
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypes;
+import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.io.PathName;
 import org.postgresql.jdbc.PgConnection;
 
@@ -36,7 +38,6 @@ import com.revolsys.jdbc.io.AbstractJdbcDatabaseFactory;
 import com.revolsys.jdbc.io.AbstractJdbcRecordStore;
 import com.revolsys.jdbc.io.JdbcRecordDefinition;
 import com.revolsys.jdbc.io.JdbcRecordStoreSchema;
-import com.revolsys.jdbc.io.RecordStoreIteratorFactory;
 import com.revolsys.record.ArrayRecord;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordFactory;
@@ -45,21 +46,16 @@ import com.revolsys.record.property.ShortNameProperty;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.query.QueryValue;
 import com.revolsys.record.query.functions.EnvelopeIntersects;
+import com.revolsys.record.query.functions.JsonRawValue;
 import com.revolsys.record.query.functions.JsonValue;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
-import com.revolsys.record.schema.RecordStore;
 import com.revolsys.util.Property;
 
 public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
 
   public static final List<String> POSTGRESQL_INTERNAL_SCHEMAS = Arrays.asList("information_schema",
     "pg_catalog", "pg_toast_temp_1");
-
-  private static final RecordIterator newPostgreSQLIterator(final RecordStore recordStore,
-    final Query query, final Map<String, Object> properties) {
-    return new PostgreSQLJdbcQueryIterator((PostgreSQLRecordStore)recordStore, query, properties);
-  }
 
   private boolean useSchemaSequencePrefix = true;
 
@@ -117,39 +113,68 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
     return field;
   }
 
-  private void appendEnvelopeIntersects(final Query query, final StringBuilder sql,
+  private void appendEnvelopeIntersects(final Query query, final Appendable sql,
     final QueryValue queryValue) {
-    final EnvelopeIntersects envelopeIntersects = (EnvelopeIntersects)queryValue;
-    final QueryValue boundingBox1Value = envelopeIntersects.getBoundingBox1Value();
-    if (boundingBox1Value == null) {
-      sql.append("NULL");
-    } else {
-      appendQueryValue(query, sql, boundingBox1Value);
-    }
-    sql.append(" && ");
-    final QueryValue boundingBox2Value = envelopeIntersects.getBoundingBox2Value();
-    if (boundingBox2Value == null) {
-      sql.append("NULL");
-    } else {
-      appendQueryValue(query, sql, boundingBox2Value);
+    try {
+      final EnvelopeIntersects envelopeIntersects = (EnvelopeIntersects)queryValue;
+      final QueryValue boundingBox1Value = envelopeIntersects.getBoundingBox1Value();
+      if (boundingBox1Value == null) {
+        sql.append("NULL");
+      } else {
+        appendQueryValue(query, sql, boundingBox1Value);
+      }
+      sql.append(" && ");
+      final QueryValue boundingBox2Value = envelopeIntersects.getBoundingBox2Value();
+      if (boundingBox2Value == null) {
+        sql.append("NULL");
+      } else {
+        appendQueryValue(query, sql, boundingBox2Value);
+      }
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
   }
 
-  private void appendJsonValue(final Query query, final StringBuilder sql,
+  private void appendJsonRawValue(final Query query, final Appendable sql,
     final QueryValue queryValue) {
-    final JsonValue jsonValue = (JsonValue)queryValue;
-    final QueryValue jsonParameter = jsonValue.getParameter(0);
-    sql.append('(');
-    jsonParameter.appendSql(query, this, sql);
+    try {
+      final JsonRawValue jsonValue = (JsonRawValue)queryValue;
+      final QueryValue jsonParameter = jsonValue.getParameter(0);
+      sql.append('(');
+      jsonParameter.appendSql(query, this, sql);
 
-    final String[] path = jsonValue.getPath().split("\\.");
-    for (int i = 1; i < path.length; i++) {
-      final String propertyName = path[i];
-      sql.append(" -> '");
-      sql.append(propertyName);
-      sql.append("'");
+      final String[] path = jsonValue.getPath().split("\\.");
+      for (int i = 1; i < path.length; i++) {
+        final String propertyName = path[i];
+        sql.append(" -> '");
+        sql.append(propertyName);
+        sql.append("'");
+      }
+      sql.append(")");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
     }
-    sql.append(")::text");
+  }
+
+  private void appendJsonValue(final Query query, final Appendable sql,
+    final QueryValue queryValue) {
+    try {
+      final JsonValue jsonValue = (JsonValue)queryValue;
+      final QueryValue jsonParameter = jsonValue.getParameter(0);
+      sql.append('(');
+      jsonParameter.appendSql(query, this, sql);
+
+      final String[] path = jsonValue.getPath().split("\\.");
+      for (int i = 1; i < path.length; i++) {
+        final String propertyName = path[i];
+        sql.append(" ->> '");
+        sql.append(propertyName);
+        sql.append("'");
+      }
+      sql.append(")::text");
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
   }
 
   @Override
@@ -166,18 +191,28 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
   @Override
   public JdbcConnection getJdbcConnection(final boolean autoCommit) {
     final DataSource dataSource = getDataSource();
-    final Connection connection = JdbcUtils.getConnection(dataSource);
-    try {
-      final PgConnection pgConnection = connection.unwrap(PgConnection.class);
-      pgConnection.addDataType("geometry", PostgreSQLGeometryWrapper.class);
-      pgConnection.addDataType("box2d", PostgreSQLBoundingBoxWrapper.class);
-      pgConnection.addDataType("box3d", PostgreSQLBoundingBoxWrapper.class);
-      pgConnection.addDataType("tid", PostgreSQLTidWrapper.class);
-    } catch (final SQLException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+    Connection connection = JdbcUtils.getConnection(dataSource);
+    if (connection == null) {
+      return null;
+    } else {
+      try {
+        PgConnection pgConnection;
+        try {
+          pgConnection = connection.unwrap(PgConnection.class);
+        } catch (final NullPointerException e) {
+          connection = JdbcUtils.getConnection(dataSource);
+          pgConnection = connection.unwrap(PgConnection.class);
+        }
+        pgConnection.addDataType("geometry", PostgreSQLGeometryWrapper.class);
+        pgConnection.addDataType("box2d", PostgreSQLBoundingBoxWrapper.class);
+        pgConnection.addDataType("box3d", PostgreSQLBoundingBoxWrapper.class);
+        pgConnection.addDataType("tid", PostgreSQLTidWrapper.class);
+      } catch (final SQLException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      return new JdbcConnection(connection, dataSource, autoCommit);
     }
-    return new JdbcConnection(connection, dataSource, autoCommit);
   }
 
   @Override
@@ -194,9 +229,9 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
   @Override
   protected String getSequenceName(final JdbcRecordDefinition recordDefinition) {
     final JdbcRecordStoreSchema schema = recordDefinition.getSchema();
-    final String dbSchemaName = schema.getDbName();
+    final String dbSchemaName = schema.getQuotedDbName();
     final String shortName = ShortNameProperty.getShortName(recordDefinition);
-    final String sequenceName;
+    String sequenceName;
     if (Property.hasValue(shortName)) {
       if (this.useSchemaSequencePrefix) {
         sequenceName = dbSchemaName + "." + shortName.toLowerCase() + "_seq";
@@ -205,11 +240,10 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
       }
     } else {
       final String tableName = recordDefinition.getDbTableName();
-      final String idFieldName = recordDefinition.getIdFieldName().toLowerCase();
+      final String idFieldName = ((JdbcFieldDefinition)recordDefinition.getIdField()).getDbName();
+      sequenceName = '"' + tableName.replace("\"", "") + "_" + idFieldName + "_seq\"";
       if (this.useSchemaSequencePrefix) {
-        sequenceName = dbSchemaName + "." + tableName + "_" + idFieldName + "_seq";
-      } else {
-        sequenceName = tableName + "_" + idFieldName + "_seq";
+        return dbSchemaName + "." + sequenceName;
       }
     }
     return sequenceName;
@@ -278,28 +312,29 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
       + "where (t.grantee  in (current_user, 'PUBLIC') or "
       + "t.grantee in (select role_name from information_schema.applicable_roles r where r.grantee = current_user)) and "
       + "privilege_type IN ('SELECT', 'INSERT','UPDATE','DELETE') ");
-    setSchemaTablePermissionsSql(
-      "select distinct t.table_schema as \"SCHEMA_NAME\", t.table_name, t.privilege_type as \"PRIVILEGE\", d.description as \"REMARKS\", "
-        + "  CASE WHEN relkind = 'r' THEN 'TABLE' WHEN relkind = 'v' THEN 'VIEW' ELSE relkind || '' END \"TABLE_TYPE\" "
-        + "from" //
-        + "  information_schema.role_table_grants t"//
-        + "    join pg_namespace n on t.table_schema = n.nspname"//
-        + "    join pg_class c on (n.oid = c.relnamespace AND t.table_name = c.relname)"//
-        + "    left join pg_description d on d.objoid = c.oid "//
-        + "where" //
-        + "  t.table_schema = ? and "//
-        + "  (t.grantee in (current_user, 'PUBLIC') or t.grantee in (select role_name from information_schema.applicable_roles r where r.grantee = current_user)) AND "
-        + "  privilege_type IN ('SELECT', 'INSERT','UPDATE','DELETE') "
-        + "  order by t.table_schema, t.table_name, t.privilege_type");
+    setSchemaTablePermissionsSql("WITH RECURSIVE user_roles(id) AS (\n"
+      + "  SELECT oid from pg_roles a where rolname = current_user\n" + "  UNION ALL\n"
+      + "  select\n" + "    am.roleid\n" + "  from\n" + "    user_roles parent\n"
+      + "      join pg_auth_members am on am.member = parent.id\n" + ")\n" + "select distinct\n"
+      + "  n.nspname as \"SCHEMA_NAME\",\n" + "  c.relname as \"TABLE_NAME\",\n"
+      + "  p.privilege_type as \"PRIVILEGE\",\n" + "  d.description as \"REMARKS\",\n" + "  CASE\n"
+      + "    WHEN relkind = 'r' THEN 'TABLE'\n" + "    WHEN relkind = 'v' THEN 'VIEW'\n"
+      + "    WHEN relkind = 'm' THEN 'VIEW'\n" + "    ELSE relkind || ''\n"
+      + "  END \"TABLE_TYPE\"\n" + "from\n" + "  pg_namespace n\n"
+      + "    join pg_class c on n.oid = c.relnamespace\n"
+      + "    left outer join pg_description d on d.objoid = c.oid and d.objsubid =0,\n"
+      + "    aclexplode(COALESCE(c.relacl, acldefault('r'::\"char\", c.relowner))) p\n" + "where\n"
+      + "  n.nspname = ? and\n"
+      + "  (p.grantee = 0 or p.grantee in (select id from user_roles)) and\n"
+      + "  p.privilege_type IN ('SELECT', 'INSERT','UPDATE','DELETE')\n" + "order by 1, 2, 3");
   }
 
   protected void initSettings() {
-    setIteratorFactory(
-      new RecordStoreIteratorFactory(PostgreSQLRecordStore::newPostgreSQLIterator));
     setExcludeTablePaths("/PUBLIC/GEOMETRY_COLUMNS", "/PUBLIC/GEOGRAPHY_COLUMNS",
       "/PUBLIC/PG_BUFFER_CACHE", "/PUBLIC/PG_STAT_STATEMENTS", "/PUBLIC/SPATIAL_REF_SYS");
     addSqlQueryAppender(EnvelopeIntersects.class, this::appendEnvelopeIntersects);
     addSqlQueryAppender(JsonValue.class, this::appendJsonValue);
+    addSqlQueryAppender(JsonRawValue.class, this::appendJsonRawValue);
   }
 
   @Override
@@ -347,6 +382,11 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
   }
 
   @Override
+  public RecordIterator newIterator(final Query query, final Map<String, Object> properties) {
+    return new PostgreSQLJdbcQueryIterator(this, query, properties);
+  }
+
+  @Override
   protected JdbcRecordDefinition newRecordDefinition(final JdbcRecordStoreSchema schema,
     final PathName pathName, String dbTableName) {
     if (dbTableName.charAt(0) != '"' && !dbTableName.equals(dbTableName.toLowerCase())) {
@@ -356,8 +396,21 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
   }
 
   @Override
+  protected PostgreSQLRecordStoreSchema newRootSchema() {
+    return new PostgreSQLRecordStoreSchema(this);
+  }
+
+  @Override
   protected JdbcFieldDefinition newRowIdFieldDefinition() {
     return new PostgreSQLOidFieldDefinition();
+  }
+
+  @Override
+  protected PostgreSQLRecordStoreSchema newSchema(final JdbcRecordStoreSchema rootSchema,
+    final String dbSchemaName, final PathName childSchemaPath) {
+    final boolean quoteName = !dbSchemaName.equals(dbSchemaName.toLowerCase());
+    return new PostgreSQLRecordStoreSchema((PostgreSQLRecordStoreSchema)rootSchema, childSchemaPath,
+      dbSchemaName, quoteName);
   }
 
   @Override

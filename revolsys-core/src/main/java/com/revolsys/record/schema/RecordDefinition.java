@@ -1,11 +1,15 @@
 package com.revolsys.record.schema;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.jeometry.common.data.identifier.Identifier;
+import org.jeometry.common.data.identifier.ListIdentifier;
 import org.jeometry.common.data.type.DataType;
+import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.io.PathName;
 
 import com.revolsys.collection.map.MapEx;
@@ -19,10 +23,15 @@ import com.revolsys.record.Record;
 import com.revolsys.record.RecordFactory;
 import com.revolsys.record.code.CodeTable;
 import com.revolsys.record.property.RecordDefinitionProperty;
+import com.revolsys.record.query.Query;
+import com.revolsys.record.query.QueryValue;
+import com.revolsys.record.query.TableReference;
 import com.revolsys.util.CaseConverter;
 
+import reactor.core.publisher.Mono;
+
 public interface RecordDefinition extends Cloneable, GeometryFactoryProxy, RecordStoreSchemaElement,
-  MapSerializer, RecordDefinitionProxy, RecordFactory<Record> {
+  MapSerializer, RecordDefinitionProxy, RecordFactory<Record>, TableReference {
 
   static RecordDefinitionBuilder builder() {
     return new RecordDefinitionBuilder();
@@ -48,6 +57,39 @@ public interface RecordDefinition extends Cloneable, GeometryFactoryProxy, Recor
   RecordDefinition addDefaultValue(String fieldName, Object defaultValue);
 
   void addProperty(RecordDefinitionProperty property);
+
+  @Override
+  default void appendQueryValue(final Query query, final StringBuilder sql,
+    final QueryValue queryValue) {
+    final RecordStore recordStore = getRecordStore();
+    queryValue.appendSql(query, recordStore, sql);
+  }
+
+  @Override
+  default void appendSelect(final Query query, final Appendable sql, final QueryValue queryValue) {
+    final RecordStore recordStore = getRecordStore();
+    queryValue.appendSelect(query, recordStore, sql);
+  }
+
+  @Override
+  default void appendSelectAll(final Query query, final Appendable sql) {
+    try {
+      boolean first = true;
+      for (final FieldDefinition field : getFields()) {
+        if (first) {
+          first = false;
+        } else {
+          sql.append(", ");
+        }
+        final RecordStore recordStore = getRecordStore();
+        field.appendSelect(query, recordStore, sql);
+      }
+    } catch (final IOException e) {
+      Exceptions.throwUncheckedException(e);
+    }
+  }
+
+  <CT extends CodeTable> Mono<CT> codeTable$();
 
   void deleteRecord(Record record);
 
@@ -130,6 +172,7 @@ public interface RecordDefinition extends Cloneable, GeometryFactoryProxy, Recor
 
   Set<String> getFieldNamesSet();
 
+  @Override
   List<FieldDefinition> getFields();
 
   /**
@@ -212,7 +255,38 @@ public interface RecordDefinition extends Cloneable, GeometryFactoryProxy, Recor
     return fields;
   }
 
+  default Identifier getIdentifier(final MapEx values) {
+    if (values != null && hasIdField()) {
+      final int idFieldCount = getIdFieldCount();
+      if (idFieldCount == 1) {
+        final String fieldName = getIdFieldName();
+        final Object value = values.getValue(fieldName);
+        if (value == null) {
+          return Identifier.newIdentifier(value);
+        }
+      } else if (idFieldCount > 0) {
+        final List<String> fieldNames = getIdFieldNames();
+        boolean notNull = false;
+        final Object[] idValues = new Object[idFieldCount];
+        int i = 0;
+        for (final String fieldName : fieldNames) {
+          final Object value = values.getValue(fieldName);
+          if (value != null) {
+            notNull = true;
+          }
+          idValues[i++] = value;
+        }
+        if (notNull) {
+          return new ListIdentifier(idValues);
+        }
+      }
+    }
+    return null;
+  }
+
   FieldDefinition getIdField();
+
+  int getIdFieldCount();
 
   /**
    * Get the index of the Unique identifier field.
@@ -248,6 +322,7 @@ public interface RecordDefinition extends Cloneable, GeometryFactoryProxy, Recor
 
   ClockDirection getPolygonRingDirection();
 
+  @Override
   default String getQualifiedTableName() {
     final PathName pathName = getPathName();
     return JdbcUtils.getQualifiedTableName(pathName.toString());

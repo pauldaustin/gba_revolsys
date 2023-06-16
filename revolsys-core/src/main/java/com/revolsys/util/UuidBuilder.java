@@ -2,27 +2,21 @@ package com.revolsys.util;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 
 import org.jeometry.common.data.identifier.Identifier;
+import org.jeometry.common.data.identifier.UuidIdentifier;
 import org.jeometry.common.data.type.DataTypes;
-import org.jeometry.common.exception.Exceptions;
 
 public class UuidBuilder {
-  private MessageDigest digester;
 
-  public UuidBuilder() {
-    try {
-      this.digester = MessageDigest.getInstance("SHA-1");
-    } catch (final NoSuchAlgorithmException e) {
-      Exceptions.throwUncheckedException(e);
-    }
-  }
+  private final MessageDigest digester;
 
-  public UuidBuilder(final String namespace) {
-    this();
-    append(namespace);
+  private final int type;
+
+  UuidBuilder(final int type, final MessageDigest digester) {
+    this.type = type;
+    this.digester = digester;
   }
 
   public UuidBuilder append(final byte[] bytes) {
@@ -32,8 +26,17 @@ public class UuidBuilder {
     return this;
   }
 
+  public UuidBuilder append(final CharSequence string) {
+    if (string != null) {
+      append(string.toString());
+    }
+    return this;
+  }
+
   public UuidBuilder append(final Object value) {
-    if (value instanceof String) {
+    if (value == null) {
+      append("null");
+    } else if (value instanceof String) {
       append((String)value);
     } else if (value != null) {
       final String string = DataTypes.toString(value);
@@ -43,8 +46,21 @@ public class UuidBuilder {
   }
 
   public UuidBuilder append(final String string) {
-    final byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
-    return append(bytes);
+    if (string != null) {
+      final byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
+      append(bytes);
+    }
+    return this;
+  }
+
+  public UUID build() {
+    final byte[] digest = this.digester.digest();
+    return UuidNamespace.toUuid(this.type, digest);
+  }
+
+  public UuidIdentifier buildIdentifier() {
+    final UUID uuid = build();
+    return Identifier.newIdentifier(uuid);
   }
 
   public Identifier newStringIdentifier() {
@@ -52,14 +68,14 @@ public class UuidBuilder {
     return Identifier.newIdentifier(string);
   }
 
-  public UUID newUuid() {
-    final byte[] digest = this.digester.digest();
-    return Uuid.toUuid(5, digest);
+  public UuidBuilder separator() {
+    return append(""); // UNICODE Group Separator
+                        // https://unicode-table.com/en/001D/
   }
 
   @Override
   public String toString() {
-    final UUID uuid = newUuid();
+    final UUID uuid = build();
     return uuid.toString();
   }
 }
