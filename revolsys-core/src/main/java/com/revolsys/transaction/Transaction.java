@@ -93,7 +93,7 @@ public class Transaction implements BaseCloseable, TransactionDefinition {
   }
 
   protected void commit() {
-    DefaultTransactionStatus transactionStatus = this.transactionStatus;
+    final DefaultTransactionStatus transactionStatus = this.transactionStatus;
     if (this.transactionManager != null && transactionStatus != null) {
       if (!transactionStatus.isCompleted()) {
         if (transactionStatus.isRollbackOnly()) {

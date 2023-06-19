@@ -51,7 +51,7 @@ public class LineStringExtracter {
    * @param geometry the geometry from which to extract
    */
   public static List<LineString> getLines(final Geometry geometry) {
-    return getLines(geometry, new ArrayList<LineString>());
+    return getLines(geometry, new ArrayList<>());
   }
 
   /**

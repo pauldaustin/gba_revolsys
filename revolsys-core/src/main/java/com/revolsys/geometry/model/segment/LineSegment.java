@@ -888,11 +888,8 @@ public interface LineSegment extends LineString {
     final int orient0 = CoordinatesUtil.orientationIndex(getPoint(0), getPoint(1), seg.getPoint(0));
     final int orient1 = CoordinatesUtil.orientationIndex(getPoint(0), getPoint(1), seg.getPoint(1));
     // this handles the case where the points are L or collinear
-    if (orient0 >= 0 && orient1 >= 0) {
-      return Math.max(orient0, orient1);
-    }
     // this handles the case where the points are R or collinear
-    if (orient0 <= 0 && orient1 <= 0) {
+    if ((orient0 >= 0 && orient1 >= 0) || (orient0 <= 0 && orient1 <= 0)) {
       return Math.max(orient0, orient1);
     }
     // points lie on opposite sides ==> indeterminate orientation

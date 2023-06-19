@@ -22,8 +22,7 @@ public class BaseTreeNodeLoadingIcon implements ImageObserver {
 
   private static final BaseTreeNodeLoadingIcon INSTANCE = new BaseTreeNodeLoadingIcon();
 
-  private static final Set<BaseTreeNode> NODES = MapBackedSet
-    .mapBackedSet(new WeakHashMap<>());
+  private static final Set<BaseTreeNode> NODES = MapBackedSet.mapBackedSet(new WeakHashMap<>());
 
   public static synchronized void addNode(final BaseTreeNode node) {
     if (node != null) {

@@ -40,7 +40,7 @@ public class Channel<T> implements SelectableChannelInput<T>, ChannelOutput<T> {
    * Constructs a new Channel<T> with a ZeroBuffer ChannelValueStore.
    */
   public Channel() {
-    this(new ZeroBuffer<T>());
+    this(new ZeroBuffer<>());
   }
 
   /**

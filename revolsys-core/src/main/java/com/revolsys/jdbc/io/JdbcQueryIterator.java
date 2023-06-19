@@ -281,7 +281,8 @@ public class JdbcQueryIterator extends AbstractIterator<Record>
     this.query = query;
   }
 
-  private DataAccessException toSqlException(String task, final String sql, final SQLException e) {
+  private DataAccessException toSqlException(final String task, final String sql,
+    final SQLException e) {
     final JdbcConnection connection = this.connection;
     if (connection == null) {
       return new UncategorizedSQLException(task, sql, e);

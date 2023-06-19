@@ -14,7 +14,7 @@ public class OwsDatasetDescriptionSummary extends OwsDescription {
 
   private List<BoundingBox> boundingBoxes = new ArrayList<>();
 
-  private String identifier;
+  private final String identifier;
 
   public OwsDatasetDescriptionSummary(final Element element) {
     super(element);
@@ -27,14 +27,14 @@ public class OwsDatasetDescriptionSummary extends OwsDescription {
   }
 
   public List<BoundingBox> getBoundingBoxes() {
-    return boundingBoxes;
+    return this.boundingBoxes;
   }
 
   public String getIdentifier() {
-    return identifier;
+    return this.identifier;
   }
 
   public List<BoundingBox> getWgs84BoundingBoxes() {
-    return wgs84BoundingBoxes;
+    return this.wgs84BoundingBoxes;
   }
 }

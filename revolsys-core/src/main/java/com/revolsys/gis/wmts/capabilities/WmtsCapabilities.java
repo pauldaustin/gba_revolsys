@@ -9,9 +9,9 @@ public class WmtsCapabilities extends OwsCapabilities {
 
   private WmtsContents contents;
 
-  private WmtsClient client;
+  private final WmtsClient client;
 
-  public WmtsCapabilities(WmtsClient client, final Element element) {
+  public WmtsCapabilities(final WmtsClient client, final Element element) {
     super(element);
     this.client = client;
     XmlUtil.forFirstElement(element, "Contents", (serviceElement) -> {
@@ -20,10 +20,10 @@ public class WmtsCapabilities extends OwsCapabilities {
   }
 
   public WmtsClient getClient() {
-    return client;
+    return this.client;
   }
 
   public WmtsContents getContents() {
-    return contents;
+    return this.contents;
   }
 }

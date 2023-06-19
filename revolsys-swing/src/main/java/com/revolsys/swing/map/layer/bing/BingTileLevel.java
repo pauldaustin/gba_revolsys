@@ -16,7 +16,7 @@ public class BingTileLevel implements TileLevel {
 
   private final double resolution;
 
-  public BingTileLevel(int level, double resolution) {
+  public BingTileLevel(final int level, final double resolution) {
     this.level = level;
     this.identifier = Identifier.newIdentifier(level);
     this.mapSizePixels = BingClient.TILE_SIZE << level;
@@ -29,7 +29,7 @@ public class BingTileLevel implements TileLevel {
   }
 
   @Override
-  public BoundingBox getBoundingBox(int tileX, int tileY) {
+  public BoundingBox getBoundingBox(final int tileX, final int tileY) {
     final double y1 = getLatitude(tileY);
     final double y2 = getLatitude(tileY + 1);
     final double x1 = getLongitude(tileX);
@@ -81,7 +81,7 @@ public class BingTileLevel implements TileLevel {
   }
 
   @Override
-  public int getTileX(double longitude) {
+  public int getTileX(final double longitude) {
     final double ratio = (longitude + 180) / 360;
     int tileX = (int)Math.floor(ratio * (1 << this.level));
 
@@ -98,7 +98,7 @@ public class BingTileLevel implements TileLevel {
   }
 
   @Override
-  public int getTileY(double latitude) {
+  public int getTileY(final double latitude) {
     final double sinLatitude = Math.sin(latitude * Math.PI / 180);
     final int tileY = (int)Math
       .floor((0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI))

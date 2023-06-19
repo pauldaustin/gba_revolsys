@@ -796,7 +796,7 @@ public class FieldDefinition extends BaseObjectWithProperties implements CharSeq
     return this.name.subSequence(beginIndex, endIndex);
   }
 
-  public String toCodeString(Consumer<CodeTableEntry> callback, final Object value) {
+  public String toCodeString(final Consumer<CodeTableEntry> callback, final Object value) {
     return CodeTable.toCodeString(callback, this.codeTable, this.type, value);
   }
 

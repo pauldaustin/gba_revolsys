@@ -96,12 +96,13 @@ public class TiledMapLayer extends AbstractTiledGeoreferencedImageLayer<TiledMap
     }
   }
 
-  public BufferedImage getTileImage(TileLevel level, int tileX, int tileY) {
+  public BufferedImage getTileImage(final TileLevel level, final int tileX, final int tileY) {
     // TODO Auto-generated method stub
     return null;
   }
 
-  public TileLevel getTileLevel(double viewResolution) {
+  @Override
+  public TileLevel getTileLevel(final double viewResolution) {
     /// TODO
     return null;
   }
@@ -128,7 +129,7 @@ public class TiledMapLayer extends AbstractTiledGeoreferencedImageLayer<TiledMap
 
   @Override
   protected TiledGeoreferencedImageLayerRenderer<TiledMapLayerTile> newRenderer() {
-    return new TiledGeoreferencedImageLayerRenderer<TiledMapLayerTile>(this);
+    return new TiledGeoreferencedImageLayerRenderer<>(this);
   }
 
   @Override

@@ -19,8 +19,9 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import jakarta.annotation.PreDestroy;
 import javax.sql.DataSource;
+
+import jakarta.annotation.PreDestroy;
 
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.DataType;
@@ -100,8 +101,6 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   private boolean lobAsString = false;
 
   private String primaryKeySql;
-
-  private String primaryKeyTableCondition;
 
   private String schemaPermissionsSql;
 
@@ -992,7 +991,6 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   }
 
   public void setPrimaryKeyTableCondition(final String primaryKeyTableCondition) {
-    this.primaryKeyTableCondition = primaryKeyTableCondition;
   }
 
   public void setQuoteNames(final boolean quoteNames) {

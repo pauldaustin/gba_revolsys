@@ -33,7 +33,7 @@ public enum ImagerySet implements TileLevelSet {
   }
 
   @Override
-  public BingTileLevel getTileLevel(double metresPerPixel) {
+  public BingTileLevel getTileLevel(final double metresPerPixel) {
     return BaseTileLevelSet.getTileLevel(this.levels, metresPerPixel);
   }
 }

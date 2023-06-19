@@ -41,7 +41,7 @@ public class WmtsMapTile extends GeoreferencedImageMapTile {
   }
 
   public WmtsTileMatrix getTileMatrix() {
-    return tileMatrix;
+    return this.tileMatrix;
   }
 
   public int getTileX() {
@@ -54,7 +54,7 @@ public class WmtsMapTile extends GeoreferencedImageMapTile {
 
   @Override
   public int hashCode() {
-    return Objects.hash(layer, tileMatrix, tileX, tileY);
+    return Objects.hash(this.layer, this.tileMatrix, this.tileX, this.tileY);
   }
 
   @Override

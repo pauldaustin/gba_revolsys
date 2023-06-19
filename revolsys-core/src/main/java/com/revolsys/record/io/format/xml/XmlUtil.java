@@ -86,7 +86,7 @@ public interface XmlUtil {
   }
 
   static <T> T getFirstElement(final Element parentElement, final String elementName,
-    Function<Element, T> action) {
+    final Function<Element, T> action) {
     final NodeList childNodes = parentElement.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       final Node childNode = childNodes.item(i);
@@ -170,7 +170,7 @@ public interface XmlUtil {
 
   static <T> List<T> getList(final Element parentElement, final String elementName,
     final Function<Element, T> action) {
-    List<T> elements = new ArrayList<>();
+    final List<T> elements = new ArrayList<>();
     final NodeList childNodes = parentElement.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       final Node childNode = childNodes.item(i);
@@ -185,8 +185,8 @@ public interface XmlUtil {
     return elements;
   }
 
-  static List<String> getListString(final Element element, String name) {
-    List<String> values = new ArrayList<>();
+  static List<String> getListString(final Element element, final String name) {
+    final List<String> values = new ArrayList<>();
     forEachElement(element, name, (versionElement) -> values.add(versionElement.getTextContent()));
     return values;
   }

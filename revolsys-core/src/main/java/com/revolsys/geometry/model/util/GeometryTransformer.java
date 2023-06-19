@@ -267,10 +267,7 @@ public abstract class GeometryTransformer {
     final List<Geometry> transGeomList = new ArrayList<>();
     for (final Polygon polygon : polygonal.polygons()) {
       final Geometry transformGeom = transformPolygon(polygon, polygonal);
-      if (transformGeom == null) {
-        continue;
-      }
-      if (transformGeom.isEmpty()) {
+      if ((transformGeom == null) || transformGeom.isEmpty()) {
         continue;
       }
       transGeomList.add(transformGeom);

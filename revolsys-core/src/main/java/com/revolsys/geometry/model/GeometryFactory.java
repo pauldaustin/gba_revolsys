@@ -611,7 +611,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
   }
 
   public static GeometryFactory floating2d(final Function<String, CoordinateSystem> conveter,
-    String id) {
+    final String id) {
     final GeometryFactories instances = instances(conveter.apply(id));
     return instances.floating(2);
   }
@@ -633,7 +633,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
   }
 
   public static GeometryFactory floating3d(final Function<String, CoordinateSystem> conveter,
-    String id) {
+    final String id) {
     final GeometryFactories instances = instances(conveter.apply(id));
     return instances.floating(3);
   }
@@ -2294,7 +2294,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     return new PointDoubleXYGeometryFactory(this, x, y);
   }
 
-  public Point point(final double x, double y, double z) {
+  public Point point(final double x, final double y, final double z) {
     return new PointDoubleXYZGeometryFactory(this, x, y, z);
   }
 

@@ -17,19 +17,19 @@ public class WmtsResourceUrl {
   }
 
   public String getFormat() {
-    return format;
+    return this.format;
   }
 
   public String getResourceType() {
-    return resourceType;
+    return this.resourceType;
   }
 
   public String getTemplate() {
-    return template;
+    return this.template;
   }
 
   @Override
   public String toString() {
-    return template;
+    return this.template;
   }
 }

@@ -12,7 +12,7 @@ public class EdgeList<T> extends AbstractList<Edge<T>> {
   private final Graph<T> graph;
 
   public EdgeList(final Graph<T> graph) {
-    this(graph, new ArrayList<Integer>());
+    this(graph, new ArrayList<>());
   }
 
   public EdgeList(final Graph<T> graph, final List<Integer> edgeIds) {

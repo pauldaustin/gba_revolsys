@@ -53,7 +53,7 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
   private List<String> valueFieldNames = DEFAULT_FIELD_NAMES;
 
   private void addCondition(final AbstractMultiCondition logical, final FieldDefinition field,
-    Object value) {
+    final Object value) {
     try {
       Condition condition;
       if (value == null) {
@@ -67,7 +67,7 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
     }
   }
 
-  protected void addEntryRecord(CodeTableData data, final Record code) {
+  protected void addEntryRecord(final CodeTableData data, final Record code) {
     final String idFieldName = getIdFieldName();
     final Identifier id = code.getIdentifier(idFieldName);
     if (id == null) {
@@ -106,7 +106,7 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
     addEntryRecord(getData(), code);
   }
 
-  protected void clearCache(Identifier id) {
+  protected void clearCache(final Identifier id) {
 
   }
 
@@ -245,7 +245,7 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
   }
 
   @Override
-  protected Mono<Boolean> loadValueDo(Object value) {
+  protected Mono<Boolean> loadValueDo(final Object value) {
     final Query query = getRecordStore().newQuery(this.getTypePath());
     if (value == null) {
       for (final FieldDefinition field : getValueFieldDefinitions()) {

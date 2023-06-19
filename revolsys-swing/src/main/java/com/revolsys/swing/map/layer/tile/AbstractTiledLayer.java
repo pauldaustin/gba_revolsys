@@ -58,18 +58,18 @@ public abstract class AbstractTiledLayer<D, T extends AbstractMapTile<D>> extend
     return getTileLevel(metresPerPixel);
   }
 
-  protected BaseTileLevel initTileLevel(BaseTileLevel tileLevel) {
+  protected BaseTileLevel initTileLevel(final BaseTileLevel tileLevel) {
     return tileLevel;
   }
 
   protected abstract AbstractTiledLayerRenderer<D, T> newRenderer();
 
-  protected BaseTileLevel newTileLevel(double resolution) {
+  protected BaseTileLevel newTileLevel(final double resolution) {
     final BaseTileLevel tileLevel = new BaseTileLevel().setPixelSize(resolution);
     return initTileLevel(tileLevel);
   }
 
-  protected List<TileLevel> newTileLevels(List<Double> tileResultions) {
+  protected List<TileLevel> newTileLevels(final List<Double> tileResultions) {
     final List<TileLevel> levels = new ArrayList<>();
     for (final double resolution : this.tileResolutions) {
       final BaseTileLevel tileLevel = newTileLevel(resolution);
@@ -95,7 +95,7 @@ public abstract class AbstractTiledLayer<D, T extends AbstractMapTile<D>> extend
       e);
   }
 
-  protected void setTileResolutions(double... tileResolutions) {
+  protected void setTileResolutions(final double... tileResolutions) {
     this.tileResolutions = Lists.newArray(tileResolutions);
   }
 

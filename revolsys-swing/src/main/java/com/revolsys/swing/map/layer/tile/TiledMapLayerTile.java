@@ -14,7 +14,7 @@ public class TiledMapLayerTile extends GeoreferencedImageMapTile {
 
   private final TileLevel level;
 
-  public TiledMapLayerTile(final TiledMapLayer layer, TileLevel level, final int tileX,
+  public TiledMapLayerTile(final TiledMapLayer layer, final TileLevel level, final int tileX,
     final int tileY) {
     super(level.getBoundingBox(tileX, tileY), level.getTileWidthPixels(),
       level.getTileHeightPixels());

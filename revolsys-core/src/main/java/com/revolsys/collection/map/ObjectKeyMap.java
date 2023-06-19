@@ -225,7 +225,7 @@ public class ObjectKeyMap<K, V> implements Map<K, V> {
   private Map<ObjectKey, V> map;
 
   public ObjectKeyMap() {
-    this(new HashMap<ObjectKey, V>());
+    this(new HashMap<>());
   }
 
   public ObjectKeyMap(final Map<ObjectKey, V> map) {

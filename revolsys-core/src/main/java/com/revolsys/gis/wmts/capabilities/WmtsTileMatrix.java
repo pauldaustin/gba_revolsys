@@ -17,9 +17,9 @@ public class WmtsTileMatrix extends BaseTileLevel {
 
   private final double scaleDenominator;
 
-  private WmtsTileMatrixSet tileMatrixSet;
+  private final WmtsTileMatrixSet tileMatrixSet;
 
-  public WmtsTileMatrix(WmtsTileMatrixSet tileMatrixSet, final Element element) {
+  public WmtsTileMatrix(final WmtsTileMatrixSet tileMatrixSet, final Element element) {
     this.tileMatrixSet = tileMatrixSet;
     this.level = Identifier.newIdentifier(XmlUtil.getFirstElementText(element, "Identifier"));
     this.scaleDenominator = XmlUtil.getFirstElementDouble(element, "ScaleDenominator");
@@ -49,17 +49,17 @@ public class WmtsTileMatrix extends BaseTileLevel {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
+  public boolean equals(final Object obj) {
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
-    if (getClass() != obj.getClass())
-      return false;
-    WmtsTileMatrix other = (WmtsTileMatrix)obj;
-    return Double.doubleToLongBits(scaleDenominator) == Double
+    }
+    final WmtsTileMatrix other = (WmtsTileMatrix)obj;
+    return Double.doubleToLongBits(this.scaleDenominator) == Double
       .doubleToLongBits(other.scaleDenominator)
-      && Objects.equals(tileMatrixSet, other.tileMatrixSet);
+      && Objects.equals(this.tileMatrixSet, other.tileMatrixSet);
   }
 
   public double getScaleDenominator() {
@@ -68,7 +68,7 @@ public class WmtsTileMatrix extends BaseTileLevel {
 
   @Override
   public int hashCode() {
-    return Objects.hash(scaleDenominator, tileMatrixSet);
+    return Objects.hash(this.scaleDenominator, this.tileMatrixSet);
   }
 
 }

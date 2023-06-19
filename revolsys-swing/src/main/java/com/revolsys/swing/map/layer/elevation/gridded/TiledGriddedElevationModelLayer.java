@@ -193,7 +193,7 @@ public class TiledGriddedElevationModelLayer
   }
 
   @Override
-  protected BaseTileLevel initTileLevel(BaseTileLevel level) {
+  protected BaseTileLevel initTileLevel(final BaseTileLevel level) {
     return level.setTileSizePixels(this.tileSizePixels);
   }
 

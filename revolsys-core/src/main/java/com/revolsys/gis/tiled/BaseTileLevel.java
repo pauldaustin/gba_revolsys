@@ -69,7 +69,7 @@ public class BaseTileLevel implements TileLevel {
   }
 
   @Override
-  public BoundingBox getBoundingBox(int tileX, int tileY) {
+  public BoundingBox getBoundingBox(final int tileX, final int tileY) {
     final double minX = this.originX + this.tileWidth * tileX;
     final double maxY = this.originY - this.tileHeight * tileY;
     final double maxX = minX + this.tileWidth;
@@ -148,19 +148,19 @@ public class BaseTileLevel implements TileLevel {
     return this.tileYCount;
   }
 
-  public BaseTileLevel setOrigin(double x, double y) {
+  public BaseTileLevel setOrigin(final double x, final double y) {
     this.originX = x;
     this.originY = y;
     return calculateFields();
   }
 
-  public BaseTileLevel setPixelSize(double pixelSize) {
+  public BaseTileLevel setPixelSize(final double pixelSize) {
     this.pixelWidth = pixelSize;
     this.pixelHeight = pixelSize;
     return calculateFields();
   }
 
-  public BaseTileLevel setTileSizePixels(int tileSizePixels) {
+  public BaseTileLevel setTileSizePixels(final int tileSizePixels) {
     this.tileWidthPixels = tileSizePixels;
     this.tileHeightPixels = tileSizePixels;
     return calculateFields();

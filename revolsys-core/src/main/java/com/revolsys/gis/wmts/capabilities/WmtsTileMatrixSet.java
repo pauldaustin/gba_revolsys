@@ -49,7 +49,7 @@ public class WmtsTileMatrixSet extends BaseTileLevelSet implements BoundingBoxPr
   }
 
   @Override
-  public WmtsTileMatrix getTileLevel(double metresPerPixel) {
+  public WmtsTileMatrix getTileLevel(final double metresPerPixel) {
     return (WmtsTileMatrix)super.getTileLevel(metresPerPixel);
   }
 
@@ -63,7 +63,7 @@ public class WmtsTileMatrixSet extends BaseTileLevelSet implements BoundingBoxPr
 
   @Override
   public int hashCode() {
-    return identifier.hashCode();
+    return this.identifier.hashCode();
   }
 
   @Override

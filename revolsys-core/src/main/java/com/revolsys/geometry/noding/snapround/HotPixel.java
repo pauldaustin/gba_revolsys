@@ -227,15 +227,7 @@ public class HotPixel extends PointDoubleXY {
     }
 
     this.li.computeIntersectionLine(x1, y1, x2, y2, this.maxx, this.miny, this.maxx, this.maxy);
-    if (this.li.isProper()) {
-      return true;
-    }
-
-    if (intersectsLeft && intersectsBottom) {
-      return true;
-    }
-
-    if (Doubles.equal(x1, y1)) {
+    if (this.li.isProper() || (intersectsLeft && intersectsBottom) || Doubles.equal(x1, y1)) {
       return true;
     }
     if (Doubles.equal(x2, y2)) {

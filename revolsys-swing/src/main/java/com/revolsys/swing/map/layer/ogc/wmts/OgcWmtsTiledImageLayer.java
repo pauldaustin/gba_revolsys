@@ -76,7 +76,7 @@ public class OgcWmtsTiledImageLayer extends AbstractTiledGeoreferencedImageLayer
   }
 
   public WmtsClient getClient() {
-    return wmtsLayerDefinition.getClient();
+    return this.wmtsLayerDefinition.getClient();
   }
 
   public String getConnectionName() {
@@ -88,10 +88,10 @@ public class OgcWmtsTiledImageLayer extends AbstractTiledGeoreferencedImageLayer
   }
 
   @Override
-  public List<WmtsMapTile> getOverlappingMapTiles(AbstractTiledLayerRenderer<?, ?> renderer,
-    ViewRenderer view) {
-    List<WmtsMapTile> tiles = new ArrayList<>();
-    final WmtsLayerDefinition layer = wmtsLayerDefinition;
+  public List<WmtsMapTile> getOverlappingMapTiles(final AbstractTiledLayerRenderer<?, ?> renderer,
+    final ViewRenderer view) {
+    final List<WmtsMapTile> tiles = new ArrayList<>();
+    final WmtsLayerDefinition layer = this.wmtsLayerDefinition;
     if (layer != null) {
       try {
         final double viewResolution = view.getMetresPerPixel();
@@ -130,13 +130,14 @@ public class OgcWmtsTiledImageLayer extends AbstractTiledGeoreferencedImageLayer
     return this.serviceUrl;
   }
 
-  public BufferedImage getTileImage(WmtsTileMatrix tileMatrix, int tileX, int tileY) {
-    return wmtsLayerDefinition.getTileImage(tileMatrix, tileX, tileY);
+  public BufferedImage getTileImage(final WmtsTileMatrix tileMatrix, final int tileX,
+    final int tileY) {
+    return this.wmtsLayerDefinition.getTileImage(tileMatrix, tileX, tileY);
   }
 
   @Override
-  public TileLevel getTileLevel(double metresPerPixel) {
-    return wmtsLayerDefinition.getTileMatrixSet().getTileLevel(metresPerPixel);
+  public TileLevel getTileLevel(final double metresPerPixel) {
+    return this.wmtsLayerDefinition.getTileMatrixSet().getTileLevel(metresPerPixel);
   }
 
   public WmtsLayerDefinition getWmtsLayerDefinition() {
@@ -234,8 +235,8 @@ public class OgcWmtsTiledImageLayer extends AbstractTiledGeoreferencedImageLayer
         setName(layerTitle);
       }
       this.layerId = wmtsLayerDefinition.getIdentifier();
-      WmtsTileMatrixSet tileMatrixSet = wmtsLayerDefinition.getTileMatrixSet();
-      GeometryFactory geometryFactory = tileMatrixSet.getGeometryFactory();
+      final WmtsTileMatrixSet tileMatrixSet = wmtsLayerDefinition.getTileMatrixSet();
+      final GeometryFactory geometryFactory = tileMatrixSet.getGeometryFactory();
       setBoundingBox(wmtsLayerDefinition.getWgs84BoundingBoxes().get(0));
       setGeometryFactory(geometryFactory);
     }

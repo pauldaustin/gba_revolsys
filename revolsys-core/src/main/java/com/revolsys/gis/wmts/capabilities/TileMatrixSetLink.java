@@ -8,25 +8,25 @@ public class TileMatrixSetLink {
 
   private WmtsTileMatrixSet tileMatrixSet;
 
-  private String tileMatrixSetName;
+  private final String tileMatrixSetName;
 
-  private WmtsContents contents;
+  private final WmtsContents contents;
 
-  public TileMatrixSetLink(WmtsContents contents, final Element element) {
+  public TileMatrixSetLink(final WmtsContents contents, final Element element) {
     this.contents = contents;
     this.tileMatrixSetName = XmlUtil.getFirstElementText(element, "TileMatrixSet");
     // TODO TileMatrixSetLimits
   }
 
   public WmtsTileMatrixSet getTileMatrixSet() {
-    if (tileMatrixSet == null) {
-      this.tileMatrixSet = contents.getTileMatrixSet(tileMatrixSetName);
+    if (this.tileMatrixSet == null) {
+      this.tileMatrixSet = this.contents.getTileMatrixSet(this.tileMatrixSetName);
     }
-    return tileMatrixSet;
+    return this.tileMatrixSet;
   }
 
   @Override
   public String toString() {
-    return tileMatrixSetName;
+    return this.tileMatrixSetName;
   }
 }

@@ -19,7 +19,7 @@ public class MapBackedSerializer extends DelegatingMap<String, Object> implement
   }
 
   public static MapBackedSerializer tree() {
-    return new MapBackedSerializer(new TreeMap<String, Object>());
+    return new MapBackedSerializer(new TreeMap<>());
   }
 
   public MapBackedSerializer(final Map<String, Object> map) {

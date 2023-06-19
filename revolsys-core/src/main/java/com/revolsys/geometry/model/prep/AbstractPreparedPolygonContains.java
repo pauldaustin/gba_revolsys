@@ -238,10 +238,6 @@ abstract class AbstractPreparedPolygonContains {
     // find all intersection types which exist
     findAndClassifyIntersections(geometry);
 
-    if (properIntersectionImpliesNotContained && this.hasProperIntersection) {
-      return false;
-    }
-
     /**
      * If all intersections are proper
      * (i.e. no non-proper intersections occur)
@@ -256,7 +252,7 @@ abstract class AbstractPreparedPolygonContains {
      * a situation where two shells touch at a single vertex, which admits
      * the case where a line could cross between the shells and still be wholely contained in them.
      */
-    if (this.hasSegmentIntersection && !this.hasNonProperIntersection) {
+    if ((properIntersectionImpliesNotContained && this.hasProperIntersection) || (this.hasSegmentIntersection && !this.hasNonProperIntersection)) {
       return false;
     }
 
@@ -343,15 +339,12 @@ abstract class AbstractPreparedPolygonContains {
      * where the interior of the test intersects the exterior of the target.
      * This implies the test is NOT contained in the target.
      */
-    if (testGeom instanceof Polygonal) {
-      return true;
-    }
     /**
      * A single shell with no holes allows concluding that
      * a proper intersection implies not contained
      * (due to the Epsilon-Neighbourhood Exterior Intersection condition)
      */
-    if (isSingleShell(this.preparedPolygonal)) {
+    if ((testGeom instanceof Polygonal) || isSingleShell(this.preparedPolygonal)) {
       return true;
     }
     return false;

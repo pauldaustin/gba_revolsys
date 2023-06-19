@@ -31,7 +31,7 @@ public class SetBeanChannelProperty<T> extends SetBeanProperties implements Bean
         }
         final Channel<T> channel;
         if (this.bufferSize > 0) {
-          channel = new Channel<>(this.name, new Buffer<T>(this.bufferSize));
+          channel = new Channel<>(this.name, new Buffer<>(this.bufferSize));
         } else {
           channel = new Channel<>(this.name);
         }

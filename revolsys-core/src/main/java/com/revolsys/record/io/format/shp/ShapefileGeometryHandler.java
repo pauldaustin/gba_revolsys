@@ -232,7 +232,7 @@ public final class ShapefileGeometryHandler {
     final double[] coordinates, final int axisIndex) {
     for (int j = 0; j < vertexCount; j++) {
       double value = buffer.getDouble();
-      ;
+
       if (value == -Double.MAX_VALUE) {
         value = Double.NaN;
       }
@@ -244,7 +244,7 @@ public final class ShapefileGeometryHandler {
     final List<double[]> coordinateLists, final int axisIndex, final int axisCount) {
     buffer.getDouble();
     buffer.getDouble();
-    ;
+
     for (int i = 0; i < partIndex.length; i++) {
       final double[] coordinates = coordinateLists.get(i);
       final int vertexCount = coordinates.length / axisCount;
@@ -319,12 +319,12 @@ public final class ShapefileGeometryHandler {
     final double[] coordinates = readXYCoordinates(buffer, vertexCount, axisCount);
     buffer.getDouble();
     buffer.getDouble();
-    ;
+
     readCoordinates(buffer, vertexCount, axisCount, coordinates, 2);
     if (axisCount == 4) {
       buffer.getDouble();
       buffer.getDouble();
-      ;
+
       readCoordinates(buffer, vertexCount, axisCount, coordinates, 3);
     }
     return geometryFactory.punctual(axisCount, coordinates);

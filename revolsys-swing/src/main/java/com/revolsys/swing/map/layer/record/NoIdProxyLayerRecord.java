@@ -7,7 +7,8 @@ import com.revolsys.util.UuidBuilder;
 import com.revolsys.util.UuidNamespace;
 
 public class NoIdProxyLayerRecord extends AbstractProxyLayerRecord {
-  private static final UuidNamespace NO_ID_NAMESPACE = Uuid.sha1("57c76224-cc55-43bc-87c3-a2415aef3052");
+  private static final UuidNamespace NO_ID_NAMESPACE = Uuid
+    .sha1("57c76224-cc55-43bc-87c3-a2415aef3052");
 
   private final Identifier identifier;
 

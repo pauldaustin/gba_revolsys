@@ -33,7 +33,7 @@ public class WmtsClient extends AbstractWebService<WmtsLayerDefinition> {
 
   private WmtsCapabilities capabilities;
 
-  private String capabilitiesUrl;
+  private final String capabilitiesUrl;
 
   public WmtsClient(final String capabilitiesUrl) {
     this.capabilitiesUrl = capabilitiesUrl;
@@ -51,7 +51,7 @@ public class WmtsClient extends AbstractWebService<WmtsLayerDefinition> {
     return getCapabilities().getContents().getLayers();
   }
 
-  public WmtsLayerDefinition getLayer(String id) {
+  public WmtsLayerDefinition getLayer(final String id) {
     return getCapabilities().getContents().getLayer(id);
   }
 

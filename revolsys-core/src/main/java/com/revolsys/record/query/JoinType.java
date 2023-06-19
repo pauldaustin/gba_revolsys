@@ -20,12 +20,12 @@ public enum JoinType {
     this.sql = sql;
   }
 
-  public Join build(final PathName tablePath) {
-    return build().tablePath(tablePath);
-  }
-
   public Join build() {
     return new Join(this);
+  }
+
+  public Join build(final PathName tablePath) {
+    return build().tablePath(tablePath);
   }
 
   public Join build(final RecordDefinitionProxy recordDefinition) {

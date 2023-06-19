@@ -9,11 +9,11 @@ import com.revolsys.record.io.format.xml.XmlUtil;
 
 public class ServiceIdentification extends OwsDescription {
 
-  private String serviceType;
+  private final String serviceType;
 
-  private List<String> serviceTypeVersions = new ArrayList<>();
+  private final List<String> serviceTypeVersions = new ArrayList<>();
 
-  private List<String> profiles;
+  private final List<String> profiles;
 
   public ServiceIdentification(final Element element) {
     super(element);
@@ -24,15 +24,15 @@ public class ServiceIdentification extends OwsDescription {
   }
 
   public List<String> getProfiles() {
-    return profiles;
+    return this.profiles;
   }
 
   public String getServiceType() {
-    return serviceType;
+    return this.serviceType;
   }
 
   public List<String> getServiceTypeVersions() {
-    return serviceTypeVersions;
+    return this.serviceTypeVersions;
   }
 
 }

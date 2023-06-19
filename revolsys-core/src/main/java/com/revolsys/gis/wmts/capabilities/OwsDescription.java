@@ -6,11 +6,11 @@ import com.revolsys.record.io.format.xml.XmlUtil;
 
 public class OwsDescription {
 
-  private String title;
+  private final String title;
 
-  private String abstractText;
+  private final String abstractText;
 
-  private String keywords;
+  private final String keywords;
 
   public OwsDescription(final Element element) {
     // TODO all of these are lists due to languages
@@ -20,19 +20,19 @@ public class OwsDescription {
   }
 
   public String getAbstractText() {
-    return abstractText;
+    return this.abstractText;
   }
 
   public String getKeywords() {
-    return keywords;
+    return this.keywords;
   }
 
   public String getTitle() {
-    return title;
+    return this.title;
   }
 
   @Override
   public String toString() {
-    return title;
+    return this.title;
   }
 }

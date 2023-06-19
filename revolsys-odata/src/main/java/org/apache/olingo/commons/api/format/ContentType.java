@@ -259,7 +259,7 @@ public final class ContentType {
     // parameter checks
     if (this.parameters.size() == other.parameters.size()) {
       final Iterator<Entry<String, String>> otherEntries = other.parameters.entrySet().iterator();
-      for (Entry<String, String> e : this.parameters.entrySet()) {
+      for (final Entry<String, String> e : this.parameters.entrySet()) {
         final Entry<String, String> oe = otherEntries.next();
         if (!areEqual(e.getKey(), oe.getKey()) || !areEqual(e.getValue(), oe.getValue())) {
           return false;

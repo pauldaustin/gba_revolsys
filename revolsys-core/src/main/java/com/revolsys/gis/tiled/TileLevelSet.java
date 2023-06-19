@@ -4,7 +4,7 @@ public interface TileLevelSet {
 
   TileLevel getTileLevel(double metresPerPixel);
 
-  default double getTileLevelResolution(double metresPerPixel) {
+  default double getTileLevelResolution(final double metresPerPixel) {
     final TileLevel tileLevel = getTileLevel(metresPerPixel);
     if (tileLevel != null) {
       return tileLevel.getTileWidthPixels();

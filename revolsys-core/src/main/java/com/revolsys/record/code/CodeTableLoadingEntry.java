@@ -15,7 +15,7 @@ public class CodeTableLoadingEntry {
 
   private boolean hadResult;
 
-  public CodeTableLoadingEntry(AbstractLoadingCodeTable codeTable, Object value) {
+  public CodeTableLoadingEntry(final AbstractLoadingCodeTable codeTable, final Object value) {
     this.codeTable = codeTable;
     this.value = value;
   }

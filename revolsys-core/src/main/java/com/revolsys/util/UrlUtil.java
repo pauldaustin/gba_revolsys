@@ -141,7 +141,7 @@ public final class UrlUtil {
             final Collection<?> values = (Collection<?>)value;
             for (final Object childValue : values) {
               if (childValue != null) {
-                if (first == true) {
+                if (first) {
                   first = false;
                 } else {
                   query.append('&');
@@ -183,7 +183,7 @@ public final class UrlUtil {
         final Collection<?> values = (Collection<?>)value;
         for (final Object childValue : values) {
           if (childValue != null) {
-            if (first == true) {
+            if (first) {
               first = false;
             } else {
               query.append('&');

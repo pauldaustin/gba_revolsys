@@ -14,42 +14,42 @@ public class WmtsContents extends OwsContents {
 
   private List<WmtsTileMatrixSet> tileMatrixSets = new ArrayList<>();
 
-  private Map<String, WmtsTileMatrixSet> tileMatrixSetById = new LinkedHashMap<>();
+  private final Map<String, WmtsTileMatrixSet> tileMatrixSetById = new LinkedHashMap<>();
 
   private List<WmtsLayerDefinition> layers = new ArrayList<>();
 
-  private Map<String, WmtsLayerDefinition> layerById = new LinkedHashMap<>();
+  private final Map<String, WmtsLayerDefinition> layerById = new LinkedHashMap<>();
 
-  private WmtsCapabilities capabilities;
+  private final WmtsCapabilities capabilities;
 
-  public WmtsContents(WmtsCapabilities capabilities, final Element element) {
+  public WmtsContents(final WmtsCapabilities capabilities, final Element element) {
     super(element);
     this.capabilities = capabilities;
     this.tileMatrixSets = XmlUtil.getList(element, "TileMatrixSet", WmtsTileMatrixSet::new);
-    for (WmtsTileMatrixSet tileMatrixSet : tileMatrixSets) {
-      String id = tileMatrixSet.getIdentifier();
+    for (final WmtsTileMatrixSet tileMatrixSet : this.tileMatrixSets) {
+      final String id = tileMatrixSet.getIdentifier();
       this.tileMatrixSetById.put(id, tileMatrixSet);
     }
     this.layers = XmlUtil.getList(element, "Layer", (e) -> new WmtsLayerDefinition(this, e));
-    for (WmtsLayerDefinition layer : layers) {
-      String id = layer.getIdentifier();
+    for (final WmtsLayerDefinition layer : this.layers) {
+      final String id = layer.getIdentifier();
       this.layerById.put(id, layer);
     }
   }
 
   public WmtsClient getClient() {
-    return capabilities.getClient();
+    return this.capabilities.getClient();
   }
 
-  public WmtsLayerDefinition getLayer(String id) {
-    return layerById.get(id);
+  public WmtsLayerDefinition getLayer(final String id) {
+    return this.layerById.get(id);
   }
 
   public List<WmtsLayerDefinition> getLayers() {
-    return layers;
+    return this.layers;
   }
 
-  public WmtsTileMatrixSet getTileMatrixSet(String id) {
-    return tileMatrixSetById.get(id);
+  public WmtsTileMatrixSet getTileMatrixSet(final String id) {
+    return this.tileMatrixSetById.get(id);
   }
 }

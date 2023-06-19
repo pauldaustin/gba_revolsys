@@ -8,7 +8,7 @@ public interface XSD {
 
   XmlSimpleType STRING = new XmlSimpleTypeDataType(XmlConstants.XSD, "string", DataTypes.STRING);
 
-  XmlSimpleType base64Binary = new XmlSimpleTypeFunction<byte[]>(XmlConstants.XSD, "base64Binary",
+  XmlSimpleType base64Binary = new XmlSimpleTypeFunction<>(XmlConstants.XSD, "base64Binary",
     Base64.getDecoder()::decode);
 
   XmlSimpleType DATE_TIME = new XmlSimpleTypeDataType(XmlConstants.XSD, "dateTime",

@@ -32,7 +32,7 @@ public class WmtsLayerDefinition extends OwsDatasetDescriptionSummary
 
   private UriTemplate defaultUriTemplate;
 
-  public WmtsLayerDefinition(WmtsContents wmtsContents, final Element element) {
+  public WmtsLayerDefinition(final WmtsContents wmtsContents, final Element element) {
     super(element);
     this.wmtsContents = wmtsContents;
     // TODO Style
@@ -47,8 +47,9 @@ public class WmtsLayerDefinition extends OwsDatasetDescriptionSummary
         final String format = resourceUrl.getFormat();
         final String template = resourceUrl.getTemplate();
         final UriTemplate uriTemplate = new UriTemplate(template);
-        if (defaultUriTemplate == null)
-          defaultUriTemplate = uriTemplate;
+        if (this.defaultUriTemplate == null) {
+          this.defaultUriTemplate = uriTemplate;
+        }
         this.tileResourceTemplateByFormat.put(format, uriTemplate);
       }
     }
@@ -82,7 +83,7 @@ public class WmtsLayerDefinition extends OwsDatasetDescriptionSummary
   }
 
   @Override
-  public double getResolution(double metresPerPixel) {
+  public double getResolution(final double metresPerPixel) {
     return getTileMatrixSet().getTileLevelResolution(metresPerPixel);
   }
 
@@ -95,12 +96,13 @@ public class WmtsLayerDefinition extends OwsDatasetDescriptionSummary
     return getClient().getServiceUrl();
   }
 
-  public BufferedImage getTileImage(WmtsTileMatrix tileMatrix, int tileX, int tileY) {
-    JsonObject params = JsonObject.hash()
+  public BufferedImage getTileImage(final WmtsTileMatrix tileMatrix, final int tileX,
+    final int tileY) {
+    final JsonObject params = JsonObject.hash()
       .addValue("TileMatrix", tileMatrix.getLevel())
       .addValue("TileCol", tileX)
       .addValue("TileRow", tileY);
-    String url = defaultUriTemplate.expandString(params);
+    final String url = this.defaultUriTemplate.expandString(params);
     return BufferedImages.readImageIo(url);
   }
 

@@ -13,7 +13,7 @@ public class EdgeLineList extends AbstractList<LineString> {
   private final Graph<?> graph;
 
   public EdgeLineList(final Graph<?> graph) {
-    this(graph, new ArrayList<Integer>());
+    this(graph, new ArrayList<>());
   }
 
   public EdgeLineList(final Graph<?> graph, final List<Integer> edgeIds) {

@@ -121,7 +121,6 @@ public class VWSimplifier {
       if (removeDegenerateRings && !(simpResult instanceof LinearRing)) {
         return null;
       }
-      ;
       return simpResult;
     }
 

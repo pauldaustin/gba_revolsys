@@ -30,7 +30,7 @@ public class RecordStoreCodeTableProperty extends RecordStoreCodeTable
   }
 
   @Override
-  public RecordStoreCodeTableProperty setRecordDefinition(RecordDefinition recordDefinition) {
+  public RecordStoreCodeTableProperty setRecordDefinition(final RecordDefinition recordDefinition) {
     return (RecordStoreCodeTableProperty)super.setRecordDefinition(recordDefinition);
   }
 

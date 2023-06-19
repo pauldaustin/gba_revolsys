@@ -6,7 +6,7 @@ public class XmlSimpleTypeFunction<T> extends XmlSimpleType {
 
   public static <T2> XmlSimpleTypeFunction<T2> create(final XmlNamespace namespace,
     final String name, final Function<String, T2> converter) {
-    return new XmlSimpleTypeFunction<T2>(namespace, name, converter);
+    return new XmlSimpleTypeFunction<>(namespace, name, converter);
   }
 
   private Function<String, T> converter;

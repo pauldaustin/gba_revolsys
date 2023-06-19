@@ -163,10 +163,7 @@ public class LineSequencer {
       /**
        * If this linestring is connected to a previous subgraph, geom is not sequenced
        */
-      if (prevSubgraphNodes.contains(startNode)) {
-        return false;
-      }
-      if (prevSubgraphNodes.contains(endNode)) {
+      if (prevSubgraphNodes.contains(startNode) || prevSubgraphNodes.contains(endNode)) {
         return false;
       }
 
@@ -433,11 +430,11 @@ public class LineSequencer {
 
       // test end edge before start edge, to make result stable
       // (ie. if both are good starts, pick the actual start
-      if (endEdge.getToNode().getDegree() == 1 && endEdge.getEdgeDirection() == false) {
+      if (endEdge.getToNode().getDegree() == 1 && !endEdge.getEdgeDirection()) {
         hasObviousStartNode = true;
         flipSeq = true;
       }
-      if (startEdge.getFromNode().getDegree() == 1 && startEdge.getEdgeDirection() == true) {
+      if (startEdge.getFromNode().getDegree() == 1 && startEdge.getEdgeDirection()) {
         hasObviousStartNode = true;
         flipSeq = false;
       }
