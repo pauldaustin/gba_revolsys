@@ -4,14 +4,14 @@
   xsi:schemaLocation="http://maven.apache.org/DECORATION/1.6.0 http://maven.apache.org/xsd/decoration-1.6.0.xsd"
 >
   <skin>
-    <groupId>lt.velykis.maven.skins</groupId>
+    <groupId>io.github.devacfr.maven.skins</groupId>
     <artifactId>reflow-maven-skin</artifactId>
-    <version>1.1.1</version>
+    <version>2.3.0</version>
   </skin>
 
   <custom>
     <reflowSkin>
-      <absoluteResourceURL>${siteUrl}</absoluteResourceURL>
+      <absoluteResourceURL>${project.url}</absoluteResourceURL>
       <bottomNav maxSpan="0">
         <column>Home</column>
       </bottomNav>
@@ -20,7 +20,7 @@
           <![CDATA[
           <span class="color-highlight">Revolution Systems Inc</span>]]>
         </name>
-        <href>${siteUrl}</href>
+        <href>/</href>
       </brand>
       <highlightJs>true</highlightJs>
       <skinAttribution>false</skinAttribution>
@@ -77,7 +77,7 @@
     <breadcrumbs>
       <item
         name="Revolsys"
-        href="${siteUrl}" />
+        href="/" />
     </breadcrumbs>
 
     <menu
@@ -99,10 +99,10 @@
     >
       <item
         name="GitHub Project"
-        href="${gitHubUrl}" />
+        href="https://github.com/revolsys/com.revolsys.open" />
       <item
         name="Issues (GitHub)"
-        href="${gitHubUrl}/issues/" />
+        href="https://github.com/revolsys/com.revolsys.open/issues/" />
     </menu>
 
     <menu

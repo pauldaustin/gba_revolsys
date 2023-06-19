@@ -50,6 +50,7 @@ public class RsSwingServiceInitializer implements ServiceInitializer {
 
   @Override
   public void initializeService() {
+
     MarkerLibrary.factoryInit();
     markers();
     layerRenderers();
