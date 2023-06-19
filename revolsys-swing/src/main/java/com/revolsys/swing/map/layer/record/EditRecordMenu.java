@@ -175,12 +175,12 @@ public class EditRecordMenu extends MenuFactory {
     return super.newJPopupMenu(forceEnable);
   }
 
-  public void removeMenuItemRecord(String groupName, String name) {
-    List<ComponentFactory<?>> group = getGroup(groupName);
+  public void removeMenuItemRecord(final String groupName, final String name) {
+    final List<ComponentFactory<?>> group = getGroup(groupName);
     if (group != null) {
-      for (Iterator<ComponentFactory<?>> iterator = group.iterator(); iterator.hasNext();) {
-        ComponentFactory<?> componentFactory = iterator.next();
-        RunnableAction action = (RunnableAction)componentFactory;
+      for (final Iterator<ComponentFactory<?>> iterator = group.iterator(); iterator.hasNext();) {
+        final ComponentFactory<?> componentFactory = iterator.next();
+        final RunnableAction action = (RunnableAction)componentFactory;
         if (action.getName().equals(name)) {
           iterator.remove();
         }

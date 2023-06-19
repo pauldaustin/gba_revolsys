@@ -13,8 +13,8 @@ import org.jeometry.common.logging.Logs;
 import com.revolsys.jdbc.JdbcConnection;
 import com.revolsys.jdbc.io.JdbcRecordStoreSchema;
 import com.revolsys.record.schema.RecordDefinitionImpl;
-import com.revolsys.transaction.Propagation;
 import com.revolsys.transaction.Transaction;
+import com.revolsys.transaction.TransactionOptions;
 
 public class PostgreSQLRecordStoreSchema extends JdbcRecordStoreSchema {
 
@@ -35,12 +35,6 @@ public class PostgreSQLRecordStoreSchema extends JdbcRecordStoreSchema {
     super(schema, pathName, dbName, quoteName);
   }
 
-  @Override
-  public synchronized void refresh() {
-    // this.compositeTypes.refresh();
-    super.refresh();
-  }
-
   private Map<PathName, RecordDefinitionImpl> refreshCompositeTypes() {
     final Map<PathName, RecordDefinitionImpl> typeByName = new LinkedHashMap<>();
     final PostgreSQLRecordStore recordStore = getRecordStore();
@@ -48,7 +42,7 @@ public class PostgreSQLRecordStoreSchema extends JdbcRecordStoreSchema {
       + "FROM information_schema.attributes a\n"
       + "order by udt_schema, udt_name, ordinal_position ";
     try (
-      Transaction transaction = recordStore.newTransaction(Propagation.REQUIRED);
+      Transaction transaction = recordStore.newTransaction(TransactionOptions.REQUIRED_READONLY);
       JdbcConnection connection = recordStore.getJdbcConnection()) {
       try (
         PreparedStatement prepareStatement = connection.prepareStatement(sql);

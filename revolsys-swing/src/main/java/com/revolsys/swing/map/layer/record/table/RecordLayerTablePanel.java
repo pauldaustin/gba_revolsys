@@ -91,7 +91,7 @@ public class RecordLayerTablePanel extends TablePanel
   private final PropertyChangeListener viewportListener;
 
   public RecordLayerTablePanel(final AbstractRecordLayer layer, final RecordLayerTable table,
-    final Map<String, Object> config) {
+    final MapEx config) {
     super(table);
     this.layer = layer;
     this.tableModel = getTableModel();
@@ -99,7 +99,7 @@ public class RecordLayerTablePanel extends TablePanel
       this::setTableRecordsMode);
     Property.addListenerNewValueSource(this.tableModel, "geometryFilterMode",
       this::setGeometryFilterMode);
-    final Map<String, Object> pluginConfig = layer.getPluginConfig(AbstractLayer.PLUGIN_TABLE_VIEW);
+    final MapEx pluginConfig = layer.getPluginConfig(AbstractLayer.PLUGIN_TABLE_VIEW);
 
     table.getTableCellEditor().addMouseListener(this);
     table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);

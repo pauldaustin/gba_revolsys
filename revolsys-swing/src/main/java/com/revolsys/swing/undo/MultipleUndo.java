@@ -12,7 +12,7 @@ public class MultipleUndo extends AbstractUndoableEdit {
   private final List<UndoableEdit> edits;
 
   public MultipleUndo() {
-    this(new ArrayList<UndoableEdit>());
+    this(new ArrayList<>());
   }
 
   public MultipleUndo(final List<UndoableEdit> edits) {

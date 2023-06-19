@@ -318,7 +318,7 @@ public class EditRecordGeometryOverlay extends AbstractOverlay
       final Geometry geometry = record.getGeometry();
       return !geometry.isEmpty() && !(geometry instanceof Punctual);
     };
-    Map<AbstractRecordLayer, List<LayerRecord>> recordsByLayer = getAllSelectedRecords(
+    final Map<AbstractRecordLayer, List<LayerRecord>> recordsByLayer = getAllSelectedRecords(
       AbstractRecordLayer::isCanDeleteRecords, recordFilter);
     for (final AbstractRecordLayer layer : recordsByLayer.keySet()) {
       if (layer.isConfirmDeleteRecords()) {
@@ -458,7 +458,7 @@ public class EditRecordGeometryOverlay extends AbstractOverlay
 
   private Map<AbstractRecordLayer, List<LayerRecord>> getAllSelectedRecords(
     final Predicate<AbstractRecordLayer> layerFilter, final Predicate<LayerRecord> recordFilter) {
-    Map<AbstractRecordLayer, List<LayerRecord>> recordsByLayer = new LinkedHashMap<>();
+    final Map<AbstractRecordLayer, List<LayerRecord>> recordsByLayer = new LinkedHashMap<>();
     for (final AbstractRecordLayer layer : getMap().getSelectedRecordLayers()) {
       if (layerFilter.test(layer)) {
         for (final LayerRecord record : layer.getSelectedRecords()) {

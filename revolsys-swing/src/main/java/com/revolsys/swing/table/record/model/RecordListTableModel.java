@@ -7,8 +7,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import jakarta.annotation.PreDestroy;
 import javax.swing.SortOrder;
+
+import jakarta.annotation.PreDestroy;
 
 import org.jeometry.common.data.type.DataType;
 
@@ -26,7 +27,7 @@ public class RecordListTableModel extends RecordRowTableModel implements Reorder
   private static final long serialVersionUID = 1L;
 
   public static TablePanel newPanel(final AbstractRecordLayer layer) {
-    return newPanel(layer.getRecordDefinition(), new ArrayList<Record>(), layer.getFieldNamesSet());
+    return newPanel(layer.getRecordDefinition(), new ArrayList<>(), layer.getFieldNamesSet());
   }
 
   public static TablePanel newPanel(final AbstractRecordLayer layer,

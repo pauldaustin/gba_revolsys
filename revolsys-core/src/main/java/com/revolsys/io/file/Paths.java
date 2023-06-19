@@ -22,6 +22,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.DosFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -35,7 +36,7 @@ import java.util.stream.Stream;
 import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.logging.Logs;
 
-import com.revolsys.collection.ValueHolder;
+import com.revolsys.collection.SimpleValueHolder;
 import com.revolsys.collection.list.Lists;
 import com.revolsys.collection.set.Sets;
 import com.revolsys.connection.file.FileConnectionManager;
@@ -44,6 +45,8 @@ import com.revolsys.connection.file.FolderConnectionRegistry;
 import com.revolsys.io.FileNames;
 import com.revolsys.util.Property;
 import com.revolsys.util.UrlUtil;
+
+import reactor.core.publisher.Flux;
 
 public interface Paths {
   LinkOption[] LINK_OPTIONS_NONE = new LinkOption[0];
@@ -126,75 +129,87 @@ public interface Paths {
   }
 
   static boolean deleteDirectories(final Path path) {
-    final ValueHolder<IOException> firstException = new ValueHolder<>();
-    final LinkedList<Boolean> errors = new LinkedList<>();
-    try {
-      Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-        @Override
-        public FileVisitResult postVisitDirectory(final Path dir, final IOException exception)
-          throws IOException {
-          final Boolean hasError = errors.removeLast();
-          if (exception == null) {
-            if (!hasError) {
-              try {
-                Files.delete(dir);
-              } catch (final NoSuchFileException e) {
-                // Ignore as we want it to not exist
-              } catch (final IOException e) {
-                if (!errors.isEmpty()) {
-                  errors.removeLast();
+    if (Files.isDirectory(path)) {
+      final SimpleValueHolder<IOException> firstException = new SimpleValueHolder<>();
+      final LinkedList<Boolean> errors = new LinkedList<>();
+      try {
+        Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult postVisitDirectory(final Path dir, final IOException exception)
+            throws IOException {
+            final Boolean hasError = errors.removeLast();
+            if (exception == null) {
+              if (!hasError) {
+                try {
+                  Files.delete(dir);
+                } catch (final NoSuchFileException e) {
+                  // Ignore as we want it to not exist
+                } catch (final IOException e) {
+                  if (!errors.isEmpty()) {
+                    errors.removeLast();
+                  }
+                  errors.addLast(Boolean.TRUE);
+                  if (firstException.isEmpty()) {
+                    firstException.setValue(e);
+                  }
                 }
-                errors.addLast(Boolean.TRUE);
-                if (firstException.isEmpty()) {
-                  firstException.setValue(e);
-                }
+              }
+              return FileVisitResult.CONTINUE;
+            } else {
+              throw exception;
+            }
+          }
+
+          @Override
+          public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
+            throws IOException {
+            errors.addLast(Boolean.FALSE);
+            return FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs)
+            throws IOException {
+            try {
+              Files.delete(file);
+            } catch (final NoSuchFileException e) {
+              // Ignore as we want it to not exist
+            } catch (final IOException e) {
+              errors.removeLast();
+              errors.addLast(Boolean.TRUE);
+              if (firstException.isEmpty()) {
+                firstException.setValue(e);
               }
             }
             return FileVisitResult.CONTINUE;
-          } else {
-            throw exception;
           }
+        });
+        if (firstException.isEmpty()) {
+          return true;
+        } else {
+          final IOException exception = firstException.getValue();
+          Logs.error(Paths.class, "Unable to delete: " + path, exception);
+          return false;
         }
-
-        @Override
-        public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
-          throws IOException {
-          errors.addLast(Boolean.FALSE);
-          return FileVisitResult.CONTINUE;
-        }
-
-        @Override
-        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs)
-          throws IOException {
-          try {
-            Files.delete(file);
-          } catch (final NoSuchFileException e) {
-            // Ignore as we want it to not exist
-          } catch (final IOException e) {
-            errors.removeLast();
-            errors.addLast(Boolean.TRUE);
-            if (firstException.isEmpty()) {
-              firstException.setValue(e);
-            }
-          }
-          return FileVisitResult.CONTINUE;
-        }
-      });
-      if (firstException.isEmpty()) {
-        return true;
-      } else {
-        final IOException exception = firstException.getValue();
-        Logs.error(Paths.class, "Unable to delete: " + path, exception);
+      } catch (final NoSuchFileException e) {
+        return !exists(path);
+      } catch (final IOException e) {
         return false;
       }
-    } catch (final NoSuchFileException e) {
-      return !exists(path);
-    } catch (final IOException e) {
-      return false;
+    } else {
+      return deleteFile(path);
     }
   }
 
-  public static boolean deleteFiles(final Path path, final String glob) {
+  static boolean deleteFile(final Path path) {
+    try {
+      return Files.deleteIfExists(path);
+    } catch (final IOException e) {
+      throw Exceptions.wrap(e);
+    }
+  }
+
+  static boolean deleteFiles(final Path path, final String glob) {
     boolean success = true;
     try (
       DirectoryStream<Path> newDirectoryStream = Files.newDirectoryStream(path, glob)) {
@@ -263,7 +278,7 @@ public interface Paths {
       final List<Path> paths = new ArrayList<>();
       try (
         final Stream<Path> pathStream = Files.list(path)) {
-        pathStream.forEach((childPath) -> {
+        pathStream.forEach(childPath -> {
           if (Paths.hasFileNameExtension(childPath, fileExtensions)) {
             paths.add(childPath);
           }
@@ -319,7 +334,7 @@ public interface Paths {
   }
 
   static Path getPath(final Path path) {
-    return path.toAbsolutePath();
+    return path.toAbsolutePath().normalize();
   }
 
   static Path getPath(final Path parent, final String path) {
@@ -373,13 +388,19 @@ public interface Paths {
 
   static List<Path> getPathsTree(final Path path, final String... fileExtensions) {
     final List<Path> paths = new ArrayList<>();
-    final Consumer<Path> action2 = (childPath) -> {
+    final Consumer<Path> action2 = childPath -> {
       if (hasFileNameExtension(childPath, fileExtensions)) {
         paths.add(childPath);
       }
     };
     forEachTree(path, action2);
     return paths;
+  }
+
+  static Path getWithExtension(final Path path, final String extension) {
+    final Path parent = path.getParent();
+    final String fileName = getFileName(path) + "." + extension;
+    return parent.resolve(fileName);
   }
 
   static boolean hasFileNameExtension(final Path path, final String... fileExtensions) {
@@ -416,6 +437,16 @@ public interface Paths {
     return false;
   }
 
+  static boolean isLastModifiedAfter(final Path path, final Instant time) {
+    final Instant time1 = lastModifiedInstant(path);
+    return time1.isAfter(time);
+  }
+
+  static boolean isLastModifiedAfter(final Path path1, final Path path2) {
+    final Instant time2 = lastModifiedInstant(path2);
+    return isLastModifiedAfter(path1, time2);
+  }
+
   static FileTime lastModified(final Path path) {
     try {
       return Files.getLastModifiedTime(path);
@@ -437,6 +468,22 @@ public interface Paths {
       return new java.sql.Date(Files.getLastModifiedTime(path).toMillis());
     } catch (final IOException e) {
       return new java.sql.Date(0);
+    }
+  }
+
+  static Instant lastModifiedInstant(final Path path) {
+    try {
+      return Files.getLastModifiedTime(path).toInstant();
+    } catch (final IOException e) {
+      return Instant.MIN;
+    }
+  }
+
+  static Instant lastModifiedTimestamp(final Path path) {
+    try {
+      return Files.getLastModifiedTime(path).toInstant();
+    } catch (final IOException e) {
+      return Instant.EPOCH;
     }
   }
 
@@ -506,6 +553,14 @@ public interface Paths {
 
   static String toUrlString(final Path path) {
     return toUrl(path).toString();
+  }
+
+  static Flux<Path> walk$(final Path dir) {
+    try {
+      return Flux.fromStream(Files.walk(dir));
+    } catch (final IOException e) {
+      return Flux.error(e);
+    }
   }
 
   static Path withExtension(final Path path, final String extension) {

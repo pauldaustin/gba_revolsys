@@ -113,9 +113,7 @@ public class BingTiledLayer extends AbstractTiledGeoreferencedImageLayer<BingMap
   public double getResolution(final ViewRenderer view) {
     final double metresPerPixel = view.getMetresPerPixel();
     final int zoomLevel = this.client.getZoomLevel(this.imagerySet, metresPerPixel);
-    final double resolution = this.client.getResolution(zoomLevel);
-    final double r2 = this.imagerySet.getTileLevelResolution(metresPerPixel);
-    return resolution;
+    return this.client.getResolution(zoomLevel);
   }
 
   @Override

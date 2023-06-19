@@ -10,6 +10,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
+import jakarta.annotation.PreDestroy;
+
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.identifier.SingleIdentifier;
 import org.jeometry.common.data.type.DataType;
@@ -281,6 +284,7 @@ public class FileGdbRecordStore extends AbstractRecordStore {
   }
 
   @Override
+  @PreDestroy
   public void close() {
     if (FileGdbRecordStoreFactory.release(this)) {
       closeDo();

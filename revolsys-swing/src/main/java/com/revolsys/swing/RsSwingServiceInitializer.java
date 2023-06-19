@@ -33,6 +33,7 @@ import com.revolsys.swing.map.layer.record.renderer.TextStyleRenderer;
 import com.revolsys.swing.map.layer.record.style.marker.MarkerLibrary;
 import com.revolsys.swing.map.layer.record.style.marker.TextMarker;
 import com.revolsys.swing.map.layer.webmercatortilecache.WebMercatorTileCache;
+import com.revolsys.swing.menu.MenuFactory;
 import com.revolsys.swing.tree.TreeNodes;
 import com.revolsys.swing.tree.node.file.PathTreeNode;
 import com.revolsys.util.ServiceInitializer;
@@ -52,6 +53,10 @@ public class RsSwingServiceInitializer implements ServiceInitializer {
     MarkerLibrary.factoryInit();
     markers();
     layerRenderers();
+    MenuFactory.addMenuInitializer(() -> {
+      AbstractLayer.initializeMenu();
+      GriddedElevationModelLayer.initializeMenu();
+    });
     layers();
     GriddedElevationModelLayer.factoryInit();
     PointCloudLayer.factoryInit();
@@ -73,9 +78,6 @@ public class RsSwingServiceInitializer implements ServiceInitializer {
     MapObjectFactoryRegistry.newFactory("baseMapLayerGroup", "Base Map Layer Group",
       BaseMapLayerGroup::newLayer);
 
-    AbstractLayer.menuItemPathAddLayer("record", "Add Record Layer", "map",
-      RecordReaderFactory.class);
-
     MapObjectFactoryRegistry.newFactory("scratchRecordLayer", "File", ScratchRecordLayer::newLayer);
 
     MapObjectFactoryRegistry.newFactory("recordFileLayer", "File", FileRecordLayer::newLayer);
@@ -92,15 +94,19 @@ public class RsSwingServiceInitializer implements ServiceInitializer {
     MapObjectFactoryRegistry.newFactory("geoReferencedImageLayer", "Geo-referenced Image Layer",
       GeoreferencedImageLayer::newLayer);
 
-    AbstractLayer.menuItemPathAddLayer("image", "Add Image Layer", "picture",
-      GeoreferencedImageReadFactory.class);
-
     MapObjectFactoryRegistry.newFactory("triangulatedIrregularNetworkLayer",
       "Triangulated Irregular Network Layer", TriangulatedIrregularNetworkLayer::new);
 
-    AbstractLayer.menuItemPathAddLayer("tin", "Add TIN Layer", "tin",
-      TriangulatedIrregularNetworkReaderFactory.class);
+    PathTreeNode.MENU.addInitializer((menu) -> {
+      AbstractLayer.menuItemPathAddLayer(menu, "record", "Add Record Layer", "map",
+        RecordReaderFactory.class);
 
+      AbstractLayer.menuItemPathAddLayer(menu, "image", "Add Image Layer", "picture",
+        GeoreferencedImageReadFactory.class);
+
+      AbstractLayer.menuItemPathAddLayer(menu, "tin", "Add TIN Layer", "tin",
+        TriangulatedIrregularNetworkReaderFactory.class);
+    });
     ArcGisRestServer.factoryInit();
 
     Bing.factoryInit();

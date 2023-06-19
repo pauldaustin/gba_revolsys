@@ -7,8 +7,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.annotation.PreDestroy;
 import javax.swing.SortOrder;
+
+import jakarta.annotation.PreDestroy;
 
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.DataType;
@@ -348,6 +349,9 @@ public abstract class RecordRowTableModel extends AbstractRecordTableModel
 
   @Override
   public boolean isColumnSortable(final int columnIndex) {
+    if (columnIndex < this.fieldsOffset) {
+      return false;
+    }
     final FieldDefinition field = getColumnFieldDefinition(columnIndex);
     if (field != null) {
       if (!field.isSortable()) {

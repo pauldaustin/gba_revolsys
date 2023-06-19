@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -113,7 +112,8 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
   private static final AtomicLong ID_GEN = new AtomicLong();
 
   public static final String PLUGIN_TABLE_VIEW = "tableView";
-  static {
+
+  public static void initializeMenu() {
     MenuFactory.addMenuInitializer(AbstractLayer.class, menu -> {
       menu.addMenuItem("zoom", -1, "Zoom to Layer", "magnifier",
         AbstractLayer::isZoomToLayerEnabled, AbstractLayer::zoomToLayer, true);
@@ -140,10 +140,11 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
     });
   }
 
-  public static void menuItemPathAddLayer(final String menuGroup, final String menuName,
-    final String iconName, final Class<? extends IoFactory> factoryClass) {
+  public static void menuItemPathAddLayer(final MenuFactory menu, final String menuGroup,
+    final String menuName, final String iconName, final Class<? extends IoFactory> factoryClass) {
+
     final EnableCheck enableCheck = RsSwingServiceInitializer.enableCheck(factoryClass);
-    TreeNodes.addMenuItem(PathTreeNode.MENU, menuGroup, menuName, (final PathTreeNode node) -> {
+    TreeNodes.addMenuItem(menu, menuGroup, menuName, (final PathTreeNode node) -> {
       final URL url = node.getUrl();
       final Project project = Project.get();
       project.openFile(url);
@@ -184,7 +185,7 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
 
   private String name;
 
-  private Map<String, Map<String, Object>> pluginConfigByName = new TreeMap<>();
+  private Map<String, MapEx> pluginConfigByName = new TreeMap<>();
 
   private PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
 
@@ -236,7 +237,7 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
     }
   }
 
-  protected void addSelectedBoundingBoxDo(BoundingBoxEditor boundingBox) {
+  protected void addSelectedBoundingBoxDo(final BoundingBoxEditor boundingBox) {
   }
 
   public boolean canSaveSettings(final Path directory) {
@@ -447,12 +448,12 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
     }
   }
 
-  public Map<String, Object> getPluginConfig(final String pluginName) {
-    final Map<String, Object> pluginConfig = this.pluginConfigByName.get(pluginName);
+  public MapEx getPluginConfig(final String pluginName) {
+    final MapEx pluginConfig = this.pluginConfigByName.get(pluginName);
     if (pluginConfig == null) {
-      return Collections.emptyMap();
+      return JsonObject.EMPTY;
     } else {
-      return new LinkedHashMap<>(pluginConfig);
+      return JsonObject.hash(pluginConfig);
     }
   }
 
@@ -686,7 +687,7 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
   }
 
   @Override
-  public Component newPanelComponent(final Map<String, Object> config) {
+  public Component newPanelComponent(final MapEx config) {
     if (isInitialized()) {
       if (isExists()) {
         return newTableViewComponent(config);
@@ -861,7 +862,7 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
     return panel;
   }
 
-  protected Component newTableViewComponent(final Map<String, Object> config) {
+  protected Component newTableViewComponent(final MapEx config) {
     return null;
   }
 
@@ -1120,11 +1121,11 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
     firePropertyChange("open", oldValue, this.open);
   }
 
-  public void setPluginConfig(final Map<String, Map<String, Object>> pluginConfig) {
+  public void setPluginConfig(final Map<String, MapEx> pluginConfig) {
     this.pluginConfigByName = pluginConfig;
   }
 
-  public void setPluginConfig(final String pluginName, final Map<String, Object> config) {
+  public void setPluginConfig(final String pluginName, final MapEx config) {
     this.pluginConfigByName.put(pluginName, config);
   }
 

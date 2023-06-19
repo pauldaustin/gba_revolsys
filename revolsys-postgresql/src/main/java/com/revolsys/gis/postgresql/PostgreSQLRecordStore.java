@@ -312,21 +312,38 @@ public class PostgreSQLRecordStore extends AbstractJdbcRecordStore {
       + "where (t.grantee  in (current_user, 'PUBLIC') or "
       + "t.grantee in (select role_name from information_schema.applicable_roles r where r.grantee = current_user)) and "
       + "privilege_type IN ('SELECT', 'INSERT','UPDATE','DELETE') ");
-    setSchemaTablePermissionsSql("WITH RECURSIVE user_roles(id) AS (\n"
-      + "  SELECT oid from pg_roles a where rolname = current_user\n" + "  UNION ALL\n"
-      + "  select\n" + "    am.roleid\n" + "  from\n" + "    user_roles parent\n"
-      + "      join pg_auth_members am on am.member = parent.id\n" + ")\n" + "select distinct\n"
-      + "  n.nspname as \"SCHEMA_NAME\",\n" + "  c.relname as \"TABLE_NAME\",\n"
-      + "  p.privilege_type as \"PRIVILEGE\",\n" + "  d.description as \"REMARKS\",\n" + "  CASE\n"
-      + "    WHEN relkind = 'r' THEN 'TABLE'\n" + "    WHEN relkind = 'v' THEN 'VIEW'\n"
-      + "    WHEN relkind = 'm' THEN 'VIEW'\n" + "    ELSE relkind || ''\n"
-      + "  END \"TABLE_TYPE\"\n" + "from\n" + "  pg_namespace n\n"
-      + "    join pg_class c on n.oid = c.relnamespace\n"
-      + "    left outer join pg_description d on d.objoid = c.oid and d.objsubid =0,\n"
-      + "    aclexplode(COALESCE(c.relacl, acldefault('r'::\"char\", c.relowner))) p\n" + "where\n"
-      + "  n.nspname = ? and\n"
-      + "  (p.grantee = 0 or p.grantee in (select id from user_roles)) and\n"
-      + "  p.privilege_type IN ('SELECT', 'INSERT','UPDATE','DELETE')\n" + "order by 1, 2, 3");
+    setSchemaTablePermissionsSql("""
+WITH RECURSIVE user_roles(id) AS (
+  SELECT oid from pg_roles a where rolname = current_user
+  UNION ALL
+  select
+    am.roleid
+  from
+    user_roles parent
+      join pg_auth_members am on am.member = parent.id
+)
+select distinct
+  n.nspname as "SCHEMA_NAME",
+  c.relname as "TABLE_NAME",
+  p.privilege_type as "PRIVILEGE",
+  d.description as "REMARKS",
+  CASE
+    WHEN relkind = 'r' THEN 'TABLE'
+    WHEN relkind = 'v' THEN 'VIEW'
+    WHEN relkind = 'm' THEN 'VIEW'
+    ELSE relkind || ''
+  END "TABLE_TYPE"
+from
+  pg_namespace n
+    join pg_class c on n.oid = c.relnamespace
+    left outer join pg_description d on d.objoid = c.oid and d.objsubid =0,
+    aclexplode(COALESCE(c.relacl, acldefault('r'::"char", c.relowner))) p
+where
+  n.nspname = ? and
+  (p.grantee = 0 or p.grantee in (select id from user_roles)) and
+  p.privilege_type IN ('SELECT', 'INSERT','UPDATE','DELETE')
+order by 1, 2, 3
+""");
   }
 
   protected void initSettings() {

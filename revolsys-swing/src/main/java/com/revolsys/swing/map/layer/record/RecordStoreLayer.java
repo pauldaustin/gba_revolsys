@@ -523,8 +523,7 @@ public class RecordStoreLayer extends AbstractRecordLayer {
             + getPath());
         return false;
       } else {
-        final Map<String, Object> config = new HashMap<>();
-        config.put("connection", connectionProperties);
+        final JsonObject config = JsonObject.hash("connection", connectionProperties);
         recordStore = RecordStoreConnectionManager.getRecordStore(config);
 
         if (recordStore == null) {
@@ -599,12 +598,12 @@ public class RecordStoreLayer extends AbstractRecordLayer {
     } else {
       Query query = getQuery();
       query = query.newQuery(recordDefinition);
-      query.and(F.envelopeIntersects(geometryField, boundingBox));
+      F.envelopeIntersects(query, boundingBox);
       return query;
     }
   }
 
-  private RecordStoreLayerRecord newLayerRecord() {
+  protected LayerRecord newLayerRecord() {
     if (this.hasIdField) {
       return new RecordStoreLayerRecordWithId(this);
     } else {
@@ -617,21 +616,28 @@ public class RecordStoreLayer extends AbstractRecordLayer {
     if (!isReadOnly() && isEditable() && isCanAddRecords()) {
 
       final RecordDefinition recordDefinition = getRecordDefinition();
-      final ArrayLayerRecord newRecord = newLayerRecord();
+      final LayerRecord newRecord = newLayerRecord();
       if (values != null) {
         newRecord.setState(RecordState.INITIALIZING);
         for (final FieldDefinition fieldDefinition : recordDefinition.getFields()) {
           if (!isIdField(fieldDefinition)) {
             final String fieldName = fieldDefinition.getName();
-            final Object value = values.get(fieldName);
-            fieldDefinition.setValue(newRecord, value);
+            if (values.containsKey(fieldName)) {
+              final Object value = values.get(fieldName);
+              fieldDefinition.setValue(newRecord, value);
+            }
           }
         }
         newRecord.setState(RecordState.NEW);
       }
 
       this.recordCacheNew.addRecord(newRecord);
-      final LayerRecord proxyRecord = new NewProxyLayerRecord(this, newRecord);
+      final LayerRecord proxyRecord;
+      if (newRecord instanceof AbstractProxyLayerRecord) {
+        proxyRecord = newRecord;
+      } else {
+        proxyRecord = new NewProxyLayerRecord(this, newRecord);
+      }
       fireRecordInserted(proxyRecord);
       return proxyRecord;
     } else {

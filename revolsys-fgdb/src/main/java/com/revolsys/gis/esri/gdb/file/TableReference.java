@@ -71,7 +71,7 @@ class TableReference extends CloseableValueHolder<Table> {
     public String toString() {
       return TableReference.this.toString();
     }
-  };
+  }
 
   private final TableWrapper locker = new EsriFileGdbTableLock(false);
 

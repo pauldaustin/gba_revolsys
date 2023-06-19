@@ -112,7 +112,7 @@ public class ProjectFrame extends BaseFrame {
     PREFERENCE_PROJECT, "recentProject");
 
   private static final PreferenceKey PREFERENCE_RECENT_PROJECTS = new PreferenceKey(
-    PREFERENCE_PROJECT, "recentProjects", DataTypes.LIST, new ArrayList<String>());
+    PREFERENCE_PROJECT, "recentProjects", DataTypes.LIST, new ArrayList<>());
 
   private static final String BOTTOM_TAB = "INTERNAL_bottomTab";
 
@@ -335,11 +335,10 @@ public class ProjectFrame extends BaseFrame {
    */
   public void addActionAltAndMap(final String actionKey, final Runnable action, final int keyCode) {
     final JRootPane component = getRootPane();
-    KeyStroke altKeyStroke = KeyStroke.getKeyStroke(keyCode, KeyEvent.ALT_DOWN_MASK);
-    RunnableAction.addAction(component, actionKey, action,
-      altKeyStroke);
-    MapPanel mapPanel = getMapPanel();
-    KeyStroke keyStroke = KeyStroke.getKeyStroke(keyCode, 0);
+    final KeyStroke altKeyStroke = KeyStroke.getKeyStroke(keyCode, InputEvent.ALT_DOWN_MASK);
+    RunnableAction.addAction(component, actionKey, action, altKeyStroke);
+    final MapPanel mapPanel = getMapPanel();
+    final KeyStroke keyStroke = KeyStroke.getKeyStroke(keyCode, 0);
     RunnableAction.addAction(mapPanel, actionKey, action, keyStroke);
   }
 
@@ -750,12 +749,12 @@ public class ProjectFrame extends BaseFrame {
 
   protected MapPanel newMapPanel() {
     this.mapPanel = new MapPanel(this, this.preferences, this.project);
-    mapPanel.initUi();
+    this.mapPanel.initUi();
     if (OS.isMac()) {
       // Make border on right/bottom to match the JTabbedPane UI on a mac
-      mapPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 9, 9));
+      this.mapPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 9, 9));
     }
-    return mapPanel;
+    return this.mapPanel;
   }
 
   @Override

@@ -180,7 +180,7 @@ public class JsonObjectTableModel extends AbstractTableModel
         column.setMinWidth(40);
         column.setPreferredWidth(40);
         column.setMaxWidth(40);
-        column.setComparator(new NumericComparator<Integer>());
+        column.setComparator(new NumericComparator<>());
       } else if (i == 1) {
         column.setPreferredWidth(150);
       } else {

@@ -2,9 +2,10 @@ package com.revolsys.collection.iterator;
 
 import java.util.Iterator;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public interface Iterators {
-  static <V> Iterable<V> filter(final Iterable<V> iterable, final Predicate<V> filter) {
+  static <V> Iterable<V> filter(final Iterable<V> iterable, final Predicate<? super V> filter) {
     if (filter == null) {
       return iterable;
     } else {
@@ -13,7 +14,7 @@ public interface Iterators {
     }
   }
 
-  static <V> Iterator<V> filter(final Iterator<V> iterator, final Predicate<V> filter) {
+  static <V> Iterator<V> filter(final Iterator<V> iterator, final Predicate<? super V> filter) {
     if (filter == null) {
       return iterator;
     } else {
@@ -27,5 +28,9 @@ public interface Iterators {
     } else {
       return iterator.next();
     }
+  }
+
+  static <V> Iterator<V> wrap(final Supplier<V> supplier) {
+    return new SupplierIterator<>(supplier);
   }
 }

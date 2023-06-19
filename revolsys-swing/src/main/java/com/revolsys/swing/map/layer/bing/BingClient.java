@@ -298,7 +298,6 @@ public class BingClient {
   }
 
   public int getZoomLevel(final ImagerySet imagerySet, final double resolution) {
-    final BingTileLevel l = imagerySet.getTileLevel(resolution);
     for (int i = 0; i < imagerySet.getMaxLevelOfDetail(); i++) {
       final double levelResolution = METRES_PER_PIXEL[i];
       if (resolution > levelResolution) {

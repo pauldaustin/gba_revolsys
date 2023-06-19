@@ -114,7 +114,7 @@ public class PostgreSQLGeometryJdbcFieldDefinition extends JdbcFieldDefinition {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <V> V toFieldValueException(Object value) {
+  public <V> V toFieldValueException(final Object value) {
     Object v = super.toFieldValueException(value);
     if (v instanceof Geometry) {
       final Geometry geometry = (Geometry)v;
@@ -128,7 +128,7 @@ public class PostgreSQLGeometryJdbcFieldDefinition extends JdbcFieldDefinition {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <V> V toFieldValueException(RecordState state, Object value) {
+  public <V> V toFieldValueException(final RecordState state, final Object value) {
     Object v = super.toFieldValueException(state, value);
     if (v instanceof Geometry) {
       final Geometry geometry = (Geometry)v;
