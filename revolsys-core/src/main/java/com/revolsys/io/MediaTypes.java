@@ -6,24 +6,80 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.jeometry.common.logging.Logs;
 
+import com.revolsys.collection.map.Maps;
 import com.revolsys.io.file.Paths;
+import com.revolsys.util.Property;
 
 public class MediaTypes {
 
   private static boolean initialized;
 
+  private static Map<String, Set<String>> mediaTypesByFileExtension = new HashMap<>();
+
   private static Map<String, String> mediaTypeByFileExtension = new HashMap<>();
 
   private static Map<String, String> fileExtensionByMediaType = new HashMap<>();
 
-  public static String extension(final String contentType) {
+  private static Map<String, Set<String>> fileExtensionsByMediaType = new HashMap<>();
+
+  private static Set<String> mediaTypeWithMultipleExtensions = new HashSet<>();
+
+  public static String extension(final String mediaType) {
     init();
-    return fileExtensionByMediaType.getOrDefault(contentType, "bin");
+    String extension = fileExtensionByMediaType.get(mediaType);
+    if (extension == null) {
+      extension = fileExtensionByMediaType.get(mediaType.toLowerCase());
+      if (extension == null) {
+        return "bin";
+      }
+    }
+    return extension;
+  }
+
+  /**
+   * If the file extension is a registered extension then return that. Otherwise look up the
+   * file extension by content type. Both the extension and mediaType are converted to lower
+   * case.
+   *
+   * @param extension
+   * @param mediaType
+   * @return
+   */
+  public static String extension(String extension, String mediaType) {
+    init();
+    if (extension != null) {
+      extension = extension.trim().toLowerCase();
+      if (mediaTypeByFileExtension.containsKey(extension)) {
+        return extension;
+      }
+    }
+
+    if (mediaType != null) {
+      mediaType = mediaType.toLowerCase();
+      final String result = fileExtensionByMediaType.get(mediaType);
+      if (Property.hasValue(result)) {
+        return result;
+      }
+    }
+
+    if (extension == null) {
+      return "bin";
+    } else {
+      return extension;
+    }
+  }
+
+  public static Set<String> extensions(final String mediaType) {
+    init();
+    return fileExtensionsByMediaType.getOrDefault(mediaType, Collections.emptySet());
   }
 
   private static void init() {
@@ -39,11 +95,25 @@ public class MediaTypes {
             String line = dataIn.readLine();
             for (line = dataIn.readLine(); line != null; line = dataIn.readLine()) {
               final int tabIndex = line.indexOf('\t');
-              final String fileExtension = line.substring(0, tabIndex).intern();
-              final String mediaType = line.substring(tabIndex + 1).intern();
-              mediaTypeByFileExtension.put(fileExtension, mediaType);
-              if (!fileExtensionByMediaType.containsKey(mediaType)) {
-                fileExtensionByMediaType.put(mediaType, fileExtension);
+              final String fileExtension = line.substring(0, tabIndex)
+                .toLowerCase()
+                .trim()
+                .intern();
+              final String mediaType = line.substring(tabIndex + 1).toLowerCase().trim().intern();
+              if (Property.hasValuesAll(fileExtension, mediaType)) {
+                if (!mediaTypeByFileExtension.containsKey(fileExtension)) {
+                  mediaTypeByFileExtension.put(fileExtension, mediaType);
+                }
+                Maps.addToSet(mediaTypesByFileExtension, fileExtension, mediaType);
+                if (!mediaTypeWithMultipleExtensions.contains(mediaType)) {
+                  if (fileExtensionByMediaType.containsKey(mediaType)) {
+                    mediaTypeWithMultipleExtensions.add(mediaType);
+                    fileExtensionByMediaType.remove(mediaType);
+                  } else {
+                    fileExtensionByMediaType.put(mediaType, fileExtension);
+                  }
+                }
+                Maps.addToSet(fileExtensionsByMediaType, mediaType, fileExtension);
               }
             }
           } catch (final IOException e) {
@@ -69,6 +139,39 @@ public class MediaTypes {
         final String fileExtensionLower = fileExtension.toLowerCase();
         mediaType = mediaTypeByFileExtension.get(fileExtensionLower);
       }
+      return mediaType;
+    }
+  }
+
+  /**
+   * If the file mediaType is a registered mediaType then return that. Otherwise look up the
+   * file mediaType by extension. Both the extension and mediaType are converted to lower
+   * case.
+   *
+   * @param extension
+   * @param mediaType
+   * @return
+   */
+  public static String mediaType(String mediaType, String extension) {
+    init();
+    if (mediaType != null) {
+      mediaType = mediaType.trim().toLowerCase();
+      if (fileExtensionByMediaType.containsKey(mediaType)) {
+        return mediaType;
+      }
+    }
+
+    if (extension != null) {
+      extension = extension.toLowerCase();
+      final String result = mediaTypeByFileExtension.get(extension);
+      if (Property.hasValue(result)) {
+        return result;
+      }
+    }
+
+    if (mediaType == null) {
+      return "application/octet-stream";
+    } else {
       return mediaType;
     }
   }

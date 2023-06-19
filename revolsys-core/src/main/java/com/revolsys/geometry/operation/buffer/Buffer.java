@@ -303,12 +303,12 @@ public class Buffer {
       final double x2 = seg.getX(1);
       // skip segment if it is left of the stabbing line
       final double maxx = Math.max(x1, x2);
-      
 
       // skip horizontal segments (there will be a non-horizontal one carrying
       // the same depth info
       // skip if segment is above or below stabbing line
-      if ((maxx < stabbingRayLeftPt.getX()) || seg.isHorizontal() || stabbingRayLeftPt.getY() < y1 || stabbingRayLeftPt.getY() > y2) {
+      if (maxx < stabbingRayLeftPt.getX() || seg.isHorizontal() || stabbingRayLeftPt.getY() < y1
+        || stabbingRayLeftPt.getY() > y2) {
         continue;
       }
 

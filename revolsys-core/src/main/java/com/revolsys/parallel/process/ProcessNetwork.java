@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -22,6 +23,47 @@ import com.revolsys.spring.TargetBeanProcess;
 public class ProcessNetwork {
 
   private static ThreadLocal<ProcessNetwork> PROCESS_NETWORK = new ThreadLocal<>();
+
+  public static <V> void forAll(final Consumer<V> action, final Iterable<V> values) {
+    final ProcessNetwork processNetwork = new ProcessNetwork();
+    for (final V value : values) {
+      processNetwork.addProcess(() -> action.accept(value));
+    }
+    processNetwork.startAndWait();
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <V> void forAll(final Consumer<V> action, final V... values) {
+    final ProcessNetwork processNetwork = new ProcessNetwork();
+    for (final V value : values) {
+      processNetwork.addProcess(() -> action.accept(value));
+    }
+    processNetwork.startAndWait();
+  }
+
+  public static <V> void forEach(final int processCount, final Iterable<V> values,
+    final Consumer<V> action) {
+    final Iterator<V> iterator = values.iterator();
+    if (iterator.hasNext()) {
+      final ProcessNetwork processNetwork = new ProcessNetwork();
+      for (int i = 0; i < processCount; i++) {
+        processNetwork.addProcess(() -> {
+          while (true) {
+            V value;
+            synchronized (values) {
+              if (iterator.hasNext()) {
+                value = iterator.next();
+              } else {
+                return;
+              }
+            }
+            action.accept(value);
+          }
+        });
+      }
+      processNetwork.startAndWait();
+    }
+  }
 
   public static ProcessNetwork forThread() {
     return PROCESS_NETWORK.get();
@@ -388,5 +430,4 @@ public class ProcessNetwork {
       this.parent.waitTillFinished();
     }
   }
-
 }

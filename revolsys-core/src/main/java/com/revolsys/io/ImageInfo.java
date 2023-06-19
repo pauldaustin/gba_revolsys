@@ -19,8 +19,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Vector;
 
-import org.apache.commons.codec.binary.Base64InputStream;
-
 /**
  * Get file format, image resolution, number of bits per pixel and optionally
  * number of images, comments and physical resolution from
@@ -450,7 +448,7 @@ public class ImageInfo {
 
   /**
    * Call this method after you have provided an input stream or file
-   * using {@link #setInput(Base64InputStream)} or {@link #setInput(DataInput)}.
+   * using or {@link #setInput(DataInput)}.
    * If true is returned, the file format was known and information
    * on the file's content can be retrieved using the various getXyz methods.
    * @return if information could be retrieved from input
@@ -529,7 +527,7 @@ public class ImageInfo {
     };
     final byte[] a = new byte[11]; // 4 from the GIF signature + 7 from the
     // global header
-    if ((read(a) != 11) || (!equals(a, 0, GIF_MAGIC_89A, 0, 4) && !equals(a, 0, GIF_MAGIC_87A, 0, 4))) {
+    if (read(a) != 11 || !equals(a, 0, GIF_MAGIC_89A, 0, 4) && !equals(a, 0, GIF_MAGIC_87A, 0, 4)) {
       return false;
     }
     this.format = FORMAT_GIF;
@@ -736,7 +734,8 @@ public class ImageInfo {
 
   private boolean checkPcx() throws IOException {
     final byte[] a = new byte[64];
-    if ((read(a) != a.length) || (a[0] != 1)) { // encoding, 1=RLE is only valid value
+    if (read(a) != a.length || a[0] != 1) { // encoding, 1=RLE is only valid
+                                            // value
       return false;
     }
     // width / height
@@ -772,7 +771,7 @@ public class ImageInfo {
       0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
     };
     final byte[] a = new byte[27];
-    if ((read(a) != 27) || !equals(a, 0, PNG_MAGIC, 0, 6)) {
+    if (read(a) != 27 || !equals(a, 0, PNG_MAGIC, 0, 6)) {
       return false;
     }
     this.format = FORMAT_PNG;

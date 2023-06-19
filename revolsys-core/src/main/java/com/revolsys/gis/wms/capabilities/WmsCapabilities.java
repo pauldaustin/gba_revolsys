@@ -21,14 +21,14 @@ public class WmsCapabilities {
 
   private String exceptionFormat;
 
-  public WmsCapabilities(final WmsClient client, final Element element) {
+  public WmsCapabilities(final WmsClient wmsClient, final Element element) {
     this.version = element.getAttribute("version");
     this.updateSequence = element.getAttribute("updateSequence");
     XmlUtil.forFirstElement(element, "Service", (serviceElement) -> {
       this.service = new Service(serviceElement);
     });
     XmlUtil.forFirstElement(element, "Capability", (capabilityElement) -> {
-      this.capability = new Capability(client, capabilityElement);
+      this.capability = new Capability(wmsClient, capabilityElement);
     });
   }
 

@@ -54,7 +54,7 @@ public class TiffDirectoryIterator
       throw new IllegalStateException("Not a valid TIFF file");
     }
     if (this.bigTiff) {
-      if ((in.getShort() != 8) || (in.getShort() != 0)) {
+      if (in.getShort() != 8 || in.getShort() != 0) {
         throw new IllegalStateException("Not a valid TIFF file");
       }
       this.directoryOffset = in.getLong();

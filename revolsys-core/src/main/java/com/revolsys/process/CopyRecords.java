@@ -43,8 +43,7 @@ public class CopyRecords extends AbstractProcess {
 
   public CopyRecords(final RecordStore sourceRecordStore, final PathName typePath,
     final RecordStore targetRecordStore, final boolean hasSequence) {
-    this(sourceRecordStore, typePath, new HashMap<>(), targetRecordStore,
-      hasSequence);
+    this(sourceRecordStore, typePath, new HashMap<>(), targetRecordStore, hasSequence);
   }
 
   public Map<String, Boolean> getOrderBy() {

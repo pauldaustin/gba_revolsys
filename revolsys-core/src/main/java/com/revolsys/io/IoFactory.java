@@ -22,6 +22,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.jeometry.common.exception.Exceptions;
+import org.jeometry.common.io.FileNameProxy;
 import org.jeometry.coordinatesystem.model.CoordinateSystem;
 
 import com.revolsys.collection.list.Lists;
@@ -90,6 +91,9 @@ public interface IoFactory extends Available {
 
   static <C extends IoFactory> C factoryByFileName(final Class<C> factoryClass,
     final String fileName) {
+    if (fileName == null) {
+      return null;
+    }
     for (final String fileExtension : FileUtil.getFileNameExtensions(fileName)) {
       final C factory = factoryByFileExtension(factoryClass, fileExtension);
       if (factory != null) {
@@ -144,7 +148,9 @@ public interface IoFactory extends Available {
   public static String fileName(final Object source) {
     String fileName = null;
     if (Property.hasValue(source)) {
-      if (source instanceof Resource) {
+      if (source instanceof FileNameProxy) {
+        fileName = ((FileNameProxy)source).getFileName();
+      } else if (source instanceof Resource) {
         fileName = ((Resource)source).getFilename();
       } else if (source instanceof Path) {
         fileName = Paths.getFileName((Path)source);
@@ -333,20 +339,22 @@ public interface IoFactory extends Available {
   default Resource getZipResource(final Object source) {
     Resource resource = Resource.getResource(source);
     if (isReadFromZipFileSupported()) {
-      final String filename = resource.getFilename();
-      if (filename.endsWith(".zip")) {
-        final String baseName = filename.substring(0, filename.length() - 4);
-        final String url = "jar:" + resource.getUri() + "!/" + baseName;
-        final UrlResource urlResource = new UrlResource(url);
-        if (urlResource.exists()) {
-          resource = urlResource;
-        } else {
-          return null;
+      final String fileName = resource.getFilename();
+      if (fileName != null) {
+        if (fileName.endsWith(".zip")) {
+          final String baseName = fileName.substring(0, fileName.length() - 4);
+          final String url = "jar:" + resource.getUri() + "!/" + baseName;
+          final UrlResource urlResource = new UrlResource(url);
+          if (urlResource.exists()) {
+            resource = urlResource;
+          } else {
+            return null;
+          }
+        } else if (fileName.endsWith(".gz")) {
+          return new GzipResource(resource);
+        } else if (fileName.endsWith(getFileExtensions().get(0) + "z")) {
+          return new GzipResource(resource);
         }
-      } else if (filename.endsWith(".gz")) {
-        return new GzipResource(resource);
-      } else if (filename.endsWith(getFileExtensions().get(0) + "z")) {
-        return new GzipResource(resource);
       }
     }
     return resource;

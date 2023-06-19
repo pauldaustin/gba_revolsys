@@ -86,6 +86,25 @@ public final class FileUtil {
   /** The file path separator for Windows based systems. */
   public static final char WINDOWS_FILE_SEPARATOR = '\\';
 
+  public static String cleanFileName(final String name) {
+    if (name == null) {
+      return "";
+    } else {
+      final int len = name.length();
+      final StringBuilder encoded = new StringBuilder(len);
+      for (int i = 0; i < len; i++) {
+        final char ch = name.charAt(i);
+        if (ch <= 31 || ch == '<' || ch == '>' || ch == ':' || ch == '/' || ch == '\\' || ch == '|'
+          || ch == '?' || ch == '*') {
+          encoded.append('_');
+        } else {
+          encoded.append(ch);
+        }
+      }
+      return encoded.toString();
+    }
+  }
+
   /**
    * Close the writer without throwing an I/O exception if the close failed. The
    * error will be logged instead.
@@ -215,10 +234,10 @@ public final class FileUtil {
       file.getParentFile().mkdirs();
       try (
         final FileOutputStream out = new FileOutputStream(file)) {
-        return copy(in, out);
+        return in.transferTo(out);
       }
     } catch (final IOException e) {
-      throw new RuntimeException("Unable to open file: " + file, e);
+      throw Exceptions.wrap("Unable to open file: " + file, e);
     }
   }
 
@@ -280,14 +299,7 @@ public final class FileUtil {
       return 0;
     } else {
       try {
-        final byte[] buffer = new byte[4096];
-        long numBytes = 0;
-        int count;
-        while ((count = in.read(buffer)) > -1) {
-          out.write(buffer, 0, count);
-          numBytes += count;
-        }
-        return numBytes;
+        return in.transferTo(out);
       } catch (final IOException e) {
         return (Long)Exceptions.throwUncheckedException(e);
       }
@@ -365,7 +377,7 @@ public final class FileUtil {
       }
       return numBytes;
     } catch (final IOException e) {
-      throw new RuntimeException(e);
+      throw Exceptions.wrap(e);
     }
   }
 
@@ -567,7 +579,7 @@ public final class FileUtil {
   }
 
   public static FileFilter filterFilename(final String fileName) {
-    return (file) -> {
+    return file -> {
       if (file == null || fileName == null) {
         return false;
       } else {
@@ -1078,6 +1090,16 @@ public final class FileUtil {
       return visibleFiles;
     }
     return Collections.emptyList();
+  }
+
+  public static String lowerFileNameExtension(final String fileName) {
+    final String baseName = getBaseName(fileName);
+    final String fileExtension = getFileNameExtension(fileName);
+    if (fileExtension.length() == 0) {
+      return fileName;
+    } else {
+      return baseName + "." + fileExtension.toLowerCase();
+    }
   }
 
   public static File newFile(final Object value) {
