@@ -128,7 +128,7 @@ public class MinimumBoundingCircle {
     Point minAngPt = null;
     for (final Point p : pts) {
 
-      if ((p == P) || (p == Q)) {
+      if (p == P || p == Q) {
         continue;
       }
 

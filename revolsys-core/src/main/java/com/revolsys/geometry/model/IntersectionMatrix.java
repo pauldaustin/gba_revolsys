@@ -98,13 +98,11 @@ public class IntersectionMatrix implements Cloneable {
   public static boolean matches(final Dimension actualDimensionValue,
     final char requiredDimensionSymbol) {
     final Dimension requiredDimension = Dimension.toDimensionValue(requiredDimensionSymbol);
-    if ((requiredDimension == Dimension.DONTCARE) || (requiredDimension == Dimension.TRUE && actualDimensionValue.isTrue())) {
+    if (requiredDimension == Dimension.DONTCARE
+      || requiredDimension == Dimension.TRUE && actualDimensionValue.isTrue()) {
       return true;
     }
-    if (requiredDimension == Dimension.FALSE && actualDimensionValue == Dimension.FALSE) {
-      return true;
-    }
-    if (requiredDimension == Dimension.P && actualDimensionValue == Dimension.P) {
+    if ((requiredDimension == Dimension.FALSE && actualDimensionValue == Dimension.FALSE) || (requiredDimension == Dimension.P && actualDimensionValue == Dimension.P)) {
       return true;
     }
     if (requiredDimension == Dimension.L && actualDimensionValue == Dimension.L) {

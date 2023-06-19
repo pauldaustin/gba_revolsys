@@ -295,19 +295,10 @@ public class OctagonalEnvelope {
   }
 
   public boolean intersects(final OctagonalEnvelope other) {
-    if (isNull() || other.isNull() || (this.minX > other.maxX) || (this.maxX < other.minX)) {
+    if (isNull() || other.isNull() || this.minX > other.maxX || this.maxX < other.minX) {
       return false;
     }
-    if (this.minY > other.maxY) {
-      return false;
-    }
-    if (this.maxY < other.minY) {
-      return false;
-    }
-    if (this.minA > other.maxA) {
-      return false;
-    }
-    if (this.maxA < other.minA) {
+    if ((this.minY > other.maxY) || (this.maxY < other.minY) || (this.minA > other.maxA) || (this.maxA < other.minA)) {
       return false;
     }
     if (this.minB > other.maxB) {
@@ -320,22 +311,14 @@ public class OctagonalEnvelope {
   }
 
   public boolean intersects(final Point p) {
-    if ((this.minX > p.getX()) || (this.maxX < p.getX()) || (this.minY > p.getY()) || (this.maxY < p.getY())) {
+    if (this.minX > p.getX() || this.maxX < p.getX() || this.minY > p.getY()
+      || this.maxY < p.getY()) {
       return false;
     }
 
     final double A = computeA(p.getX(), p.getY());
     final double B = computeB(p.getX(), p.getY());
-    if (this.minA > A) {
-      return false;
-    }
-    if (this.maxA < A) {
-      return false;
-    }
-    if (this.minB > B) {
-      return false;
-    }
-    if (this.maxB < B) {
+    if ((this.minA > A) || (this.maxA < A) || (this.minB > B) || (this.maxB < B)) {
       return false;
     }
     return true;
