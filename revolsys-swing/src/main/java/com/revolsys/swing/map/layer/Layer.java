@@ -21,6 +21,7 @@ import com.revolsys.geometry.model.GeometryFactoryProxy;
 import com.revolsys.geometry.model.editor.BoundingBoxEditor;
 import com.revolsys.io.map.MapSerializer;
 import com.revolsys.properties.ObjectWithProperties;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.swing.component.TabbedValuePanel;
 import com.revolsys.swing.map.MapPanel;
 import com.revolsys.swing.map.ProjectFrame;
@@ -58,7 +59,7 @@ public interface Layer extends GeometryFactoryProxy, PropertyChangeSupportProxy,
     }
   }
 
-  default void addSelectedBoundingBox(BoundingBoxEditor boundingBox) {
+  default void addSelectedBoundingBox(final BoundingBoxEditor boundingBox) {
   }
 
   default void addVisibleBbox(final BoundingBoxEditor boundingBox) {

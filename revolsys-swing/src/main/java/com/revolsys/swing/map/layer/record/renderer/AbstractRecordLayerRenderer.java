@@ -1,6 +1,5 @@
 package com.revolsys.swing.map.layer.record.renderer;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -10,12 +9,12 @@ import javax.swing.Icon;
 import org.jeometry.common.logging.Logs;
 
 import com.revolsys.collection.list.Lists;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.Geometry;
 import com.revolsys.geometry.model.impl.PointDoubleXYOrientation;
 import com.revolsys.io.map.MapObjectFactory;
 import com.revolsys.predicate.Predicates;
-import com.revolsys.record.Record;
 import com.revolsys.record.filter.MultipleAttributeValuesFilter;
 import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.schema.RecordDefinition;
@@ -29,7 +28,7 @@ import com.revolsys.swing.map.layer.record.LayerRecord;
 import com.revolsys.swing.map.layer.record.RecordDefinitionSqlFilter;
 import com.revolsys.swing.map.view.ViewRenderer;
 import com.revolsys.swing.menu.MenuFactory;
-import com.revolsys.util.JavaBeanUtil;
+import com.revolsys.util.BaseCloneable;
 import com.revolsys.util.Property;
 
 public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<AbstractRecordLayer>
@@ -62,14 +61,15 @@ public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<
     });
   }
 
-  private static Predicate<Record> DEFAULT_FILTER = Predicates.all();
+  private static Predicate<MapEx> DEFAULT_FILTER = Predicates.all();
 
-  public static Predicate<Record> getFilter(final RecordDefinitionProxy recordDefinitionProxy,
-    final Map<String, ? extends Object> properties) {
-    @SuppressWarnings("unchecked")
-    Map<String, Object> filterDefinition = (Map<String, Object>)properties.get("filter");
-    if (filterDefinition != null) {
-      filterDefinition = new LinkedHashMap<>(filterDefinition);
+  @SuppressWarnings("unchecked")
+  public static Predicate<MapEx> getFilter(final RecordDefinitionProxy recordDefinitionProxy,
+    final MapEx properties) {
+    final Object filter = properties.getValue("filter", Predicates.all());
+    if (filter instanceof JsonObject) {
+      JsonObject filterDefinition = (JsonObject)filter;
+      filterDefinition = JsonObject.hash(filterDefinition);
       final String type = MapObjectFactory.getType(filterDefinition);
       if ("valueFilter".equals(type)) {
         return new MultipleAttributeValuesFilter(filterDefinition);
@@ -94,6 +94,8 @@ public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<
       } else {
         Logs.error(AbstractRecordLayerRenderer.class, "Unknown filter type " + type);
       }
+    } else if (filter instanceof Predicate) {
+      return (Predicate<MapEx>)filter;
     }
     return Predicates.all();
   }
@@ -107,9 +109,9 @@ public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<
     }
   }
 
-  private Predicate<Record> filter = DEFAULT_FILTER;
+  private Predicate<MapEx> filter = DEFAULT_FILTER;
 
-  protected Predicate<Record> filterNoException = DEFAULT_FILTER;
+  protected Predicate<MapEx> filterNoException = DEFAULT_FILTER;
 
   public AbstractRecordLayerRenderer(final String type, final String name, final Icon icon) {
     super(type, name, icon);
@@ -118,7 +120,7 @@ public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<
   @Override
   public AbstractRecordLayerRenderer clone() {
     final AbstractRecordLayerRenderer clone = (AbstractRecordLayerRenderer)super.clone();
-    clone.setFilter(JavaBeanUtil.clone(this.filter));
+    clone.setFilter(BaseCloneable.clone(this.filter));
     return clone;
   }
 
@@ -130,12 +132,12 @@ public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<
     }
   }
 
-  public Predicate<Record> getFilter() {
+  public Predicate<MapEx> getFilter() {
     return this.filter;
   }
 
   public String getQueryFilter() {
-    final Predicate<Record> filter = getFilter();
+    final Predicate<MapEx> filter = getFilter();
     if (filter instanceof RecordDefinitionSqlFilter) {
       final RecordDefinitionSqlFilter layerFilter = (RecordDefinitionSqlFilter)filter;
       return layerFilter.getQuery();
@@ -159,7 +161,7 @@ public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<
   }
 
   public boolean isHasFilter() {
-    return this.filter != Predicates.<Record> all();
+    return this.filter != Predicates.<MapEx> all();
   }
 
   @Override
@@ -238,7 +240,7 @@ public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<
     }
   }
 
-  protected void setFilter(final Predicate<Record> filter) {
+  protected void setFilter(final Predicate<MapEx> filter) {
     final Object oldValue = this.filter;
     this.filter = filter;
     this.filterNoException = Predicates.noException(filter);
@@ -262,13 +264,13 @@ public abstract class AbstractRecordLayerRenderer extends AbstractLayerRenderer<
   @Override
   public void setProperties(final Map<String, ? extends Object> properties) {
     super.setProperties(properties);
-    final Predicate<Record> filter = getFilter(this, properties);
+    final Predicate<MapEx> filter = getFilter(this, (MapEx)properties);
     setFilter(filter);
   }
 
   public void setQueryFilter(final String query) {
     if (this.filter instanceof RecordDefinitionSqlFilter || this.filter == DEFAULT_FILTER) {
-      Predicate<Record> filter;
+      Predicate<MapEx> filter;
       if (Property.hasValue(query)) {
         filter = new RecordDefinitionSqlFilter(this, query);
       } else {

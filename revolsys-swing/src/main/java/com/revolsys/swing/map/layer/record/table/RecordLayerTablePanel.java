@@ -31,6 +31,7 @@ import javax.swing.table.TableCellEditor;
 import org.jeometry.common.data.type.DataTypes;
 
 import com.revolsys.collection.list.Lists;
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.comparator.StringNumberComparator;
 import com.revolsys.io.map.MapSerializer;
@@ -332,7 +333,7 @@ public class RecordLayerTablePanel extends TablePanel
     }
   }
 
-  protected void newToolBar(final Map<String, Object> pluginConfig) {
+  protected void newToolBar(final MapEx pluginConfig) {
     final ToolBar toolBar = getToolBar();
 
     final RecordDefinition recordDefinition = getRecordDefinition();

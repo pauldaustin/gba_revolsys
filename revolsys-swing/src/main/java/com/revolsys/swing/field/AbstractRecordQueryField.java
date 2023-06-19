@@ -55,9 +55,9 @@ import com.revolsys.record.Record;
 import com.revolsys.record.code.CodeTable;
 import com.revolsys.record.query.BinaryCondition;
 import com.revolsys.record.query.Condition;
-import com.revolsys.record.query.Equal;
 import com.revolsys.record.query.Q;
 import com.revolsys.record.query.Query;
+import com.revolsys.record.query.TableReference;
 import com.revolsys.record.query.Value;
 import com.revolsys.record.query.functions.F;
 import com.revolsys.record.schema.FieldDefinition;
@@ -114,14 +114,14 @@ public abstract class AbstractRecordQueryField extends ValueField
 
   private final PathName typePath;
 
-  public AbstractRecordQueryField(final String fieldName, final PathName typePath,
+  public AbstractRecordQueryField(final String fieldName, final RecordDefinition recordDefinition,
     final FieldDefinition displayField) {
     super(fieldName, null);
-    this.typePath = typePath;
+    this.typePath = recordDefinition.getPathName();
     this.displayField = displayField;
     this.queries = Arrays.asList(
-      new Query(typePath, new Equal(F.upper(displayField), Value.newValue(null))),
-      new Query(typePath, Q.iLike(displayField, "")));
+      recordDefinition.newQuery().and(Q.equal(F.upper(displayField), Value.newValue(null))),
+      recordDefinition.newQuery().and(Q.iLike(displayField, "")));
 
     final Document document = this.searchField.getDocument();
     document.addDocumentListener(this);
@@ -404,7 +404,8 @@ public abstract class AbstractRecordQueryField extends ValueField
       final Map<String, Record> allRecords = new TreeMap<>();
       for (Query query : this.queries) {
         if (allRecords.size() < this.maxResults) {
-          query = query.clone()//
+          final TableReference table = query.getTable();
+          query = query.clone(table, table)//
             .addOrderBy(this.displayField);
           final Condition whereCondition = query.getWhereCondition();
           if (whereCondition instanceof BinaryCondition) {

@@ -6,13 +6,14 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.GeometryFactory;
 import com.revolsys.predicate.Predicates;
-import com.revolsys.record.Record;
 import com.revolsys.record.RecordState;
 import com.revolsys.record.Records;
 import com.revolsys.record.query.Condition;
+import com.revolsys.record.query.OrderBy;
 import com.revolsys.record.query.Query;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.swing.map.layer.record.table.RecordLayerTable;
@@ -132,7 +133,7 @@ public class ListRecordLayer extends AbstractRecordLayer {
   @Override
   public int getRecordCount(final Query query) {
     synchronized (this.records) {
-      final Predicate<Record> filter = query.getWhereCondition();
+      final Predicate<MapEx> filter = query.getWhereCondition();
       return Predicates.count(this.records, filter);
     }
   }
@@ -174,7 +175,7 @@ public class ListRecordLayer extends AbstractRecordLayer {
   public List<LayerRecord> getRecordsPersisted(final Query query) {
     final List<LayerRecord> records = getRecords();
     final Condition filter = query.getWhereCondition();
-    final Map<? extends CharSequence, Boolean> orderBy = query.getOrderBy();
+    final List<OrderBy> orderBy = query.getOrderBy();
     Records.filterAndSort(records, filter, orderBy);
     return records;
   }

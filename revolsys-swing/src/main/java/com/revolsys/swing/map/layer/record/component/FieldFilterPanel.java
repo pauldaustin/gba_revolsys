@@ -9,7 +9,6 @@ import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 
 import javax.swing.BorderFactory;
@@ -26,11 +25,11 @@ import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypes;
 import org.jeometry.common.logging.Logs;
 
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.io.BaseCloseable;
-import com.revolsys.record.Record;
 import com.revolsys.record.code.CodeTable;
 import com.revolsys.record.query.BinaryCondition;
-import com.revolsys.record.query.Column;
+import com.revolsys.record.query.ColumnReference;
 import com.revolsys.record.query.Condition;
 import com.revolsys.record.query.ILike;
 import com.revolsys.record.query.IsNotNull;
@@ -192,14 +191,14 @@ public class FieldFilterPanel extends JComponent implements PropertyChangeListen
   }
 
   public FieldFilterPanel(final TablePanel tablePanel, final RecordLayerTableModel tableModel,
-    final Map<String, Object> config) {
+    final MapEx config) {
     this(tablePanel, tableModel);
 
     if (!this.fieldNames.isEmpty()) {
       String searchField = this.layer.getProperty("searchField");
       searchField = (String)config.getOrDefault("searchField", searchField);
       setSearchFieldName(searchField);
-      final Predicate<Record> filter = AbstractRecordLayerRenderer.getFilter(this.layer, config);
+      final Predicate<MapEx> filter = AbstractRecordLayerRenderer.getFilter(this.layer, config);
       if (filter instanceof RecordDefinitionSqlFilter) {
         final RecordDefinitionSqlFilter sqlFilter = (RecordDefinitionSqlFilter)filter;
         final Condition condition = sqlFilter.getCondition();
@@ -367,8 +366,8 @@ public class FieldFilterPanel extends JComponent implements PropertyChangeListen
             final QueryValue leftCondition = equal.getLeft();
             final QueryValue rightCondition = equal.getRight();
 
-            if (leftCondition instanceof Column && rightCondition instanceof Value) {
-              final Column column = (Column)leftCondition;
+            if (leftCondition instanceof ColumnReference && rightCondition instanceof Value) {
+              final ColumnReference column = (ColumnReference)leftCondition;
               final String searchFieldName = column.getName();
               setSearchFieldName(searchFieldName);
 
@@ -395,8 +394,8 @@ public class FieldFilterPanel extends JComponent implements PropertyChangeListen
             final QueryValue leftCondition = condition.getLeft();
             final QueryValue rightCondition = condition.getRight();
 
-            if (leftCondition instanceof Column && rightCondition instanceof Value) {
-              final Column column = (Column)leftCondition;
+            if (leftCondition instanceof ColumnReference && rightCondition instanceof Value) {
+              final ColumnReference column = (ColumnReference)leftCondition;
               final String searchFieldName = column.getName();
               setSearchFieldName(searchFieldName);
 
@@ -420,8 +419,8 @@ public class FieldFilterPanel extends JComponent implements PropertyChangeListen
             final String operator = condition.getOperator();
             if (filter instanceof IsNull || filter instanceof IsNotNull) {
               final QueryValue leftValue = condition.getValue();
-              if (leftValue instanceof Column) {
-                final Column column = (Column)leftValue;
+              if (leftValue instanceof ColumnReference) {
+                final ColumnReference column = (ColumnReference)leftValue;
                 final String searchFieldName = column.getName();
                 setSearchFieldName(searchFieldName);
 
