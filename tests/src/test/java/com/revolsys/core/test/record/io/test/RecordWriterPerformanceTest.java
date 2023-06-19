@@ -83,7 +83,7 @@ public class RecordWriterPerformanceTest {
     record.setValue("dateTime", dateTime);
 
     calendar.set(Calendar.MILLISECOND, index % 1000);
-    final Timestamp timestamp = new Timestamp(calendar.getTimeInMillis());
+    final Instant timestamp = Instant.now();
     record.setValue("timestamp", timestamp);
 
     record.setValue("geometry", new PointDoubleXY(index, index * 2));
@@ -101,7 +101,7 @@ public class RecordWriterPerformanceTest {
       .addField("double", DataTypes.DOUBLE) //
       .addField("string", DataTypes.STRING) //
       .addField("date", DataTypes.SQL_DATE) //
-      .addField("dateTime", DataTypes.DATE) //
+      .addField("dateTime", DataTypes.UTIL_DATE) //
       .addField("timestamp", DataTypes.TIMESTAMP) //
       .addField("geometry", geometryType) //
       .getRecordDefinition();

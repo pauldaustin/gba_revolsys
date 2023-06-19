@@ -363,11 +363,12 @@ public class MenuFactory extends BaseObjectWithProperties implements ComponentFa
     return menuItem;
   }
 
-  public void addMenuItem(final String groupName, final String title, final String iconName,
-    final EnableCheck enableCheck, final Runnable runnable) {
+  public RunnableAction addMenuItem(final String groupName, final String title,
+    final String iconName, final EnableCheck enableCheck, final Runnable runnable) {
     final Icon icon = Icons.getIcon(iconName);
     final RunnableAction menuItem = newMenuItem(title, title, icon, enableCheck, runnable);
     addComponentFactory(groupName, menuItem);
+    return menuItem;
   }
 
   public RunnableAction addMenuItem(final String groupName, final String title,
@@ -378,11 +379,12 @@ public class MenuFactory extends BaseObjectWithProperties implements ComponentFa
     return menuItem;
   }
 
-  public void addMenuItem(final String groupName, final String title, final String toolTip,
-    final String iconName, final Runnable runnable) {
+  public RunnableAction addMenuItem(final String groupName, final String title,
+    final String toolTip, final String iconName, final Runnable runnable) {
     final Icon icon = Icons.getIcon(iconName);
     final RunnableAction menuItem = newMenuItem(title, toolTip, icon, null, runnable);
     addComponentFactory(groupName, menuItem);
+    return menuItem;
   }
 
   public RunnableAction addMenuItemTitleIcon(final String groupName, final CharSequence name,

@@ -26,31 +26,38 @@
     </plugins>
   </build>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.revolsys.open</groupId>
+        <artifactId>revolsys-bom</artifactId>
+        <version>${project.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>com.revolsys.open</groupId>
       <artifactId>revolsys-fgdb</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.revolsys.open</groupId>
       <artifactId>revolsys-oracle</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.revolsys.open</groupId>
       <artifactId>revolsys-postgresql</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.revolsys.open</groupId>
       <artifactId>revolsys-testapi</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.revolsys.open</groupId>
       <artifactId>revolsys-swing</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -73,12 +80,12 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
+   <!-- <dependency>
       <groupId>org.jdom</groupId>
       <artifactId>jdom</artifactId>
       <version>1.1</version>
       <scope>test</scope>
-    </dependency>
+    </dependency>-->
   </dependencies>
 </project>
 
