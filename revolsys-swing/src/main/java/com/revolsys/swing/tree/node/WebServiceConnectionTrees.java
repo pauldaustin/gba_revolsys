@@ -98,12 +98,12 @@ public class WebServiceConnectionTrees extends ConnectionManagerTrees {
         final String name = nameField.getText();
         final String username = usernameField.getText();
         final String password = passwordField.getText();
-        final MapEx config = JsonObject.hash();
-        config.put("j:type", type);
-        config.put("name", name);
-        config.put("serviceUrl", url);
-        config.put("username", username);
-        config.put("password", PasswordUtil.encrypt(password));
+        final JsonObject config = JsonObject.hash()
+          .addValue("j:type", type)
+          .addValue("name", name)
+          .addValue("serviceUrl", url)
+          .addValue("username", username)
+          .addValue("password", PasswordUtil.encrypt(password));
         registry.newConnection(config);
       }
     }

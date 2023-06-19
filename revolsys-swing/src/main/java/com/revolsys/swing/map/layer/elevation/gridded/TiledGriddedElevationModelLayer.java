@@ -7,13 +7,13 @@ import java.util.Map;
 
 import org.jeometry.common.logging.Logs;
 
-import com.revolsys.collection.list.Lists;
 import com.revolsys.elevation.gridded.GriddedElevationModel;
 import com.revolsys.elevation.gridded.GriddedElevationModelReaderFactory;
 import com.revolsys.elevation.gridded.scaledint.ScaledIntegerGriddedDigitalElevation;
 import com.revolsys.elevation.gridded.scaledint.ScaledIntegerGriddedDigitalElevationModelGrid;
 import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.GeometryFactory;
+import com.revolsys.gis.tiled.BaseTileLevel;
 import com.revolsys.io.IoFactory;
 import com.revolsys.io.map.MapObjectFactory;
 import com.revolsys.raster.BufferedGeoreferencedImage;
@@ -43,10 +43,6 @@ public class TiledGriddedElevationModelLayer
 
   private String filePrefix = null;
 
-  private final List<Double> resolutions = Lists.newArray(new double[] {
-    2000.0, 1000.0, 500.0, 200.0, 100.0, 50.0, 20.0, 10.0, 5.0, 2.0, 1.0
-  });
-
   private int tileSizePixels = 1000;
 
   private String url;
@@ -60,6 +56,7 @@ public class TiledGriddedElevationModelLayer
   public TiledGriddedElevationModelLayer() {
     super("tiledGriddedElevationModelLayer");
     setIcon("gridded_dem");
+    setTileResolutions(2000.0, 1000.0, 500.0, 200.0, 100.0, 50.0, 20.0, 10.0, 5.0, 2.0, 1.0);
   }
 
   public TiledGriddedElevationModelLayer(final Map<String, ? extends Object> config) {
@@ -154,10 +151,10 @@ public class TiledGriddedElevationModelLayer
   @Override
   public double getResolution(final ViewRenderer view) {
     final double metresPerPixel = view.getMetresPerPixel();
-    final int count = this.resolutions.size();
+    final int count = this.tileResolutions.size();
     for (int i = 0; i < count - 1; i++) {
-      final double resolution1 = this.resolutions.get(i);
-      final double resolution2 = this.resolutions.get(i + 1);
+      final double resolution1 = this.tileResolutions.get(i);
+      final double resolution2 = this.tileResolutions.get(i + 1);
 
       if (metresPerPixel >= resolution1
         || resolution1 - metresPerPixel < (resolution1 - resolution2) * 0.7) {
@@ -165,7 +162,7 @@ public class TiledGriddedElevationModelLayer
         return resolution1;
       }
     }
-    return this.resolutions.get(count - 1);
+    return this.tileResolutions.get(count - 1);
   }
 
   public int getTileSizePixels() {
@@ -193,6 +190,11 @@ public class TiledGriddedElevationModelLayer
       }
     }
     return initialized;
+  }
+
+  @Override
+  protected BaseTileLevel initTileLevel(final BaseTileLevel level) {
+    return level.setTileSizePixels(this.tileSizePixels);
   }
 
   @Override
@@ -337,6 +339,7 @@ public class TiledGriddedElevationModelLayer
 
   public void setTileSizePixels(final int tileSizePixels) {
     this.tileSizePixels = tileSizePixels;
+    updateTileLevels();
   }
 
   public void setUrl(final String url) {

@@ -17,6 +17,7 @@ import com.revolsys.swing.map.layer.grid.GridLayer;
 import com.revolsys.swing.map.layer.grid.GridLayerRenderer;
 import com.revolsys.swing.map.layer.mapguide.MapGuideWebServer;
 import com.revolsys.swing.map.layer.ogc.wms.OgcWms;
+import com.revolsys.swing.map.layer.ogc.wmts.OgcWmts;
 import com.revolsys.swing.map.layer.openstreetmap.OpenStreetMapLayer;
 import com.revolsys.swing.map.layer.pointcloud.PointCloudLayer;
 import com.revolsys.swing.map.layer.raster.GeoreferencedImageLayer;
@@ -114,6 +115,8 @@ public class RsSwingServiceInitializer implements ServiceInitializer {
     MapGuideWebServer.factoryInit();
 
     OgcWms.factoryInit();
+
+    OgcWmts.factoryInit();
 
     MapObjectFactoryRegistry.newFactory("openStreetMap", "Open Street Map Tiles",
       OpenStreetMapLayer::new);

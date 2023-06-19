@@ -1,6 +1,9 @@
 package com.revolsys.record.io.format.xml;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.namespace.QName;
@@ -31,7 +34,7 @@ public interface XmlUtil {
       final Node childNode = childNodes.item(i);
       if (childNode instanceof Element) {
         final Element element = (Element)childNode;
-        final String tagName = element.getTagName();
+        final String tagName = element.getLocalName();
         if (elementName.equals(tagName)) {
           action.accept(element);
         }
@@ -73,9 +76,25 @@ public interface XmlUtil {
       final Node childNode = childNodes.item(i);
       if (childNode instanceof Element) {
         final Element element = (Element)childNode;
-        final String tagName = element.getTagName();
+        final String tagName = element.getLocalName();
         if (elementName.equals(tagName)) {
           return element;
+        }
+      }
+    }
+    return null;
+  }
+
+  static <T> T getFirstElement(final Element parentElement, final String elementName,
+    final Function<Element, T> action) {
+    final NodeList childNodes = parentElement.getChildNodes();
+    for (int i = 0; i < childNodes.getLength(); i++) {
+      final Node childNode = childNodes.item(i);
+      if (childNode instanceof Element) {
+        final Element element = (Element)childNode;
+        final String tagName = element.getLocalName();
+        if (elementName.equals(tagName)) {
+          return action.apply(element);
         }
       }
     }
@@ -147,6 +166,29 @@ public interface XmlUtil {
     } else {
       return element.getTextContent();
     }
+  }
+
+  static <T> List<T> getList(final Element parentElement, final String elementName,
+    final Function<Element, T> action) {
+    final List<T> elements = new ArrayList<>();
+    final NodeList childNodes = parentElement.getChildNodes();
+    for (int i = 0; i < childNodes.getLength(); i++) {
+      final Node childNode = childNodes.item(i);
+      if (childNode instanceof Element) {
+        final Element element = (Element)childNode;
+        final String tagName = element.getLocalName();
+        if (elementName.equals(tagName)) {
+          elements.add(action.apply(element));
+        }
+      }
+    }
+    return elements;
+  }
+
+  static List<String> getListString(final Element element, final String name) {
+    final List<String> values = new ArrayList<>();
+    forEachElement(element, name, (versionElement) -> values.add(versionElement.getTextContent()));
+    return values;
   }
 
   static QName getXmlQName(final NamespaceContext context, final String value) {

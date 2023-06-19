@@ -14,7 +14,7 @@ public interface GeometryWriter extends Writer<Geometry> {
   }
 
   static <GW extends GeometryWriter> GW newGeometryWriter(final Object target) {
-    return newGeometryWriter(target, (MapEx)JsonObject.EMPTY);
+    return newGeometryWriter(target, JsonObject.EMPTY);
   }
 
   static <GW extends GeometryWriter> GW newGeometryWriter(final Object target,

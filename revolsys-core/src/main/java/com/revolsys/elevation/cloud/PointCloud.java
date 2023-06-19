@@ -47,7 +47,7 @@ public interface PointCloud<P extends Point>
   }
 
   static <P extends Point, PC extends PointCloud<P>> PC newPointCloud(final Object source) {
-    return newPointCloud(source, (MapEx)JsonObject.EMPTY);
+    return newPointCloud(source, JsonObject.EMPTY);
   }
 
   static <P extends Point, PC extends PointCloud<P>> PC newPointCloud(final Object source,

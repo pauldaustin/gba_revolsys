@@ -1,46 +1,47 @@
 <ruleset comparisonMethod="maven"
-	xmlns="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="
+  xmlns="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="
     http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0
     https://www.mojohaus.org/versions-maven-plugin/xsd/rule-2.0.0.xsd
   ">
-	<ignoreVersions>
-		<ignoreVersion type="regex">.*-alpha.*</ignoreVersion>
+  <ignoreVersions>
+    <ignoreVersion type="regex">.*-alpha.*</ignoreVersion>
     <ignoreVersion type="regex">.*Alpha.*</ignoreVersion>
-		<ignoreVersion type="regex">.*-beta.*</ignoreVersion>
+    <ignoreVersion type="regex">.*-beta.*</ignoreVersion>
     <ignoreVersion type="regex">.*-MTEC.*</ignoreVersion>
     <ignoreVersion type="regex">.*-rc.*</ignoreVersion>
     <ignoreVersion type="regex">.*-RC.*</ignoreVersion>
     <ignoreVersion type="regex">.*-preview.*</ignoreVersion>
-	  <ignoreVersion type="regex">.*-b.*</ignoreVersion>
+    <ignoreVersion type="regex">.*-b.*</ignoreVersion>
+    <ignoreVersion type="regex">.*-M.*</ignoreVersion>
   </ignoreVersions>
-	<rules>
-		<rule groupId="org.jeometry" comparisonMethod="maven">
-			<ignoreVersions>
-				<ignoreVersion type="regex">.*</ignoreVersion>
-			</ignoreVersions>
-		</rule>
-		<rule groupId="org.apache.maven.plugins" comparisonMethod="maven">
-			<ignoreVersions>
-				<ignoreVersion type="regex">.*-M.*</ignoreVersion>
-			</ignoreVersions>
-		</rule>
-		<rule groupId="com.revolsys.open" comparisonMethod="maven">
-			<ignoreVersions>
-				<ignoreVersion type="regex">.*</ignoreVersion>
-			</ignoreVersions>
-		</rule>
-		<rule groupId="org.postgresql" comparisonMethod="maven">
-			<ignoreVersions>
-				<ignoreVersion type="regex">.*.jre.*</ignoreVersion>
-			</ignoreVersions>
-		</rule>
-		<rule groupId="javax.xml.bind" comparisonMethod="maven">
-			<ignoreVersions>
-				<ignoreVersion type="regex">.*-b\d+.\d+</ignoreVersion>
-			</ignoreVersions>
-		</rule>
+  <rules>
+    <rule groupId="org.jeometry" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">.*</ignoreVersion>
+      </ignoreVersions>
+    </rule>
+    <rule groupId="org.apache.maven.plugins" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">.*-M.*</ignoreVersion>
+      </ignoreVersions>
+    </rule>
+    <rule groupId="com.revolsys.open" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">.*</ignoreVersion>
+      </ignoreVersions>
+    </rule>
+    <rule groupId="org.postgresql" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">.*.jre.*</ignoreVersion>
+      </ignoreVersions>
+    </rule>
+    <rule groupId="javax.xml.bind" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">.*-b\d+.\d+</ignoreVersion>
+      </ignoreVersions>
+    </rule>
     <rule groupId="javax.measure" comparisonMethod="maven">
       <ignoreVersions>
         <ignoreVersion type="regex">.*-EDR</ignoreVersion>
@@ -54,12 +55,12 @@
     <rule groupId="commons-cli" comparisonMethod="maven">
       <ignoreVersions>
         <ignoreVersion type="regex">\d{8}\.\d{6}</ignoreVersion>
-      </ignoreVersions>
+       </ignoreVersions>
     </rule>
     <rule groupId="commons-io" comparisonMethod="maven">
       <ignoreVersions>
         <ignoreVersion type="regex">\d{8}\.\d{6}</ignoreVersion>
       </ignoreVersions>
     </rule>
-	</rules>
+  </rules>
 </ruleset>
