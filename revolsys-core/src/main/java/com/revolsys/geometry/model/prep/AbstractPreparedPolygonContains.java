@@ -252,7 +252,8 @@ abstract class AbstractPreparedPolygonContains {
      * a situation where two shells touch at a single vertex, which admits
      * the case where a line could cross between the shells and still be wholely contained in them.
      */
-    if ((properIntersectionImpliesNotContained && this.hasProperIntersection) || (this.hasSegmentIntersection && !this.hasNonProperIntersection)) {
+    if (properIntersectionImpliesNotContained && this.hasProperIntersection
+      || this.hasSegmentIntersection && !this.hasNonProperIntersection) {
       return false;
     }
 
@@ -344,7 +345,7 @@ abstract class AbstractPreparedPolygonContains {
      * a proper intersection implies not contained
      * (due to the Epsilon-Neighbourhood Exterior Intersection condition)
      */
-    if ((testGeom instanceof Polygonal) || isSingleShell(this.preparedPolygonal)) {
+    if (testGeom instanceof Polygonal || isSingleShell(this.preparedPolygonal)) {
       return true;
     }
     return false;

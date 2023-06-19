@@ -20,12 +20,9 @@ public class FileGdbDomainCodeTable extends AbstractCodeTable {
 
   private final String name;
 
-  private final FileGdbRecordStore recordStore;
-
   private JComponent swingEditor;
 
   public FileGdbDomainCodeTable(final FileGdbRecordStore recordStore, final Domain domain) {
-    this.recordStore = recordStore;
     this.domain = domain;
     this.name = domain.getDomainName();
   }

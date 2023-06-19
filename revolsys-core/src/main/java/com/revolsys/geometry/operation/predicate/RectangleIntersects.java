@@ -94,8 +94,8 @@ class EnvelopeIntersectsVisitor extends ShortCircuitedGeometryVisitor {
      * completely bisected. In this case it is not possible to make a conclusion
      * about the presence of an intersection.
      */
-    if (this.rectEnv.bboxCovers(boundingBox) || (boundingBox.getMinX() >= this.rectEnv.getMinX()
-      && boundingBox.getMaxX() <= this.rectEnv.getMaxX())) {
+    if (this.rectEnv.bboxCovers(boundingBox) || boundingBox.getMinX() >= this.rectEnv.getMinX()
+      && boundingBox.getMaxX() <= this.rectEnv.getMaxX()) {
       this.intersects = true;
       return;
     }

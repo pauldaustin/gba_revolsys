@@ -101,7 +101,7 @@ abstract public class EdgeEndStar<E extends EdgeEnd> implements Iterable<E> {
       // check that edge is really a boundary between inside and outside!
       // check side location conflict
       // Assert.isTrue(rightLoc == currLoc, "side location conflict " + locStr);
-      if ((leftLoc == rightLoc) || (rightLoc != currLoc)) {
+      if (leftLoc == rightLoc || rightLoc != currLoc) {
         // Debug.print(this);
         return false;
       }

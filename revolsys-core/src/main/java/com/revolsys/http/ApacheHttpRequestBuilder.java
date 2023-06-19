@@ -366,8 +366,7 @@ public class ApacheHttpRequestBuilder {
   }
 
   public List<NameValuePair> getParameters() {
-    return this.parameters != null ? new ArrayList<>(this.parameters)
-      : new ArrayList<>();
+    return this.parameters != null ? new ArrayList<>(this.parameters) : new ArrayList<>();
   }
 
   public String getString() {

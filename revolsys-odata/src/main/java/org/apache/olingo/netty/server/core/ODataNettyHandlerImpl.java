@@ -128,7 +128,7 @@ public class ODataNettyHandlerImpl implements ODataNettyHandler {
    */
   static void copyHeaders(final ODataRequest odRequest, final HttpRequest req) {
     final Set<String> headers = req.headers().names();
-    for (String headerName : headers) {
+    for (final String headerName : headers) {
       final List<String> headerValues = req.headers().getAll(headerName);
       odRequest.addHeader(headerName, headerValues);
     }

@@ -84,7 +84,7 @@ public class SegmentNode extends PointDoubleXY {
   }
 
   public boolean isEndPoint(final int maxSegmentIndex) {
-    if ((this.segmentIndex == 0 && !this.isInterior) || (this.segmentIndex == maxSegmentIndex)) {
+    if (this.segmentIndex == 0 && !this.isInterior || this.segmentIndex == maxSegmentIndex) {
       return true;
     }
     return false;

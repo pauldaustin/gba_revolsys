@@ -165,7 +165,7 @@ public class BufferResultValidator {
   private void checkExpectedEmpty() {
     // can't check areal features
     // can't check positive distances
-    if (this.input.getDimension().isArea() || (this.distance > 0.0)) {
+    if (this.input.getDimension().isArea() || this.distance > 0.0) {
       return;
     }
 

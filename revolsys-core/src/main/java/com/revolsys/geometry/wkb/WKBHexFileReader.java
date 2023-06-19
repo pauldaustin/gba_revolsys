@@ -119,7 +119,7 @@ public class WKBHexFileReader {
   }
 
   private boolean isAtLimit(final List geoms) {
-    if ((this.limit < 0) || (geoms.size() < this.limit)) {
+    if (this.limit < 0 || geoms.size() < this.limit) {
       return false;
     }
     return true;

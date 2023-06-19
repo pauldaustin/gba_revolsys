@@ -145,7 +145,9 @@ public class JsonWebToken {
   public boolean isValid(final String issuer) {
     try {
       final String iss = getIssuer();
-      if (!issuer.equals(iss) || (!this.header.equalValue("typ", "JWT") && this.header.hasValue("typ")) || !this.header.equalValue("alg", "RS256")) {
+      if (!issuer.equals(iss)
+        || !this.header.equalValue("typ", "JWT") && this.header.hasValue("typ")
+        || !this.header.equalValue("alg", "RS256")) {
         return false;
       }
       if (!this.header.hasValue("kid")) {
