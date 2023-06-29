@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <artifactId>revolsys-bom</artifactId>
   <packaging>pom</packaging>
@@ -22,6 +24,11 @@
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
         <version>1.9.4</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>1.16</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -114,12 +121,12 @@
       <dependency>
         <groupId>org.docx4j</groupId>
         <artifactId>docx4j-ImportXHTML</artifactId>
-        <version>${org.docx4j.version}</version>
+        <version>11.4.8</version>
       </dependency>
       <dependency>
         <groupId>org.docx4j</groupId>
         <artifactId>docx4j-JAXB-MOXy</artifactId>
-        <version>${org.docx4j.version}</version>
+        <version>11.4.9</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
@@ -532,7 +539,7 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-       <dependency>
+      <dependency>
         <groupId>com.revolsys.open</groupId>
         <artifactId>revolsys-core</artifactId>
         <version>${project.version}</version>
@@ -613,12 +620,11 @@
     <org.apache.pdfbox.version>2.0.28</org.apache.pdfbox.version>
     <org.apache.xmlgraphics.batik.version>1.16</org.apache.xmlgraphics.batik.version>
     <org.apache.xmlgraphics.commons.version>2.8</org.apache.xmlgraphics.commons.version>
-    <org.docx4j.version>11.4.8</org.docx4j.version>
     <org.gdal.version>2.4.0</org.gdal.version>
     <org.graalvm.version>23.0.0</org.graalvm.version>
     <org.springframework.version>6.0.10</org.springframework.version>
-    <org.springframework.boot.version>3.1.0</org.springframework.boot.version>
+    <org.springframework.boot.version>3.1.1</org.springframework.boot.version>
     <org.springboot.version>${org.springframework.boot.version}</org.springboot.version>
-    <io.netty.version>4.1.93.Final</io.netty.version>
+    <io.netty.version>4.1.94.Final</io.netty.version>
   </properties>
 </project>
