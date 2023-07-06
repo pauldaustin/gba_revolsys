@@ -6,7 +6,7 @@ public abstract class IdObjectQuadTree<T> extends QuadTree<T> {
   private static final long serialVersionUID = 1L;
 
   public IdObjectQuadTree(final GeometryFactory geometryFactory) {
-    super(geometryFactory, new IdObjectNode<T>());
+    super(geometryFactory, new IdObjectNode<>());
   }
 
   protected Object getId(final T item) {

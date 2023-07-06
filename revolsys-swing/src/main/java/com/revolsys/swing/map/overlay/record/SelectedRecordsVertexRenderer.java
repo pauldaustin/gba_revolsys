@@ -28,12 +28,12 @@ public class SelectedRecordsVertexRenderer {
 
   public static BiFunctionDouble<Geometry> VERTEX_SHAPE = (width, height) -> {
     return GeometryMarker.GEOMETRY_FACTORY.polygon(GeometryMarker.GEOMETRY_FACTORY.linearRing(2 //
-    , 0.0, 0.0 //
-    , 0.0, height //
-    , width * 2 / 3, height //
-    , width, height * 0.5 //
-    , width * 2 / 3, 0 //
-    , 0.0, 0.0 //
+      , 0.0, 0.0 //
+      , 0.0, height //
+      , width * 2 / 3, height //
+      , width, height * 0.5 //
+      , width * 2 / 3, 0 //
+      , 0.0, 0.0 //
     ));
   };
 

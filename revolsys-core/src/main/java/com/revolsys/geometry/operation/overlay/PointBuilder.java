@@ -91,13 +91,10 @@ public class PointBuilder {
       final Node n = (Node)element;
 
       // filter out nodes which are known to be in the result
-      if (n.isInResult()) {
-        continue;
-      }
       // if an incident edge is in the result, then the node
       // coordinate is
       // included already
-      if (n.isIncidentEdgeInResult()) {
+      if (n.isInResult() || n.isIncidentEdgeInResult()) {
         continue;
       }
       if (n.getEdges().getDegree() == 0 || opCode == OverlayOp.INTERSECTION) {

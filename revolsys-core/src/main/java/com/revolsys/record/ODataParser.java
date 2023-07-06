@@ -123,7 +123,7 @@ public class ODataParser {
     public static final String GEO_INTERSECTS = "geo.intersects";
 
     public static final String GEO_DISTANCE = "geo.distance";
-  };
+  }
 
   public static class Token {
 

@@ -1007,9 +1007,7 @@ public class XmlWriter extends Writer {
   private void removeCurrentTag() {
     if (!this.endingDocument) {
       final TagConfiguration tag = this.elementStack.removeFirst();
-      final Iterator<String> namespaceUris = tag.getFieldDefinedNamespaces().iterator();
-      while (namespaceUris.hasNext()) {
-        final String namespaceUri = namespaceUris.next();
+      for (final String namespaceUri : tag.getFieldDefinedNamespaces()) {
         this.namespacePrefixMap.remove(namespaceUri);
       }
     }

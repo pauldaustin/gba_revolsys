@@ -118,10 +118,7 @@ public class InteriorIntersectionFinder implements SegmentIntersector {
    * @return true if the segment is an end segment
    */
   private boolean isEndSegment(final SegmentString segStr, final int index) {
-    if (index == 0) {
-      return true;
-    }
-    if (index >= segStr.size() - 2) {
+    if (index == 0 || index >= segStr.size() - 2) {
       return true;
     }
     return false;
@@ -139,12 +136,8 @@ public class InteriorIntersectionFinder implements SegmentIntersector {
   public void processIntersections(final SegmentString e0, final int segIndex0,
     final SegmentString e1, final int segIndex1) {
     // short-circuit if intersection already found
-    if (hasIntersection()) {
-      return;
-    }
-
     // don't bother intersecting a segment with itself
-    if (e0 == e1 && segIndex0 == segIndex1) {
+    if (hasIntersection() || e0 == e1 && segIndex0 == segIndex1) {
       return;
     }
 

@@ -229,7 +229,8 @@ public abstract class AbstractRecordTableModel extends AbstractTableModel {
         }
       }
       if (isShowCodeValues() && !isIdField(field)) {
-        Consumer<CodeTableEntry> loadAction = (x) -> fireTableCellUpdated(rowIndex, fieldIndex);
+        final Consumer<CodeTableEntry> loadAction = (x) -> fireTableCellUpdated(rowIndex,
+          fieldIndex);
         text = field.toCodeString(loadAction, objectValue);
       } else {
         text = field.toString(objectValue);

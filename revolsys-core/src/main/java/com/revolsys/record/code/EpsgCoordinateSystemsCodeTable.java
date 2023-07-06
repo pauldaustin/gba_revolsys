@@ -60,7 +60,7 @@ public class EpsgCoordinateSystemsCodeTable extends AbstractCodeTable {
   }
 
   @Override
-  public Identifier getIdentifier(Consumer<CodeTableEntry> callback, Object value) {
+  public Identifier getIdentifier(final Consumer<CodeTableEntry> callback, final Object value) {
     CoordinateSystem coordinateSystem = null;
     if (value instanceof CoordinateSystem) {
       coordinateSystem = (CoordinateSystem)value;

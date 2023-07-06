@@ -107,7 +107,7 @@ public class OrderedEqualCompareProcessor extends AbstractInProcess<Record> {
   public Channel<Record> getOtherIn() {
     if (this.otherIn == null) {
       if (this.otherInBufferSize < 1) {
-        setOtherIn(new Channel<Record>());
+        setOtherIn(new Channel<>());
       } else {
         final Buffer<Record> buffer = new Buffer<>(this.otherInBufferSize);
         setOtherIn(new Channel<>(buffer));

@@ -106,7 +106,7 @@ public class RunnableAction extends AbstractActionMainMenuItemFactory {
       });
 
     }
-  };
+  }
 
   public RunnableAction(final CharSequence name, final Icon icon, final Runnable runnable) {
     this(name, icon, false, runnable);

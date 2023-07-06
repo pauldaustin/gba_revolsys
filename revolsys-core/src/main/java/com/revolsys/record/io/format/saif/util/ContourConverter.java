@@ -30,7 +30,8 @@ public class ContourConverter extends ArcConverter {
     final LineStringEditor line) {
     final int axisCount = geometryFactory.getAxisCount();
     final int vertexCount = line.getVertexCount();
-    final double[] coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(geometryFactory, line);
+    final double[] coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(geometryFactory,
+      line);
     return new ContourLineString(geometryFactory, axisCount, vertexCount, coordinates);
   }
 

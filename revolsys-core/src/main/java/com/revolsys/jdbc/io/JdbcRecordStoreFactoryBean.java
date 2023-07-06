@@ -7,8 +7,8 @@ import javax.sql.DataSource;
 
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
+import com.revolsys.record.io.format.json.JsonObject;
 
 public class JdbcRecordStoreFactoryBean extends AbstractFactoryBean<JdbcRecordStore> {
   private MapEx config = JsonObject.hash();

@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.jeometry.common.function.BiFunctionDoubleDouble;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.elevation.gridded.esriascii.EsriAsciiGriddedElevation;
 import com.revolsys.elevation.gridded.esrifloatgrid.EsriFloatGridGriddedElevation;
@@ -33,6 +32,7 @@ import com.revolsys.grid.IntArrayScaleGrid;
 import com.revolsys.io.IoFactory;
 import com.revolsys.io.IoFactoryRegistry;
 import com.revolsys.io.map.MapObjectFactoryRegistry;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.spring.resource.Resource;
 
 public interface GriddedElevationModel extends Grid {
@@ -414,7 +414,7 @@ public interface GriddedElevationModel extends Grid {
   void setResource(Resource resource);
 
   default boolean writeGriddedElevationModel() {
-    return writeGriddedElevationModel((MapEx)JsonObject.EMPTY);
+    return writeGriddedElevationModel(JsonObject.EMPTY);
   }
 
   default boolean writeGriddedElevationModel(final Map<String, ? extends Object> properties) {

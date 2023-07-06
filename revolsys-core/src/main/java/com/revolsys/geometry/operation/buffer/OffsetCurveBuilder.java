@@ -284,10 +284,7 @@ public class OffsetCurveBuilder {
     this.distance = distance;
 
     // a zero or negative width buffer of a line/point is empty
-    if (distance < 0.0 && !this.bufParams.isSingleSided()) {
-      return null;
-    }
-    if (distance == 0.0) {
+    if (distance < 0.0 && !this.bufParams.isSingleSided() || distance == 0.0) {
       return null;
     }
 

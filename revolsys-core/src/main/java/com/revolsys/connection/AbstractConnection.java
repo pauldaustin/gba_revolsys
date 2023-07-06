@@ -6,7 +6,6 @@ import java.util.Map;
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.logging.Logs;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.io.FileUtil;
 import com.revolsys.properties.BaseObjectWithProperties;

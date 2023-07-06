@@ -8,7 +8,6 @@ import javax.swing.JComponent;
 
 import org.jeometry.common.compare.CompareUtil;
 import org.jeometry.common.data.identifier.Identifier;
-import org.jeometry.common.logging.Logs;
 
 import com.revolsys.gis.esri.gdb.file.FileGdbRecordStore;
 import com.revolsys.record.code.AbstractCodeTable;
@@ -21,12 +20,9 @@ public class FileGdbDomainCodeTable extends AbstractCodeTable {
 
   private final String name;
 
-  private final FileGdbRecordStore recordStore;
-
   private JComponent swingEditor;
 
   public FileGdbDomainCodeTable(final FileGdbRecordStore recordStore, final Domain domain) {
-    this.recordStore = recordStore;
     this.domain = domain;
     this.name = domain.getDomainName();
   }
@@ -62,7 +58,7 @@ public class FileGdbDomainCodeTable extends AbstractCodeTable {
   }
 
   @Override
-  public CodeTableEntry getEntry(Consumer<CodeTableEntry> callback, Object idOrValue) {
+  public CodeTableEntry getEntry(final Consumer<CodeTableEntry> callback, final Object idOrValue) {
     return this.domain.getEntry(callback, idOrValue);
   }
 
@@ -119,15 +115,6 @@ public class FileGdbDomainCodeTable extends AbstractCodeTable {
   @Override
   public boolean isLoading() {
     return false;
-  }
-
-  private Identifier newIdentifier(final String name) {
-    synchronized (this.domain) {
-      final Identifier id = this.domain.newCodedValue(name);
-      this.recordStore.alterDomain(this.domain);
-      Logs.info(this, this.domain.getDomainName() + " created code " + id + "=" + name);
-      return id;
-    }
   }
 
   @Override

@@ -178,10 +178,7 @@ public abstract class EdgeRing implements BoundingBoxProxy {
   public boolean containsPoint(final Point p) {
     final LinearRing shell = getLinearRing();
     final BoundingBox env = shell.getBoundingBox();
-    if (!env.bboxCovers(p)) {
-      return false;
-    }
-    if (!shell.isPointInRing(p)) {
+    if (!env.bboxCovers(p) || !shell.isPointInRing(p)) {
       return false;
     }
 

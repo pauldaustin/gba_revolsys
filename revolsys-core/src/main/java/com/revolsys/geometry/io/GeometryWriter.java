@@ -1,11 +1,11 @@
 package com.revolsys.geometry.io;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.geometry.model.Geometry;
 import com.revolsys.geometry.model.GeometryFactory;
 import com.revolsys.io.IoFactory;
 import com.revolsys.io.Writer;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.spring.resource.Resource;
 
 public interface GeometryWriter extends Writer<Geometry> {
@@ -14,7 +14,7 @@ public interface GeometryWriter extends Writer<Geometry> {
   }
 
   static <GW extends GeometryWriter> GW newGeometryWriter(final Object target) {
-    return newGeometryWriter(target, (MapEx)JsonObject.EMPTY);
+    return newGeometryWriter(target, JsonObject.EMPTY);
   }
 
   static <GW extends GeometryWriter> GW newGeometryWriter(final Object target,

@@ -221,10 +221,7 @@ class PolygonizeGraph extends PlanarGraph {
     long currLabel = 1;
     for (final Object dirEdge : dirEdges) {
       final PolygonizeDirectedEdge de = (PolygonizeDirectedEdge)dirEdge;
-      if (de.isMarked()) {
-        continue;
-      }
-      if (de.getLabel() >= 0) {
+      if (de.isMarked() || de.getLabel() >= 0) {
         continue;
       }
 
@@ -283,11 +280,7 @@ class PolygonizeGraph extends PlanarGraph {
    */
   public void addEdge(final LineString line) {
     final LineString cleanLine = line.removeDuplicatePoints();
-    if (cleanLine.isEmpty()) {
-      return;
-    }
-
-    if (cleanLine.getVertexCount() < 2) {
+    if (cleanLine.isEmpty() || cleanLine.getVertexCount() < 2) {
       return;
     }
 
@@ -479,10 +472,7 @@ class PolygonizeGraph extends PlanarGraph {
     final List<EdgeRing> edgeRingList = new ArrayList<>();
     for (final Object element : this.dirEdges) {
       final PolygonizeDirectedEdge de = (PolygonizeDirectedEdge)element;
-      if (de.isMarked()) {
-        continue;
-      }
-      if (de.isInRing()) {
+      if (de.isMarked() || de.isInRing()) {
         continue;
       }
 

@@ -97,16 +97,7 @@ public class LineBuilder {
   private void collectBoundaryTouchEdge(final DirectedEdge de, final int opCode,
     final List<Edge> edges) {
     final Label label = de.getLabel();
-    if (de.isLineEdge()) {
-      return; // only interested in area edges
-    }
-    if (de.isVisited()) {
-      return; // already processed
-    }
-    if (de.isInteriorAreaEdge()) {
-      return; // added to handle dimensional collapses
-    }
-    if (de.getEdge().isInResult()) {
+    if (de.isLineEdge() || de.isVisited() || de.isInteriorAreaEdge() || de.getEdge().isInResult()) {
       return; // if the edge linework is already included, don't include it
       // again
     }

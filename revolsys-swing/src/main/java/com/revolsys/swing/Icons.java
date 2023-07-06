@@ -385,10 +385,7 @@ public class Icons {
     }
     maxWidth += (i - 1) * space;
 
-    if (maxWidth == 0) {
-      return null;
-    }
-    if (maxHeight == 0) {
+    if (maxWidth == 0 || maxHeight == 0) {
       return null;
     }
 

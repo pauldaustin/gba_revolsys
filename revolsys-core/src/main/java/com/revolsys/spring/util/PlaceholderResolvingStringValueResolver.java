@@ -116,7 +116,7 @@ public class PlaceholderResolvingStringValueResolver implements StringValueResol
 
   @Override
   public String resolveStringValue(final String strVal) throws BeansException {
-    final String value = parseStringValue(strVal, this.attributes, new HashSet<String>());
+    final String value = parseStringValue(strVal, this.attributes, new HashSet<>());
     return value.equals(this.nullValue) ? null : value;
   }
 }

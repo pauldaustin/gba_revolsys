@@ -555,7 +555,7 @@ public interface Paths {
     return toUrl(path).toString();
   }
 
-  static Flux<Path> walk$(Path dir) {
+  static Flux<Path> walk$(final Path dir) {
     try {
       return Flux.fromStream(Files.walk(dir));
     } catch (final IOException e) {

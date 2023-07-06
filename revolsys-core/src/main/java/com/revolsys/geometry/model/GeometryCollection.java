@@ -212,10 +212,7 @@ public interface GeometryCollection extends Geometry {
 
   @Override
   default boolean equalsExact(final Geometry other, final double tolerance) {
-    if (!isEquivalentClass(other)) {
-      return false;
-    }
-    if (getGeometryCount() != other.getGeometryCount()) {
+    if (!isEquivalentClass(other) || getGeometryCount() != other.getGeometryCount()) {
       return false;
     }
     int i = 0;

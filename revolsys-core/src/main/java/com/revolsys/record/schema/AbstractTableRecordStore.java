@@ -201,10 +201,7 @@ public class AbstractTableRecordStore implements RecordDefinitionProxy {
   }
 
   public boolean canEditField(final String fieldName) {
-    if (!this.recordDefinition.hasField(fieldName)) {
-      return false;
-    }
-    if (this.recordDefinition.isIdField(fieldName)) {
+    if (!this.recordDefinition.hasField(fieldName) || this.recordDefinition.isIdField(fieldName)) {
       return false;
     }
     return true;

@@ -43,11 +43,10 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
 
   protected EdmEntityType entityBaseType;
 
-  private final List<String> keyPredicateNames = Collections
-    .synchronizedList(new ArrayList<String>());
+  private final List<String> keyPredicateNames = Collections.synchronizedList(new ArrayList<>());
 
   private final Map<String, EdmKeyPropertyRef> keyPropertyRefs = Collections
-    .synchronizedMap(new LinkedHashMap<String, EdmKeyPropertyRef>());
+    .synchronizedMap(new LinkedHashMap<>());
 
   private List<EdmKeyPropertyRef> keyPropertyRefsList;
 

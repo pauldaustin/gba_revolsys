@@ -21,13 +21,13 @@ public class StaxProperty implements XmlNameProxy {
     this.list = list;
   }
 
+  public String getName() {
+    return this.name;
+  }
+
   @Override
   public XmlName getXmlName() {
     return this.elementName;
-  }
-
-  public String getName() {
-    return this.name;
   }
 
   public void handleElement(final StaxReader in, final StaxElementCallback callback) {

@@ -42,7 +42,7 @@ public class Buffer<T> extends ChannelValueStore<T> {
    * @param maxSize The maximum number of Objects the Buffer can store
    */
   public Buffer(final int maxSize) {
-    this(new LinkedList<T>(), maxSize);
+    this(new LinkedList<>(), maxSize);
   }
 
   /**

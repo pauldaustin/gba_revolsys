@@ -116,7 +116,6 @@ public class ArrayChangeTrackRecord extends ArrayRecord implements ChangeTrackRe
     final Object oldValue = getValue(fieldIndex);
     RecordState newState = null;
     if (!DataType.equal(oldValue, newValue)) {
-
       final RecordState state = getState();
       switch (state) {
         case INITIALIZING:
@@ -138,7 +137,6 @@ public class ArrayChangeTrackRecord extends ArrayRecord implements ChangeTrackRe
               }
             }
           } else {
-            DataType.equal(oldValue, newValue);
             if (originalValues == EMPTY_ORIGINAL_VALUES) {
               originalValues = new HashMap<>();
             }

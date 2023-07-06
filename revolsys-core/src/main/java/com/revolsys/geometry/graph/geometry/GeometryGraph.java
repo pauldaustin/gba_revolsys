@@ -157,7 +157,7 @@ public class GeometryGraph extends Graph<LineSegment> implements BoundingBoxProx
               geometries.add(line);
             }
             points.clear();
-            ;
+
             points.add(lineSegment.getPoint(0));
             points.add(lineSegment.getPoint(1));
           }
@@ -167,7 +167,7 @@ public class GeometryGraph extends Graph<LineSegment> implements BoundingBoxProx
               final LineString line = geometryFactory.lineString(points);
               geometries.add(line);
               points.clear();
-              ;
+
               points.add(toNode);
             }
           }

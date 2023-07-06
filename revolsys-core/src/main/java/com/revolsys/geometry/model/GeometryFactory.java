@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -609,6 +610,12 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     return instances.floating(2);
   }
 
+  public static GeometryFactory floating2d(final Function<String, CoordinateSystem> conveter,
+    final String id) {
+    final GeometryFactories instances = instances(conveter.apply(id));
+    return instances.floating(2);
+  }
+
   public static GeometryFactory floating2d(final int coordinateSystemId) {
     return floating(coordinateSystemId, 2);
   }
@@ -623,6 +630,12 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
 
   public static GeometryFactory floating3d(final CoordinateSystem coordinateSystem) {
     return floating(coordinateSystem, 3);
+  }
+
+  public static GeometryFactory floating3d(final Function<String, CoordinateSystem> conveter,
+    final String id) {
+    final GeometryFactories instances = instances(conveter.apply(id));
+    return instances.floating(3);
   }
 
   /**
@@ -2281,7 +2294,7 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     return new PointDoubleXYGeometryFactory(this, x, y);
   }
 
-  public Point point(final double x, double y, double z) {
+  public Point point(final double x, final double y, final double z) {
     return new PointDoubleXYZGeometryFactory(this, x, y, z);
   }
 

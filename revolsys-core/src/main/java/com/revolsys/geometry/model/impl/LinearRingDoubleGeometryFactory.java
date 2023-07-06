@@ -54,7 +54,8 @@ import com.revolsys.record.io.format.wkt.EWktWriter;
  *
  * @version 1.7
  */
-public class LinearRingDoubleGeometryFactory extends LineStringDoubleGeometryFactory implements LinearRing {
+public class LinearRingDoubleGeometryFactory extends LineStringDoubleGeometryFactory
+  implements LinearRing {
   private static final long serialVersionUID = -4261142084085851829L;
 
   public LinearRingDoubleGeometryFactory(final GeometryFactory factory) {

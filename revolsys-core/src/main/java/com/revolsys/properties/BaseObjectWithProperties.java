@@ -4,9 +4,9 @@ import jakarta.annotation.PreDestroy;
 
 import org.jeometry.common.exception.Exceptions;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
+import com.revolsys.record.io.format.json.JsonObject;
 
 public class BaseObjectWithProperties implements ObjectWithProperties {
   private MapEx properties = JsonObject.hash();

@@ -14,7 +14,7 @@
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
     </license>
     <license>
@@ -72,7 +72,7 @@
     <dependency>
       <groupId>xml-apis</groupId>
       <artifactId>xml-apis-ext</artifactId>
-      <version>1.3.04</version>  
+      <version>1.3.04</version>
     </dependency>
     <dependency>
       <groupId>org.graalvm.js</groupId>

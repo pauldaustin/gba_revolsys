@@ -16,7 +16,7 @@ public class DelegatingMap<K, V> extends AbstractDelegatingMap<K, V> implements 
   private Map<K, V> map;
 
   public DelegatingMap() {
-    this(new LinkedHashMap<K, V>());
+    this(new LinkedHashMap<>());
   }
 
   public DelegatingMap(final Map<K, V> map) {

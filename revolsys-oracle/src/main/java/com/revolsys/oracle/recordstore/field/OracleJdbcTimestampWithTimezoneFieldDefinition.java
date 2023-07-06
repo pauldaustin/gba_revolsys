@@ -28,8 +28,9 @@ public class OracleJdbcTimestampWithTimezoneFieldDefinition extends JdbcFieldDef
   }
 
   @Override
-  public Object getValueFromResultSet(RecordDefinition recordDefinition, ResultSet resultSet,
-    ColumnIndexes indexes, boolean internStrings) throws SQLException {
+  public Object getValueFromResultSet(final RecordDefinition recordDefinition,
+    final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
+    throws SQLException {
     final TIMESTAMPTZ value = (TIMESTAMPTZ)resultSet.getObject(indexes.incrementAndGet());
     if (value == null) {
       return null;

@@ -50,8 +50,6 @@ public class ODataQueryIterator extends AbstractIterator<Record>
 
   private final ApacheHttpRequestBuilderFactory requestFactory;
 
-  private RecordFactory<Record> recordFactory;
-
   private final Function<JsonObject, Record> recordConverter;
 
   private int readCount;

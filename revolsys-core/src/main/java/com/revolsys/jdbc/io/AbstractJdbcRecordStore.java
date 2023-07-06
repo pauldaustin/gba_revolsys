@@ -21,6 +21,8 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import jakarta.annotation.PreDestroy;
+
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.DataType;
 import org.jeometry.common.data.type.DataTypes;
@@ -68,8 +70,6 @@ import com.revolsys.transaction.TransactionOptions;
 import com.revolsys.util.Booleans;
 import com.revolsys.util.Property;
 
-import jakarta.annotation.PreDestroy;
-
 public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   implements JdbcRecordStore, RecordStoreExtension {
   public static final List<String> DEFAULT_PERMISSIONS = Arrays.asList("SELECT");
@@ -101,8 +101,6 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   private boolean lobAsString = false;
 
   private String primaryKeySql;
-
-  private String primaryKeyTableCondition;
 
   private String schemaPermissionsSql;
 
@@ -993,7 +991,6 @@ public abstract class AbstractJdbcRecordStore extends AbstractRecordStore
   }
 
   public void setPrimaryKeyTableCondition(final String primaryKeyTableCondition) {
-    this.primaryKeyTableCondition = primaryKeyTableCondition;
   }
 
   public void setQuoteNames(final boolean quoteNames) {

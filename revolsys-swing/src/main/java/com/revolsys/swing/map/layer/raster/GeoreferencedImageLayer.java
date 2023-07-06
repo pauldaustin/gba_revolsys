@@ -384,7 +384,7 @@ public class GeoreferencedImageLayer extends AbstractLayer {
           }
         }
         super.setEditable(editable);
-        if (editable == false) {
+        if (!editable) {
           setShowOriginalImage(false);
         }
       }

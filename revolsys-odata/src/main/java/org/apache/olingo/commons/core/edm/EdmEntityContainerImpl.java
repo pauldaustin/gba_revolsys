@@ -60,30 +60,30 @@ public class EdmEntityContainerImpl extends AbstractEdmNamed implements EdmEntit
   private List<EdmSingleton> singletons;
 
   private final Map<String, EdmSingleton> singletonCache = Collections
-    .synchronizedMap(new LinkedHashMap<String, EdmSingleton>());
+    .synchronizedMap(new LinkedHashMap<>());
 
   private List<EdmEntitySet> entitySets;
 
   private final Map<String, EdmEntitySet> entitySetCache = Collections
-    .synchronizedMap(new LinkedHashMap<String, EdmEntitySet>());
+    .synchronizedMap(new LinkedHashMap<>());
 
   private List<EdmActionImport> actionImports;
 
   private final Map<String, EdmActionImport> actionImportCache = Collections
-    .synchronizedMap(new LinkedHashMap<String, EdmActionImport>());
+    .synchronizedMap(new LinkedHashMap<>());
 
   private List<EdmFunctionImport> functionImports;
 
   private final Map<String, EdmFunctionImport> functionImportCache = Collections
-    .synchronizedMap(new LinkedHashMap<String, EdmFunctionImport>());
+    .synchronizedMap(new LinkedHashMap<>());
 
   private boolean isAnnotationsIncluded = false;
 
   private final Map<String, EdmEntitySet> entitySetWithAnnotationsCache = Collections
-    .synchronizedMap(new LinkedHashMap<String, EdmEntitySet>());
+    .synchronizedMap(new LinkedHashMap<>());
 
   private final Map<String, EdmSingleton> singletonWithAnnotationsCache = Collections
-    .synchronizedMap(new LinkedHashMap<String, EdmSingleton>());
+    .synchronizedMap(new LinkedHashMap<>());
 
   private boolean isSingletonAnnotationsIncluded = false;
 

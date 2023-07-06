@@ -314,7 +314,7 @@ public interface TriangulatedIrregularNetwork extends GeometryFactoryProxy {
   }
 
   default boolean writeTriangulatedIrregularNetwork() {
-    return writeTriangulatedIrregularNetwork((MapEx)JsonObject.EMPTY);
+    return writeTriangulatedIrregularNetwork(JsonObject.EMPTY);
   }
 
   default boolean writeTriangulatedIrregularNetwork(final MapEx properties) {

@@ -187,10 +187,7 @@ public class BufferInputLineSimplifier {
     final double x3 = this.inputLine.getX(i2);
     final double y3 = this.inputLine.getY(i2);
 
-    if (!isConcave(x1, y1, x2, y2, x3, y3)) {
-      return false;
-    }
-    if (!isShallow(x1, y1, x2, y2, x3, y3, distanceTol)) {
+    if (!isConcave(x1, y1, x2, y2, x3, y3) || !isShallow(x1, y1, x2, y2, x3, y3, distanceTol)) {
       return false;
     }
 

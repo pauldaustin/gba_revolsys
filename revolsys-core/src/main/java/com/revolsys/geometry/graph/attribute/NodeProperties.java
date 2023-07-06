@@ -23,7 +23,7 @@ import com.revolsys.record.schema.RecordDefinition;
 public class NodeProperties {
   protected static class Methods {
     public static Set<Double> edgeAngles(final Node<?> node) {
-      final Set<Double> angles = new TreeSet<>(new NumericComparator<Double>());
+      final Set<Double> angles = new TreeSet<>(new NumericComparator<>());
       for (final Edge<?> edge : node.getInEdges()) {
         final double toAngle = edge.getToAngle();
         angles.add(toAngle);
@@ -145,7 +145,7 @@ public class NodeProperties {
       final String typePath) {
       Set<Double> angles = anglesByType.get(typePath);
       if (angles == null) {
-        angles = new TreeSet<>(new NumericComparator<Double>());
+        angles = new TreeSet<>(new NumericComparator<>());
         anglesByType.put(typePath, angles);
       }
       return angles;

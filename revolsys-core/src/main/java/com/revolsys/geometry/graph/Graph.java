@@ -126,7 +126,7 @@ public class Graph<T> extends BaseObjectWithProperties implements GeometryFactor
   }
 
   protected Graph(final boolean storeLines) {
-    graphs.put(this.id, new WeakReference<Graph<?>>(this));
+    graphs.put(this.id, new WeakReference<>(this));
     if (!storeLines) {
       this.edgeLinesById = null;
     }
@@ -173,7 +173,7 @@ public class Graph<T> extends BaseObjectWithProperties implements GeometryFactor
       this.nodePropertiesById = BPlusTreeMap.newIntSeralizableTempDisk(this.nodePropertiesById);
       this.nodesById = BPlusTreeMap.newIntSeralizableTempDisk(this.nodesById);
       this.nodesIdsByPoint = BPlusTreeMap.newTempDisk(this.nodesIdsByPoint,
-        new SerializablePageValueManager<Point>(), PageValueManager.INT);
+        new SerializablePageValueManager<>(), PageValueManager.INT);
       this.inMemory = false;
     }
     final Node<T> fromNode = getNode(fromX, fromY);

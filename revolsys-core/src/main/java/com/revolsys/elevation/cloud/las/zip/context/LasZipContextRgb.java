@@ -49,7 +49,7 @@ public class LasZipContextRgb {
     }
 
     this.lastRgb.setValues(point);
-    ;
+
   }
 
   public void initRgb(final ArithmeticCodingCodec codec, final RgbUpperLower rgb) {

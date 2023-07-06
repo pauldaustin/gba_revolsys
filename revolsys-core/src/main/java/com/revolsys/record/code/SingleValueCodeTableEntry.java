@@ -10,7 +10,7 @@ public class SingleValueCodeTableEntry implements CodeTableEntry {
 
   private final Object value;
 
-  public SingleValueCodeTableEntry(Identifier identifier, Object value) {
+  public SingleValueCodeTableEntry(final Identifier identifier, final Object value) {
     this.identifier = identifier;
     this.value = value;
   }

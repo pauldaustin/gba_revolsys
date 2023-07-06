@@ -84,7 +84,7 @@ public class BlockDeleteRecords {
     if (blockedRecordsByLayer.isEmpty()) {
       if (AbstractRecordLayer.isGlobalConfirmDeleteRecords() || confirmDeleteRecords) {
         int recordCount = 0;
-        for (List<LR> records : otherRecordsByLayer.values()) {
+        for (final List<LR> records : otherRecordsByLayer.values()) {
           recordCount += records.size();
         }
         final String message = "Delete " + recordCount + " records" + suffix

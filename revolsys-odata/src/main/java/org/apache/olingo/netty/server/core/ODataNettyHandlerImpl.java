@@ -25,7 +25,6 @@ import java.nio.channels.Channel;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -129,9 +128,7 @@ public class ODataNettyHandlerImpl implements ODataNettyHandler {
    */
   static void copyHeaders(final ODataRequest odRequest, final HttpRequest req) {
     final Set<String> headers = req.headers().names();
-    final Iterator<String> headerNames = headers.iterator();
-    while (headerNames.hasNext()) {
-      final String headerName = headerNames.next();
+    for (final String headerName : headers) {
       final List<String> headerValues = req.headers().getAll(headerName);
       odRequest.addHeader(headerName, headerValues);
     }

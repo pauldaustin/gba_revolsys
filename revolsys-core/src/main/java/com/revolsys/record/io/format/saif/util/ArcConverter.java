@@ -41,7 +41,8 @@ public class ArcConverter implements OsnConverter {
     final LineStringEditor line) {
     final int axisCount = geometryFactory.getAxisCount();
     final int vertexCount = line.getVertexCount();
-    final double[] coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(geometryFactory, line);
+    final double[] coordinates = LineStringDoubleGeometryFactory.getNewCoordinates(geometryFactory,
+      line);
     return new ArcLineString(geometryFactory, axisCount, vertexCount, coordinates);
   }
 

@@ -105,9 +105,9 @@ public class FieldFilterPanel extends JComponent implements PropertyChangeListen
 
   private RecordLayerTableModel tableModel;
 
-  private final TextField whereField = new TextField(20).setFieldEditable(false);;
+  private final TextField whereField = new TextField(20).setFieldEditable(false);
 
-  private final ItemListener itemListener = (e) -> {
+  private final ItemListener itemListener = e -> {
     if (this.settingFilter.isFalse()) {
       if (e.getStateChange() == ItemEvent.SELECTED) {
         final Object source = e.getSource();
@@ -175,9 +175,7 @@ public class FieldFilterPanel extends JComponent implements PropertyChangeListen
       add(this.whereField);
 
       this.nameField = ComboBox.newComboBox("fieldNames", this.fieldNames,
-        (final Object fieldName) -> {
-          return this.layer.getFieldTitle((String)fieldName);
-        });
+        (final Object fieldName) -> this.layer.getFieldTitle((String)fieldName));
       this.nameField.addActionListener(this.actionListener);
       add(this.nameField);
 

@@ -18,6 +18,12 @@ public class IgnoreCloseDelegatingInputStream extends InputStream {
     return this.in.available();
   }
 
+  private void checkOpen() {
+    if (this.in == null) {
+      throw new IllegalStateException("Closed");
+    }
+  }
+
   @Override
   public synchronized void mark(final int readlimit) {
     checkOpen();
@@ -82,12 +88,6 @@ public class IgnoreCloseDelegatingInputStream extends InputStream {
   public long transferTo(final OutputStream out) throws IOException {
     checkOpen();
     return this.in.transferTo(out);
-  }
-
-  private void checkOpen() {
-    if (this.in == null) {
-      throw new IllegalStateException("Closed");
-    }
   }
 
 }

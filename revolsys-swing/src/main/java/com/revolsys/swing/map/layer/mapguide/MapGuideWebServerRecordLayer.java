@@ -42,15 +42,15 @@ public class MapGuideWebServerRecordLayer extends AbstractRecordLayer {
     setReadOnly(true);
   }
 
+  public MapGuideWebServerRecordLayer(final Map<String, ? extends Object> properties) {
+    this();
+    setProperties(properties);
+  }
+
   public MapGuideWebServerRecordLayer(final MapGuideFeatureLayer layerDescription) {
     this();
     setWebServiceLayer(layerDescription);
     setProperties(Collections.emptyMap());
-  }
-
-  public MapGuideWebServerRecordLayer(final Map<String, ? extends Object> properties) {
-    this();
-    setProperties(properties);
   }
 
   @Override

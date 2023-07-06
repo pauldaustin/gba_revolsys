@@ -15,9 +15,9 @@ import java.util.Set;
 
 import org.jeometry.common.logging.Logs;
 
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.collection.map.MapEx;
 import com.revolsys.collection.map.Maps;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.util.Property;
 
 public class MavenPom extends GroupArtifactVersion {

@@ -115,7 +115,7 @@ public class IntHashMap<T> implements Map<Integer, T>, Cloneable, Serializable {
       IntEntry<T> n = null;
       if (IntHashMap.this.size != 0) { // advance to first entry
         while (i > 0 && (n = t[--i]) == null) {
-          /* NoOp */;
+          /* NoOp */
         }
       }
       this.next = n;

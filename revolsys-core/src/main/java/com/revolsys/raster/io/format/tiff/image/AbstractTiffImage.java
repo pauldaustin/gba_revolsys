@@ -268,8 +268,8 @@ public abstract class AbstractTiffImage extends AbstractGeoreferencedImage imple
     }
   }
 
-  private InputStream getInputStream(final DataReader in, final long[] offsets,
-    final long[] counts, final int index) {
+  private InputStream getInputStream(final DataReader in, final long[] offsets, final long[] counts,
+    final int index) {
     final long offset = offsets[index];
     final int byteCount = (int)counts[index];
     return in.getInputStream(offset, byteCount);

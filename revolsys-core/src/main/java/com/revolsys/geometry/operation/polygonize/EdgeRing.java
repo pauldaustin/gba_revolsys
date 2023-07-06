@@ -94,11 +94,8 @@ class EdgeRing implements BoundingBoxProxy {
         final LinearRing tryShellRing = tryShell.getRing();
         // the hole envelope cannot equal the shell envelope
         // (also guards against testing rings against themselves)
-        if (tryShell.bboxEquals(testRing)) {
-          continue;
-        }
         // hole must be contained in shell
-        if (!tryShell.bboxCovers(testRing)) {
+        if (tryShell.bboxEquals(testRing) || !tryShell.bboxCovers(testRing)) {
           continue;
         }
 
