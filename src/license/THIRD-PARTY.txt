@@ -11,7 +11,6 @@ Lists of 64 third-party dependencies.
      (apache_2_0) RS GDAL (com.revolsys.open:com.revolsys.open.gdal:MAIN-SNAPSHOT - http://revolsys.github.com/com.revolsys.open/com.revolsys.open.gdal/)
      (apache_2_0) RS Web (com.revolsys.open:com.revolsys.open.web:MAIN-SNAPSHOT - http://revolsys.github.com/com.revolsys.open/com.revolsys.open.web/)
      (apache_2_0) Commons BeanUtils (commons-beanutils:commons-beanutils:1.8.3 - http://commons.apache.org/beanutils/)
-     (apache_2_0) Commons CLI (commons-cli:commons-cli:1.2 - http://commons.apache.org/cli/)
      (apache_2_0) Commons FileUpload (commons-fileupload:commons-fileupload:1.2.2 - http://commons.apache.org/fileupload/)
      (apache_2_0) Commons IO (commons-io:commons-io:2.3 - http://commons.apache.org/io/)
      (apache_2_0) Commons JEXL (commons-jexl:commons-jexl:1.1 - http://jakarta.apache.org/commons/jexl/)
