@@ -21,7 +21,7 @@ public class Column implements QueryValue, ColumnReference {
 
   private final String name;
 
-  private TableReference table;
+  private TableReferenceProxy table;
 
   public Column(final CharSequence name) {
     this(name.toString());
@@ -31,7 +31,7 @@ public class Column implements QueryValue, ColumnReference {
     this.name = name;
   }
 
-  public Column(final TableReference tableReference, final CharSequence name) {
+  public Column(final TableReferenceProxy tableReference, final CharSequence name) {
     this.table = tableReference;
     this.name = name.toString();
   }
@@ -146,7 +146,7 @@ public class Column implements QueryValue, ColumnReference {
 
   @Override
   public TableReference getTable() {
-    return this.table;
+    return this.table.getTableReference();
   }
 
   @Override

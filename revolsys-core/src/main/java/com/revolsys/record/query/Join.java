@@ -10,7 +10,7 @@ import com.revolsys.collection.map.MapEx;
 import com.revolsys.record.schema.RecordDefinitionProxy;
 import com.revolsys.record.schema.RecordStore;
 
-public class Join implements QueryValue {
+public class Join implements QueryValue, TableReferenceProxy {
 
   private final JoinType joinType;
 
@@ -111,6 +111,15 @@ public class Join implements QueryValue {
     return this;
   }
 
+  @Override
+  public ColumnReference getColumn(final CharSequence name) {
+    if (this.table.hasColumn(name)) {
+      return new Column(this, name);
+    }
+    throw new IllegalArgumentException(
+      "Column not found: " + this.table.getTableReference().getTablePath() + "." + name);
+  }
+
   public Condition getCondition() {
     return this.condition;
   }
@@ -119,8 +128,18 @@ public class Join implements QueryValue {
     return this.table;
   }
 
+  @Override
+  public String getTableAlias() {
+    return this.alias;
+  }
+
   public PathName getTableName() {
     return this.tablePath;
+  }
+
+  @Override
+  public TableReference getTableReference() {
+    return this.table;
   }
 
   @Override
@@ -161,6 +180,11 @@ public class Join implements QueryValue {
   public Join recordDefinition(final RecordDefinitionProxy recordDefinition) {
     this.table = recordDefinition.getRecordDefinition();
     this.tablePath = this.table.getTablePath();
+    return this;
+  }
+
+  public Join select(final Query query, final String... columnNames) {
+    query.select(this, columnNames);
     return this;
   }
 

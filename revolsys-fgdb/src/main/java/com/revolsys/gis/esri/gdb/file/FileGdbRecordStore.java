@@ -555,7 +555,7 @@ public class FileGdbRecordStore extends AbstractRecordStore {
   private TableReference getTableReference(final PathName path) {
     final FileGdbRecordDefinition recordDefinition = getRecordDefinition(path);
     if (recordDefinition != null) {
-      return recordDefinition.getTableReference();
+      return recordDefinition.getGdbTableReference();
     }
     return null;
   }
@@ -565,7 +565,7 @@ public class FileGdbRecordStore extends AbstractRecordStore {
     if (fileGdbRecordDefinition == null) {
       return null;
     } else {
-      return fileGdbRecordDefinition.getTableReference();
+      return fileGdbRecordDefinition.getGdbTableReference();
     }
   }
 

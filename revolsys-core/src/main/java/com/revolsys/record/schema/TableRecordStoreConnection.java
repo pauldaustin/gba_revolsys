@@ -9,6 +9,7 @@ import org.jeometry.common.io.PathName;
 import org.jeometry.common.io.PathNameProxy;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import com.revolsys.collection.map.MapEx;
 import com.revolsys.record.Record;
 import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.query.Query;
@@ -74,7 +75,7 @@ public interface TableRecordStoreConnection extends Transactionable {
     return tableRecordStore.newRecord();
   }
 
-  default Record newRecord(final CharSequence tablePath, final JsonObject json) {
+  default Record newRecord(final CharSequence tablePath, final MapEx json) {
     final AbstractTableRecordStore tableRecordStore = getTableRecordStore(tablePath);
     return tableRecordStore.newRecord(json);
   }

@@ -223,14 +223,14 @@ public class FileGdbRecordDefinition extends RecordDefinitionImpl {
     return (T)this.deTable;
   }
 
+  public TableReference getGdbTableReference() {
+    return this.tableReference;
+  }
+
   @SuppressWarnings("unchecked")
   @Override
   public <V extends RecordStore> V getRecordStore() {
     return (V)this.recordStore;
-  }
-
-  TableReference getTableReference() {
-    return this.tableReference;
   }
 
   public TableWrapper lockTable(final boolean loadOnlyMode) {
