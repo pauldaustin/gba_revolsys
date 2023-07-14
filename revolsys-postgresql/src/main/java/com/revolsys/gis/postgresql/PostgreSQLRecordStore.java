@@ -331,7 +331,7 @@ select distinct
     WHEN relkind = 'r' THEN 'TABLE'
     WHEN relkind = 'v' THEN 'VIEW'
     WHEN relkind = 'm' THEN 'VIEW'
-    ELSE relkind || ''
+    ELSE relkind
   END "TABLE_TYPE"
 from
   pg_namespace n
