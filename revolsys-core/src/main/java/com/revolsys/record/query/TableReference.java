@@ -10,7 +10,7 @@ import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.record.schema.RecordDefinitionProxy;
 
-public interface TableReference extends From {
+public interface TableReference extends From, TableReferenceProxy {
   static TableReference getTableReference(final RecordDefinitionProxy recordDefinition) {
     if (recordDefinition == null) {
       return null;
@@ -95,6 +95,7 @@ public interface TableReference extends From {
     return equal(fromFieldName, toColumn);
   }
 
+  @Override
   ColumnReference getColumn(final CharSequence name);
 
   List<FieldDefinition> getFields();
@@ -106,6 +107,11 @@ public interface TableReference extends From {
   String getTableAlias();
 
   PathName getTablePath();
+
+  @Override
+  default TableReference getTableReference() {
+    return this;
+  }
 
   boolean hasColumn(CharSequence name);
 

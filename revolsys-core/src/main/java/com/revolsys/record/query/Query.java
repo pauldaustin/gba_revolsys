@@ -1071,6 +1071,14 @@ public class Query extends BaseObjectWithProperties
     return this;
   }
 
+  public Query select(final TableReferenceProxy table, final String... fieldNames) {
+    for (final String fieldName : fieldNames) {
+      final ColumnReference column = table.getColumn(fieldName);
+      this.selectExpressions.add(column);
+    }
+    return this;
+  }
+
   public Query selectAlias(final ColumnReference column, final String alias) {
     final ColumnAlias columnAlias = new ColumnAlias(column, alias);
     this.selectExpressions.add(columnAlias);
@@ -1086,6 +1094,10 @@ public class Query extends BaseObjectWithProperties
   public Query selectAlias(final String name, final String alias) {
     final ColumnReference column = this.table.getColumn(name);
     return selectAlias(column, alias);
+  }
+
+  public Query selectAll() {
+    return select(getRecordDefinition().getFieldDefinitions());
   }
 
   public Query selectCsv(final String select) {
