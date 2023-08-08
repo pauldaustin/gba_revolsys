@@ -1493,12 +1493,8 @@ public abstract class GeometryFactory implements GeometryFactoryProxy, MapSerial
     if (ring instanceof LinearRing) {
       return (LinearRing)ring;
     } else if (ring instanceof LineString) {
-      final LineString points = (LineString)ring;
-      return linearRing(points);
-    } else if (ring instanceof LineString) {
       final LineString line = (LineString)ring;
-      final LineString points = line;
-      return linearRing(points);
+      return linearRing(line);
     } else if (ring instanceof double[]) {
       final double[] coordinates = (double[])ring;
       return linearRing(this.axisCount, coordinates);
