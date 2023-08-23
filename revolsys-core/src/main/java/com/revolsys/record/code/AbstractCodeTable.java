@@ -57,14 +57,19 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
     return getData().getEntry(idOrValue);
   }
 
-  public Identifier getIdentidier(final int index) {
-    return getData().getIdentidier(index);
+  public Identifier getIdentifier(final int index) {
+    return getData().getIdentifier(index);
   }
 
   @Override
   public Identifier getIdentifier(final Consumer<CodeTableEntry> callback, final Object value) {
     final CodeTableEntry entry = getEntry(callback, value);
     return CodeTableEntry.getIdentifier(entry);
+  }
+
+  @Override
+  public Identifier getIdentifierByIndex(final int index) {
+    return getData().getIdentifier(index);
   }
 
   @Override
