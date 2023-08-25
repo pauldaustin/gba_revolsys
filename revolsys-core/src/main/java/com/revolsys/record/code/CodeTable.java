@@ -150,6 +150,8 @@ public interface CodeTable
     return getIdentifier(null, value);
   }
 
+  Identifier getIdentifierByIndex(final int index);
+
   List<Identifier> getIdentifiers();
 
   String getIdFieldName();

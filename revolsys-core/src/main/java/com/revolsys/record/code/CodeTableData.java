@@ -109,7 +109,7 @@ public class CodeTableData implements BaseCloseable, Cloneable {
     return entry;
   }
 
-  public Identifier getIdentidier(final int index) {
+  public Identifier getIdentifier(final int index) {
     return this.identifiers.get(index);
   }
 

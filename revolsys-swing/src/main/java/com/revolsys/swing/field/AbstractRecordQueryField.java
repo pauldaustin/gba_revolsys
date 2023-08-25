@@ -72,6 +72,7 @@ import com.revolsys.swing.listener.WeakFocusListener;
 import com.revolsys.swing.map.list.RecordListCellRenderer;
 import com.revolsys.swing.menu.MenuFactory;
 import com.revolsys.swing.parallel.Invoke;
+import com.revolsys.util.Debug;
 import com.revolsys.util.Property;
 import com.revolsys.value.ThreadBooleanValue;
 
@@ -120,8 +121,8 @@ public abstract class AbstractRecordQueryField extends ValueField
     this.typePath = recordDefinition.getPathName();
     this.displayField = displayField;
     this.queries = Arrays.asList(
-      recordDefinition.newQuery().and(Q.equal(F.upper(displayField), Value.newValue(null))),
-      recordDefinition.newQuery().and(Q.iLike(displayField, "")));
+      recordDefinition.newQuery().and(Q.equal(F.upper(displayField), Value.newValue("Main"))),
+      recordDefinition.newQuery().and(Q.iLike(displayField, "Main")));
 
     final Document document = this.searchField.getDocument();
     document.addDocumentListener(this);
@@ -399,6 +400,9 @@ public abstract class AbstractRecordQueryField extends ValueField
   }
 
   protected void queryDo(final int searchIndex, final String queryText) {
+    if ("Main".equals(queryText)) {
+      Debug.noOp();
+    }
     if (searchIndex == this.searchIndex.get()) {
       Record selectedRecord = null;
       final Map<String, Record> allRecords = new TreeMap<>();
