@@ -2,17 +2,12 @@ package com.revolsys.record.io;
 
 import java.io.File;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
-
-import org.reactivestreams.Publisher;
 
 import com.revolsys.geometry.model.ClockDirection;
 import com.revolsys.geometry.model.Geometry;
 import com.revolsys.geometry.model.GeometryFactory;
-import com.revolsys.io.BaseCloseable;
 import com.revolsys.io.FileUtil;
 import com.revolsys.io.IoFactory;
 import com.revolsys.io.Writer;
@@ -24,25 +19,9 @@ import com.revolsys.record.schema.RecordDefinitionProxy;
 import com.revolsys.spring.resource.Resource;
 import com.revolsys.util.Property;
 
-import reactor.core.publisher.Flux;
-
 public interface RecordWriter extends Writer<Record>, RecordDefinitionProxy {
 
   public static class Builder {
-    static <R extends Record> Flux<R> fluxWrite(final RecordDefinitionProxy recordDefinition,
-      final Supplier<Object> targetSupplier, final Consumer<RecordWriter> writerInitalizer,
-      final Flux<R> records) {
-      // TODO have writers use Mono to write asynchronously
-      return BaseCloseable.fluxUsing(() -> new LazyRecordWriter(recordDefinition, () -> {
-        final RecordWriter writer = newRecordWriter(recordDefinition, targetSupplier.get());
-        if (writerInitalizer != null) {
-          writerInitalizer.accept(writer);
-        }
-        return writer;
-      }), //
-        (writer) -> records.doOnNext(writer::write) //
-      );
-    }
 
     private JsonObject properties = JsonObject.hash();
 
@@ -91,20 +70,6 @@ public interface RecordWriter extends Writer<Record>, RecordDefinitionProxy {
     public Builder factory(final RecordWriterFactory factory) {
       this.factory = factory;
       return this;
-    }
-
-    public <R extends Record> Flux<R> fluxWrite(final Flux<R> records) {
-      // TODO have writers use Mono to write asynchronously
-      final Callable<LazyRecordWriter> supplier = () -> new LazyRecordWriter(this.recordDefinition,
-        this::build);
-      final Function<LazyRecordWriter, Publisher<R>> action = (writer) -> {
-        if (writer == null) {
-          throw new IllegalStateException("Unable to create writer for :" + this.target);
-        } else {
-          return records.doOnNext(writer::write);
-        }
-      };
-      return BaseCloseable.fluxUsing(supplier, action);
     }
 
     public Builder initalizer(final Consumer<RecordWriter> initalizer) {

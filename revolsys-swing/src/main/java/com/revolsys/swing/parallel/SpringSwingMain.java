@@ -3,23 +3,24 @@ package com.revolsys.swing.parallel;
 import java.awt.Image;
 import java.io.File;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.logging.Logs;
 import org.springframework.beans.factory.InitializingBean;
 
 import com.revolsys.log.LogbackUtil;
-import com.revolsys.reactor.scheduler.SwingUiScheduler;
 import com.revolsys.swing.desktop.DesktopInitializer;
 import com.revolsys.swing.logging.ListLoggingAppender;
 import com.revolsys.swing.logging.LoggingEventPanel;
@@ -32,8 +33,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxy;
 import ch.qos.logback.core.Appender;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 public class SpringSwingMain implements UncaughtExceptionHandler, InitializingBean {
 
@@ -51,33 +50,32 @@ public class SpringSwingMain implements UncaughtExceptionHandler, InitializingBe
   @Override
   public void afterPropertiesSet() {
     new Thread(() -> {
-      final CountDownLatch latch = new CountDownLatch(1);
-      Mono.just(true)//
-        .subscribeOn(Schedulers.boundedElastic())//
-        .flatMap(this::swingBefore)
-        .publishOn(SwingUiScheduler.INSTANCE)
-        .flatMap(this::swingInit)
-        .flatMap(this::swingAfter)
-        .publishOn(Schedulers.boundedElastic())//
-        .flatMap(this::appBefore)
-        .publishOn(SwingUiScheduler.INSTANCE)
-        .flatMap(this::appSwingInit)
-        .doOnError(this::logError)
-        .doAfterTerminate(() -> latch.countDown())
-        .subscribe();
       try {
-        latch.await();
+        if (swingBefore()) {
+          SwingUtilities.invokeAndWait(() -> {
+            swingInit();
+            swingAfter();
+          });
+          if (appBefore()) {
+            SwingUtilities.invokeAndWait(() -> {
+              appSwingInit();
+            });
+          }
+        }
+      } catch (final InvocationTargetException e) {
+        Logs.error(this, e.getCause());
       } catch (final InterruptedException e) {
+      } catch (final RuntimeException e) {
+        Logs.error(this, e.getCause());
       }
     }).start();
   }
 
-  protected Mono<Boolean> appBefore(final boolean success) {
-    return Mono.just(true);
+  protected boolean appBefore() {
+    return true;
   }
 
-  protected Mono<Boolean> appSwingInit(final boolean success) {
-    return Mono.just(true);
+  protected void appSwingInit() {
   }
 
   public void logError(final Throwable e) {
@@ -104,15 +102,14 @@ public class SpringSwingMain implements UncaughtExceptionHandler, InitializingBe
     }
   }
 
-  protected Mono<Boolean> swingAfter(final boolean success) {
-    return Mono.just(true);
+  protected void swingAfter() {
   }
 
-  protected Mono<Boolean> swingBefore(final boolean success) {
-    return Mono.just(true);
+  protected boolean swingBefore() {
+    return true;
   }
 
-  private Mono<Boolean> swingInit(final boolean success) {
+  private void swingInit() {
     try {
       boolean lookSet = false;
       if (Property.hasValue(this.lookAndFeelName)) {
@@ -135,9 +132,8 @@ public class SpringSwingMain implements UncaughtExceptionHandler, InitializingBe
       JFrame.setDefaultLookAndFeelDecorated(true);
       JDialog.setDefaultLookAndFeelDecorated(true);
       ToolTipManager.sharedInstance().setInitialDelay(100);
-      return Mono.just(true);
-    } catch (final Throwable e) {
-      return Mono.error(e);
+    } catch (final Exception e) {
+      Exceptions.throwCauseException(e);
     }
   }
 

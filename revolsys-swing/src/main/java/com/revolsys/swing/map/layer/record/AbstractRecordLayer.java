@@ -158,8 +158,6 @@ import com.revolsys.util.PreferenceKey;
 import com.revolsys.util.Preferences;
 import com.revolsys.util.Property;
 
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import tech.units.indriya.ComparableQuantity;
 import tech.units.indriya.quantity.Quantities;
 
@@ -3232,10 +3230,8 @@ public abstract class AbstractRecordLayer extends AbstractLayer implements
   }
 
   public void setSelectedRecords(final Query query) {
-    Mono.just(query)
-      .subscribeOn(Schedulers.boundedElastic())
-      .map(this::<LayerRecord> getRecords)
-      .subscribe(this::setSelectedRecords);
+    final List<LayerRecord> records = getRecords(query);
+    setSelectedRecords(records);
   }
 
   public void setSelectedRecordsById(final Identifier id) {

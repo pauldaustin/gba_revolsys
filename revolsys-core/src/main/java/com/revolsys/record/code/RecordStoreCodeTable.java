@@ -28,9 +28,6 @@ import com.revolsys.record.schema.RecordDefinitionProxy;
 import com.revolsys.record.schema.RecordStore;
 import com.revolsys.util.Strings;
 
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-
 public class RecordStoreCodeTable extends AbstractLoadingCodeTable
   implements RecordDefinitionProxy {
 
@@ -230,22 +227,19 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
   }
 
   @Override
-  protected Mono<CodeTableData> loadAll() {
+  protected CodeTableData loadAll() {
     if (getRecordStore() == null) {
-      return Mono.empty();
+      return null;
     } else {
-      return Mono.just(new CodeTableData(this))
-        .flatMap(data -> newQuery()//
-          .fluxForEach()
-          .subscribeOn(Schedulers.boundedElastic())
-          .doOnNext(record -> addEntryRecord(data, record))
-          .then()
-          .thenReturn(data));
+      final var data = new CodeTableData(this);
+      newQuery()//
+        .forEachRecord(record -> addEntryRecord(data, record));
+      return data;
     }
   }
 
   @Override
-  protected Mono<Boolean> loadValueDo(final Object value) {
+  protected boolean loadValueDo(final Object value) {
     final Query query = getRecordStore().newQuery(this.getTypePath());
     if (value == null) {
       for (final FieldDefinition field : getValueFieldDefinitions()) {
@@ -277,12 +271,12 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
         or.addCondition(and);
       }
       if (or.isEmpty()) {
-        return Mono.just(false);
+        return false;
       }
       query.and(or);
     }
     query.forEachRecord(record -> addEntryRecord(getData(), record));
-    return Mono.just(true);
+    return true;
   }
 
   @Override

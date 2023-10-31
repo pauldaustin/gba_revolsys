@@ -2,9 +2,8 @@ package com.revolsys.record.code;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
 
 import javax.swing.JComponent;
 
@@ -18,9 +17,11 @@ import com.revolsys.record.schema.FieldDefinition;
 public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChange
   implements BaseCloseable, CodeTable, Cloneable {
 
-  private AtomicReference<CodeTableData> data = new AtomicReference<>(new CodeTableData(this));
+  protected CodeTableData data = new CodeTableData(this);
 
   private String name;
+
+  protected final ReentrantLock lock = new ReentrantLock();
 
   private JComponent swingEditor;
 
@@ -39,7 +40,7 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   @Override
   public AbstractCodeTable clone() {
     final AbstractCodeTable clone = (AbstractCodeTable)super.clone();
-    clone.data = new AtomicReference<>(getData().clone());
+    clone.data = this.data.clone();
     return clone;
   }
 
@@ -50,21 +51,21 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   }
 
   protected CodeTableData getData() {
-    return this.data.get();
+    return this.data;
   }
 
   public CodeTableEntry getEntry(final Consumer<CodeTableEntry> callback, final Object idOrValue) {
     return getData().getEntry(idOrValue);
   }
 
-  public Identifier getIdentifier(final int index) {
-    return getData().getIdentifier(index);
-  }
-
   @Override
   public Identifier getIdentifier(final Consumer<CodeTableEntry> callback, final Object value) {
     final CodeTableEntry entry = getEntry(callback, value);
     return CodeTableEntry.getIdentifier(entry);
+  }
+
+  public Identifier getIdentifier(final int index) {
+    return getData().getIdentifier(index);
   }
 
   @Override
@@ -150,7 +151,7 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   }
 
   protected void setData(final CodeTableData data) {
-    this.data.set(data);
+    this.data = data;
   }
 
   public void setName(final String name) {
@@ -170,10 +171,6 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   @Override
   public int size() {
     return getData().size();
-  }
-
-  protected CodeTableData updateData(final UnaryOperator<CodeTableData> updateAction) {
-    return this.data.updateAndGet(updateAction);
   }
 
 }

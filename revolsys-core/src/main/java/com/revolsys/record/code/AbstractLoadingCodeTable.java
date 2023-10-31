@@ -1,34 +1,67 @@
 package com.revolsys.record.code;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
-import com.revolsys.io.BaseCloseable;
-import com.revolsys.util.Debug;
+import org.jeometry.common.exception.Exceptions;
+import org.jeometry.common.logging.Logs;
 
-import reactor.core.Disposable;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
-import reactor.core.scheduler.Schedulers;
+import com.revolsys.io.BaseCloseable;
+import com.revolsys.parallel.process.Process;
 
 public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
   implements BaseCloseable, Cloneable {
 
+  private class LatchCallback implements Consumer<CodeTableEntry> {
+    private final CountDownLatch latch = new CountDownLatch(1);
+
+    private CodeTableEntry entry;
+
+    @Override
+    public void accept(final CodeTableEntry entry) {
+      this.latch.countDown();
+      this.entry = entry;
+    }
+
+    public CodeTableEntry getEntry() {
+      try {
+        this.latch.await();
+      } catch (final InterruptedException e) {
+        Exceptions.throwUncheckedException(e);
+      }
+      return this.entry;
+    }
+  }
+
   private final Map<Object, CodeTableLoadingEntry> loadingByValue = new HashMap<>();
-
-  private final Sinks.Many<CodeTableData> dataSubject = Sinks.many().replay().latest();
-
-  private final AtomicReference<Disposable> refreshDisposable = new AtomicReference<>();
 
   private boolean loadMissingCodes = true;
 
   private boolean loadAll = true;
 
+  private final List<Consumer<CodeTableData>> loadingCallbacks = new ArrayList<>();
+
+  private Future<CodeTableData> dataFuture;
+
+  private final boolean loadingAll = false;
+
   public AbstractLoadingCodeTable() {
+  }
+
+  private void addLoadingCallback(final Consumer<CodeTableData> action) {
+    this.lock.lock();
+    try {
+      this.loadingCallbacks.add(action);
+    } finally {
+      this.lock.unlock();
+    }
   }
 
   protected void clearCaches() {
@@ -41,16 +74,18 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
 
   @Override
   public CodeTableEntry getEntry(final Consumer<CodeTableEntry> callback, final Object idOrValue) {
-    final CodeTableEntry entry = super.getEntry(callback, idOrValue);
+    CodeTableEntry entry = super.getEntry(callback, idOrValue);
     if (entry == null) {
-      final Mono<CodeTableEntry> loader = loadValue(idOrValue);
       if (callback == null) {
         if (SwingUtilities.isEventDispatchThread()) {
-          Debug.noOp();
+          Logs.error(this, "Cannot load from code table without callback in swing thread");
+        } else {
+          final var awaitCallback = new LatchCallback();
+          loadValue(idOrValue, awaitCallback);
+          entry = awaitCallback.getEntry();
         }
-        return loader.block();
       } else {
-        loader.subscribeOn(Schedulers.boundedElastic()).subscribe(callback);
+        loadValue(idOrValue, callback);
       }
     }
     return entry;
@@ -68,44 +103,62 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
 
   @Override
   public boolean isLoading() {
-    final Disposable disposable = this.refreshDisposable.get();
-    return disposable != null && !disposable.isDisposed();
+    this.lock.lock();
+    try {
+      if (this.dataFuture != null) {
+        if (this.dataFuture.isDone()) {
+          this.dataFuture = null;
+        } else {
+          return true;
+        }
+      }
+      return false;
+    } finally {
+      this.lock.unlock();
+    }
   }
 
   public boolean isLoadMissingCodes() {
     return this.loadMissingCodes;
   }
 
-  protected abstract Mono<CodeTableData> loadAll();
+  protected abstract CodeTableData loadAll();
 
-  private Mono<CodeTableEntry> loadValue(final Object value) {
-    Mono<CodeTableData> loaded;
+  private void loadValue(final Object value, final Consumer<CodeTableEntry> callback) {
     if (!isLoaded() && isLoadAll()) {
-      loaded = refreshIfNeeded$().then(Mono.fromSupplier(this::getData));
+      if (callback != null) {
+        addLoadingCallback((data) -> {
+          CodeTableEntry entry = null;
+          if (data != null) {
+            entry = data.getEntry(value);
+          }
+          callback.accept(entry);
+        });
+      }
+      refresh();
     } else if (isLoadMissingCodes()) {
-      CodeTableLoadingEntry loading;
-      synchronized (this.loadingByValue) {
-        loading = this.loadingByValue.get(value);
+      this.lock.lock();
+      try {
+        var loading = this.loadingByValue.get(value);
         if (loading == null || loading.isExpired()) {
+          if (loading != null) {
+            loading.cancel();
+          }
           loading = new CodeTableLoadingEntry(this, value);
           this.loadingByValue.put(value, loading);
         }
+        loading.addCallback(callback);
+      } finally {
+        this.lock.unlock();
       }
-      loaded = loading.subject().filter(b -> b).map(b -> getData());
     } else {
-      return Mono.empty();
-    }
-    return loaded.flatMap(data -> {
-      final CodeTableEntry entry = data.getEntry(value);
-      if (entry == null) {
-        return Mono.empty();
-      } else {
-        return Mono.just(entry);
+      if (callback != null) {
+        callback.accept(null);
       }
-    });
+    }
   }
 
-  protected abstract Mono<Boolean> loadValueDo(Object idOrValue);
+  protected abstract boolean loadValueDo(Object idOrValue);
 
   protected CodeTableData newData() {
     return new CodeTableData(this);
@@ -113,45 +166,44 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
 
   @Override
   public void refresh() {
-    this.refresh$().block();
-  }
-
-  public Mono<CodeTableData> refresh$() {
-    final Disposable disposable = loadAll().doOnSuccess(data -> {
-      clearCaches();
-      data.setAllLoaded(true);
-    }).subscribe(data -> {
-      final CodeTableData savedData = updateData(oldData -> {
-        if (data.isAfter(oldData)) {
-          return data;
-        } else {
-          return oldData;
+    final var data = loadAll();
+    if (data != null) {
+      this.lock.lock();
+      try {
+        if (data.isAfter(this.data)) {
+          data.setAllLoaded(true);
+          this.data = data;
+          clearCaches();
+          for (final var callback : this.loadingCallbacks) {
+            Process.EXECUTOR.execute(() -> callback.accept(data));
+          }
+          this.loadingCallbacks.clear();
         }
-      });
-      this.dataSubject.tryEmitNext(savedData);
-    });
-    final Disposable oldValue = this.refreshDisposable.getAndSet(disposable);
-    if (oldValue != null) {
-      oldValue.dispose();
-    }
-    return this.dataSubject.asFlux().next();
-  }
-
-  @Override
-  public void refreshIfNeeded() {
-    refreshIfNeeded$().block();
-  }
-
-  @Override
-  public Mono<Boolean> refreshIfNeeded$() {
-    if (isLoadAll()) {
-      if (isLoaded() || isLoading()) {
-        return this.dataSubject.asFlux().next().thenReturn(true);
-      } else {
-        return refresh$().thenReturn(true);
+      } finally {
+        this.lock.unlock();
       }
+    }
+  }
+
+  @Override
+  public boolean refreshIfNeeded() {
+    if (isLoadAll() && !(isLoaded() || this.loadingAll)) {
+      refresh();
+      return true;
     } else {
-      return Mono.just(false);
+      return false;
+    }
+  }
+
+  public CodeTableData removeLoadingEntry(final CodeTableLoadingEntry codeTableLoadingEntry) {
+    this.lock.lock();
+    try {
+      if (codeTableLoadingEntry == this.loadingByValue.get(codeTableLoadingEntry.getValue())) {
+        this.loadingByValue.remove(codeTableLoadingEntry.getValue());
+      }
+      return getData();
+    } finally {
+      this.lock.unlock();
     }
   }
 
