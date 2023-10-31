@@ -17,6 +17,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.DosFileAttributes;
@@ -30,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -45,8 +47,6 @@ import com.revolsys.connection.file.FolderConnectionRegistry;
 import com.revolsys.io.FileNames;
 import com.revolsys.util.Property;
 import com.revolsys.util.UrlUtil;
-
-import reactor.core.publisher.Flux;
 
 public interface Paths {
   LinkOption[] LINK_OPTIONS_NONE = new LinkOption[0];
@@ -555,11 +555,11 @@ public interface Paths {
     return toUrl(path).toString();
   }
 
-  static Flux<Path> walk$(final Path dir) {
+  static Stream<Path> walk(final Path dir) {
     try {
-      return Flux.fromStream(Files.walk(dir));
+      return Files.walk(dir);
     } catch (final IOException e) {
-      return Flux.error(e);
+      return Exceptions.throwUncheckedException(e);
     }
   }
 
@@ -582,4 +582,30 @@ public interface Paths {
     }
   }
 
+  public static void withTempFile(final Path file, final Consumer<Path> action) {
+    withTempFile(file, (f) -> {
+      action.accept(f);
+      return f;
+    });
+  }
+
+  public static <R> R withTempFile(final Path file, final Function<Path, R> action) {
+    final Path tempFile = file.getParent().resolve("_" + file.getFileName());
+    try {
+      final var result = action.apply(tempFile);
+      if (Paths.exists(tempFile)) {
+        try {
+          Files.move(tempFile, file, StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING);
+        } catch (final IOException e) {
+          Exceptions.throwUncheckedException(e);
+        }
+      } else {
+        Paths.deleteDirectories(file);
+      }
+      return result;
+    } finally {
+      Paths.deleteDirectories(tempFile);
+    }
+  }
 }

@@ -26,8 +26,6 @@ import com.revolsys.util.Emptyable;
 import com.revolsys.util.Property;
 import com.revolsys.util.Strings;
 
-import reactor.core.publisher.Mono;
-
 public interface CodeTable
   extends Emptyable, Cloneable, Comparator<Object>, BaseCloseable, Refreshable {
   static CodeTable newCodeTable(final Map<String, ? extends Object> config) {
@@ -273,15 +271,9 @@ public interface CodeTable
   }
 
   @Override
-  default void refreshIfNeeded() {
-  }
-
-  @Override
-  default Mono<Boolean> refreshIfNeeded$() {
-    return Mono.defer(() -> {
-      refreshIfNeeded();
-      return Mono.just(true);
-    });
+  default boolean refreshIfNeeded() {
+    refresh();
+    return true;
   }
 
   default CodeTable setLoadMissingCodes(final boolean loadMissingCodes) {

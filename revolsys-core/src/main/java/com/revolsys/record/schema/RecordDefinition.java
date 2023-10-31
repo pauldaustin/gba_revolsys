@@ -28,8 +28,6 @@ import com.revolsys.record.query.QueryValue;
 import com.revolsys.record.query.TableReference;
 import com.revolsys.util.CaseConverter;
 
-import reactor.core.publisher.Mono;
-
 public interface RecordDefinition extends Cloneable, GeometryFactoryProxy, RecordStoreSchemaElement,
   MapSerializer, RecordDefinitionProxy, RecordFactory<Record>, TableReference {
 
@@ -88,8 +86,6 @@ public interface RecordDefinition extends Cloneable, GeometryFactoryProxy, Recor
       Exceptions.throwUncheckedException(e);
     }
   }
-
-  <CT extends CodeTable> Mono<CT> codeTable$();
 
   void deleteRecord(Record record);
 

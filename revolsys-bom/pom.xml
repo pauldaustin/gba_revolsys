@@ -491,11 +491,6 @@
       </dependency>
       <dependency>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-webflux</artifactId>
-        <version>${org.springframework.boot.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-thymeleaf</artifactId>
         <version>${org.springframework.boot.version}</version>
       </dependency>
@@ -504,11 +499,6 @@
         <artifactId>spring-boot-devtools</artifactId>
         <version>${org.springframework.boot.version}</version>
         <optional>true</optional>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-reactor-netty</artifactId>
-        <version>${org.springframework.boot.version}</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>

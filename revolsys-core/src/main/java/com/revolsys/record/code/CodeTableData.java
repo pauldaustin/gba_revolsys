@@ -8,13 +8,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.number.Numbers;
 
 import com.revolsys.io.BaseCloseable;
-
-import reactor.core.Disposable;
 
 public class CodeTableData implements BaseCloseable, Cloneable {
 
@@ -32,7 +31,7 @@ public class CodeTableData implements BaseCloseable, Cloneable {
 
   private boolean allLoaded = false;
 
-  private Disposable disposable;
+  private final ReentrantLock lock = new ReentrantLock();
 
   public CodeTableData(final AbstractCodeTable codeTable) {
     this.codeTable = codeTable;
@@ -48,8 +47,9 @@ public class CodeTableData implements BaseCloseable, Cloneable {
     this.valueFieldLength = data.valueFieldLength;
   }
 
-  protected synchronized CodeTableEntry addEntry(final Identifier id, final Object value) {
-    synchronized (this.identifiers) {
+  protected CodeTableEntry addEntry(final Identifier id, final Object value) {
+    this.lock.lock();
+    try {
       if (id instanceof Number) {
         final long longValue = ((Number)id).longValue();
         this.maxId.updateAndGet(oldId -> Math.max(oldId, longValue));
@@ -69,6 +69,8 @@ public class CodeTableData implements BaseCloseable, Cloneable {
         this.entryCache.put(normalizedValue, entry);
       }
       return entry;
+    } finally {
+      this.lock.unlock();
     }
   }
 
@@ -81,10 +83,6 @@ public class CodeTableData implements BaseCloseable, Cloneable {
   public void close() {
     this.identifiers.clear();
     this.entryCache.clear();
-  }
-
-  public Disposable getDisposable() {
-    return this.disposable;
   }
 
   public CodeTableEntry getEntry(final Object idOrValue) {
@@ -174,10 +172,6 @@ public class CodeTableData implements BaseCloseable, Cloneable {
 
   public void setAllLoaded(final boolean allLoaded) {
     this.allLoaded = allLoaded;
-  }
-
-  public void setDisposable(final Disposable disposable) {
-    this.disposable = disposable;
   }
 
   public int size() {

@@ -55,8 +55,6 @@ import com.revolsys.util.count.CategoryLabelCountMap;
 import com.revolsys.util.count.LabelCountMap;
 import com.revolsys.util.count.LabelCounters;
 
-import reactor.core.publisher.Mono;
-
 public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFactory, Transactionable,
   BaseCloseable, ObjectWithProperties {
 
@@ -293,15 +291,6 @@ public interface RecordStore extends GeometryFactoryProxy, RecordDefinitionFacto
   default <V extends CodeTable> V getCodeTable(final String typePath) {
     final PathName pathName = PathName.newPathName(typePath);
     return getCodeTable(pathName);
-  }
-
-  default <CT extends CodeTable> Mono<CT> getCodeTable$(final PathName typePath) {
-    final RecordDefinition recordDefinition = getRecordDefinition(typePath);
-    if (recordDefinition == null) {
-      return Mono.empty();
-    } else {
-      return recordDefinition.codeTable$();
-    }
   }
 
   CodeTable getCodeTableByFieldName(CharSequence fieldName);
