@@ -317,4 +317,15 @@ public interface JsonObject extends MapEx, JsonType {
     return result;
   }
 
+  static JsonObject hash(List<String> keys, final List<Object> values) {
+    final JsonObject map = hash();
+    int i = 0;
+    for (final String name : keys) {
+      final Object value = values.get(i);
+      map.addValue(name, value);
+      i++;
+    }
+    return map;
+  }
+
 }

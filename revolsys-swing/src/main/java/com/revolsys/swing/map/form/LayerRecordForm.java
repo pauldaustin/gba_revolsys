@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 
 import javax.swing.Action;
 import javax.swing.ActionMap;
@@ -831,6 +832,32 @@ public class LayerRecordForm extends JPanel implements PropertyChangeListener, C
   }
 
   @SuppressWarnings("unchecked")
+  public <T> T getFieldValue(Consumer<T> callback, final String name) {
+    final Object value = this.fieldValues.get(name);
+    final CodeTable codeTable = this.recordDefinition.getCodeTableByFieldName(name);
+    if (codeTable == null) {
+      if (value != null && name.endsWith("_IND")) {
+        if ("Y".equals(value) || Boolean.TRUE.equals(value)) {
+          return (T)"Y";
+        } else {
+          return (T)"N";
+        }
+      } else {
+        return (T)value;
+      }
+    } else {
+      final Identifier id = codeTable.getIdentifier(e -> {
+        if (e == null) {
+          callback.accept(null);
+        } else {
+          callback.accept((T)e.getIdentifier());
+        }
+      }, value);
+      return (T)id;
+    }
+  }
+
+  @SuppressWarnings("unchecked")
   public <T> T getFieldValue(final String name) {
     final Object value = this.fieldValues.get(name);
     final CodeTable codeTable = this.recordDefinition.getCodeTableByFieldName(name);
@@ -1172,35 +1199,33 @@ public class LayerRecordForm extends JPanel implements PropertyChangeListener, C
                 record.setValueByPath(fieldName, fieldValue);
               }
             }
-          } else {
-            if (isSame(source)) {
-              if (getRecordDefinition().isIdField(propertyName)) {
-                Invoke.later(() -> {
-                  final String title = getTitle(record);
-                  final BaseDialog dialog = (BaseDialog)SwingUtil.getWindowAncestor(this);
-                  if (dialog != null) {
-                    dialog.setTitle(title);
-                  }
-                });
-              }
-              if (record.isDeleted()) {
-                final Window window = SwingUtilities.getWindowAncestor(this);
-                SwingUtil.setVisible(window, false);
-              } else if (Record.EVENT_RECORD_CHANGED.equals(propertyName)) {
-                setValues(record);
-                return;
-              }
-              final Object value = event.getNewValue();
-              final RecordDefinition recordDefinition = getRecordDefinition();
-              if ("qaMessagesUpdated".equals(propertyName)) {
-                setValues(record, false);
-                updateErrors();
-              } else if (recordDefinition.hasField(propertyName)) {
-                setFieldValue(propertyName, value, isFieldValidationEnabled());
-              }
-              fireButtonPropertyChanges();
-              repaint();
+          } else if (isSame(source)) {
+            if (getRecordDefinition().isIdField(propertyName)) {
+              Invoke.later(() -> {
+                final String title = getTitle(record);
+                final BaseDialog dialog = (BaseDialog)SwingUtil.getWindowAncestor(this);
+                if (dialog != null) {
+                  dialog.setTitle(title);
+                }
+              });
             }
+            if (record.isDeleted()) {
+              final Window window = SwingUtilities.getWindowAncestor(this);
+              SwingUtil.setVisible(window, false);
+            } else if (Record.EVENT_RECORD_CHANGED.equals(propertyName)) {
+              setValues(record);
+              return;
+            }
+            final Object value = event.getNewValue();
+            final RecordDefinition recordDefinition = getRecordDefinition();
+            if ("qaMessagesUpdated".equals(propertyName)) {
+              setValues(record, false);
+              updateErrors();
+            } else if (recordDefinition.hasField(propertyName)) {
+              setFieldValue(propertyName, value, isFieldValidationEnabled());
+            }
+            fireButtonPropertyChanges();
+            repaint();
           }
         }
       }
@@ -1438,13 +1463,11 @@ public class LayerRecordForm extends JPanel implements PropertyChangeListener, C
       Invoke.later(() -> {
         if (foregroundColor == null) {
           this.tabs.setTabComponentAt(index, null);
-        } else {
-          if (this.tabs != null) {
-            final JLabel label = new JLabel(this.tabs.getTitleAt(index));
-            label.setOpaque(false);
-            label.setForeground(foregroundColor);
-            this.tabs.setTabComponentAt(index, label);
-          }
+        } else if (this.tabs != null) {
+          final JLabel label = new JLabel(this.tabs.getTitleAt(index));
+          label.setOpaque(false);
+          label.setForeground(foregroundColor);
+          this.tabs.setTabComponentAt(index, label);
         }
       });
     }
@@ -1496,7 +1519,7 @@ public class LayerRecordForm extends JPanel implements PropertyChangeListener, C
 
     final JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     dialog.add(buttons, BorderLayout.SOUTH);
-    final JButton addCancelButton = RunnableAction.newButton("Cancel", () -> actionAddCancel());
+    final JButton addCancelButton = RunnableAction.newButton("Cancel", this::actionAddCancel);
     buttons.add(addCancelButton);
     buttons.add(this.addOkButton);
 

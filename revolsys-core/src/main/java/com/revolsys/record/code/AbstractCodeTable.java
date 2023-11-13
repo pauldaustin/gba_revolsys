@@ -12,6 +12,7 @@ import org.jeometry.common.data.type.DataTypes;
 
 import com.revolsys.io.BaseCloseable;
 import com.revolsys.properties.BaseObjectWithPropertiesAndChange;
+import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.schema.FieldDefinition;
 
 public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChange
@@ -81,6 +82,15 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   @Override
   public String getIdFieldName() {
     return getName();
+  }
+
+  @Override
+  public JsonObject getMap(final Consumer<JsonObject> callback, final Identifier id) {
+    final CodeTableEntry entry = getEntry(e -> {
+      final var map = getMap(e);
+      callback.accept(map);
+    }, id);
+    return getMap(entry);
   }
 
   @Override
@@ -171,6 +181,18 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   @Override
   public int size() {
     return getData().size();
+  }
+
+  @Override
+  public void withEntry(Consumer<CodeTableEntry> callback, Object idOrValue) {
+    if (idOrValue == null) {
+      callback.accept(null);
+    } else {
+      final var entry = getEntry(callback, idOrValue);
+      if (entry != null) {
+        callback.accept(entry);
+      }
+    }
   }
 
 }

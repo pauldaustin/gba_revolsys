@@ -29,10 +29,19 @@ public class SingleValueCodeTableEntry implements CodeTableEntry {
   @SuppressWarnings("unchecked")
   @Override
   public List<Object> getValues() {
-    if (this.value instanceof List) {
-      return (List<Object>)this.value;
+    if (this.value instanceof final List list) {
+      return list;
     } else {
       return Collections.singletonList(this.value);
+    }
+  }
+
+  @Override
+  public boolean isEmpty() {
+    if (this.value instanceof final List list) {
+      return list.isEmpty();
+    } else {
+      return false;
     }
   }
 
