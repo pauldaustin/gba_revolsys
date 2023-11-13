@@ -356,6 +356,9 @@ public class GeometryFactoryFixed extends GeometryFactory {
 
   @Override
   public double makePreciseCeil(final int axisIndex, final double value) {
+    if (value == makePrecise(axisIndex, value)) {
+      return value;
+    }
     final double scale = getScale(axisIndex);
     if (scale > 0) {
       final double multiple = value * scale;
@@ -369,6 +372,9 @@ public class GeometryFactoryFixed extends GeometryFactory {
 
   @Override
   public double makePreciseFloor(final int axisIndex, final double value) {
+    if (value == makePrecise(axisIndex, value)) {
+      return value;
+    }
     final double scale = getScale(axisIndex);
     if (scale > 0) {
       final double multiple = value * scale;
@@ -395,6 +401,9 @@ public class GeometryFactoryFixed extends GeometryFactory {
 
   @Override
   public double makeXPreciseCeil(final double value) {
+    if (value == makeXPrecise(value)) {
+      return value;
+    }
     final double scale = this.scaleX;
     if (scale > 0) {
       final double multiple = value * scale;
@@ -408,6 +417,9 @@ public class GeometryFactoryFixed extends GeometryFactory {
 
   @Override
   public double makeXPreciseFloor(final double value) {
+    if (value == makeXPrecise(value)) {
+      return value;
+    }
     final double scale = this.scaleX;
     if (scale > 0) {
       final double multiple = value * scale;
@@ -473,6 +485,9 @@ public class GeometryFactoryFixed extends GeometryFactory {
 
   @Override
   public double makeYPreciseCeil(final double value) {
+    if (value == makeYPrecise(value)) {
+      return value;
+    }
     final double scale = this.scaleY;
     if (scale > 0) {
       final double multiple = value * scale;
@@ -486,6 +501,9 @@ public class GeometryFactoryFixed extends GeometryFactory {
 
   @Override
   public double makeYPreciseFloor(final double value) {
+    if (value == makeYPrecise(value)) {
+      return value;
+    }
     final double scale = this.scaleY;
     if (scale > 0) {
       final double multiple = value * scale;
@@ -512,6 +530,9 @@ public class GeometryFactoryFixed extends GeometryFactory {
 
   @Override
   public double makeZPreciseCeil(final double value) {
+    if (value == makeZPrecise(value)) {
+      return value;
+    }
     final double scale = this.scaleZ;
     if (scale > 0) {
       final double multiple = value * scale;
@@ -525,6 +546,9 @@ public class GeometryFactoryFixed extends GeometryFactory {
 
   @Override
   public double makeZPreciseFloor(final double value) {
+    if (value == makeZPrecise(value)) {
+      return value;
+    }
     final double scale = this.scaleZ;
     if (scale > 0) {
       final double multiple = value * scale;

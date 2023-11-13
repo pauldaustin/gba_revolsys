@@ -72,21 +72,27 @@ public class SpatialReference implements GeometryFactoryProxy {
         this.xYScale = geometryFactory.getScaleXY();
         if (this.xYScale == 0) {
           if (this instanceof EsriGdbGeographicCoordinateSystem) {
-            this.xYScale = 10000000;
+            this.xYScale = 100000000;
           } else {
-            this.xYScale = 1000;
+            this.xYScale = 10000;
           }
+          this.xYTolerance = 0.001;
+        } else {
+          this.xYScale = xYScale * 10;
+          this.xYTolerance = geometryFactory.getResolutionXy();
         }
         this.zOrigin = -100000;
         this.zScale = geometryFactory.getScaleZ();
         if (this.zScale == 0) {
           this.zScale = 10000000;
+          this.zTolerance = 1.0e-8;
+        } else {
+          this.zScale = zScale * 10;
+          this.zTolerance = geometryFactory.getResolutionZ();
         }
         this.mOrigin = -100000;
         this.mScale = 10000000;
-        this.xYTolerance = 1.0 / this.xYScale;
-        this.zTolerance = 1.0 / this.zScale;
-        this.mTolerance = 1.0 / this.mScale;
+        this.mTolerance = 1.0 / this.mScale / 10;
         this.highPrecision = true;
         this.wkid = geometryFactory.getHorizontalCoordinateSystemId();
       }
@@ -169,8 +175,15 @@ public class SpatialReference implements GeometryFactoryProxy {
     if (this.xYScale == FLOATING_SCALE) {
       geometryFactory = GeometryFactory.fixed3d(coordinateSystemId, 0.0, 0.0, this.zScale);
     } else {
-      geometryFactory = GeometryFactory.fixed3d(coordinateSystemId, this.xYScale, this.xYScale,
-        this.zScale);
+      double xyScale = this.xYScale;
+      if (xyScale == 1 / xYTolerance * 10) {
+        xyScale /= 10;
+      }
+      double zScale = this.zScale;
+      if (zScale == 1 / zTolerance * 10) {
+        zScale /= 10;
+      }
+      geometryFactory = GeometryFactory.fixed3d(coordinateSystemId, xyScale, xyScale, zScale);
     }
     return geometryFactory;
   }
