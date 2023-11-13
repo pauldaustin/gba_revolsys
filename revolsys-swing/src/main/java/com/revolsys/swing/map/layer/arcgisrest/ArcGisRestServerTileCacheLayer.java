@@ -180,14 +180,15 @@ public class ArcGisRestServerTileCacheLayer
           if (Property.hasValue(this.connectionName)) {
             final WebService<?> webService = WebServiceConnectionManager
               .getWebService(this.connectionName);
-            if (webService instanceof ArcGisRestCatalog) {
-              final ArcGisRestCatalog catalog = (ArcGisRestCatalog)webService;
+            if (webService instanceof final ArcGisRestCatalog catalog) {
               final WebServiceResource service = catalog.getWebServiceResource(this.servicePath);
-              if (service instanceof MapService) {
-                this.mapService = (MapService)service;
+              if (service instanceof final MapService mapService) {
+                this.mapService = mapService;
               } else {
-                Logs.error(this, getPath() + ": Web service '" + this.connectionName
-                  + "' is not a ArcGIS service");
+                if (!catalog.isCannotFindHost()) {
+                  Logs.error(this, getPath() + ": Web service '" + this.connectionName
+                    + "' is not a ArcGIS service");
+                }
                 return false;
               }
             } else {

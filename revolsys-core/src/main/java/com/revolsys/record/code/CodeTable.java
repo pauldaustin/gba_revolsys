@@ -154,6 +154,28 @@ public interface CodeTable
 
   String getIdFieldName();
 
+  default JsonObject getMap(final CodeTableEntry entry) {
+    if (entry == null || entry.isEmpty()) {
+      return JsonObject.EMPTY;
+    } else if (isSingleValue()) {
+      final List<String> keys = getValueFieldNames();
+      final var fieldName = keys.get(0);
+      final var value = entry.getValue();
+      return JsonObject.hash(fieldName, value);
+    } else {
+      final List<String> keys = getValueFieldNames();
+      final List<Object> values = entry.getValues();
+      return JsonObject.hash(keys, values);
+    }
+  }
+
+  JsonObject getMap(Consumer<JsonObject> callback, final Identifier id);
+
+  default JsonObject getMap(final Consumer<JsonObject> callback, final Object id) {
+    final Identifier identifier = Identifier.newIdentifier(id);
+    return getMap(callback, identifier);
+  }
+
   default JsonObject getMap(final Identifier id) {
     final List<Object> values = getValues(id);
     if (values == null) {
@@ -266,6 +288,10 @@ public interface CodeTable
     return false;
   }
 
+  default boolean isSingleValue() {
+    return !isMultiValue();
+  }
+
   @Override
   default void refresh() {
   }
@@ -281,4 +307,41 @@ public interface CodeTable
   }
 
   int size();
+
+  void withEntry(Consumer<CodeTableEntry> callback, Object idOrValue);
+
+  default <T> void withIdentifier(Consumer<Identifier> callback, CodeTableEntry entry) {
+    if (entry == null) {
+      callback.accept(null);
+    } else {
+      final var identifier = entry.getIdentifier();
+      callback.accept(identifier);
+    }
+  }
+
+  default <T> void withIdentifier(Consumer<Identifier> callback, final Object idOrValue) {
+    withEntry(entry -> withIdentifier(callback, entry), idOrValue);
+  }
+
+  default void withMap(Consumer<JsonObject> callback, CodeTableEntry entry) {
+    final var map = getMap(entry);
+    callback.accept(map);
+  }
+
+  default void withMap(Consumer<JsonObject> callback, final Object idOrValue) {
+    withEntry(entry -> withMap(callback, entry), idOrValue);
+  }
+
+  default <T> void withValue(Consumer<T> callback, CodeTableEntry entry) {
+    if (entry == null) {
+      callback.accept(null);
+    } else {
+      final T value = entry.getValue();
+      callback.accept(value);
+    }
+  }
+
+  default <T> void withValue(Consumer<T> callback, final Object idOrValue) {
+    withEntry(entry -> withValue(callback, entry), idOrValue);
+  }
 }

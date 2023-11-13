@@ -135,6 +135,8 @@ public class JdbcFieldDefinition extends FieldDefinition {
     clone.dbName = this.dbName;
     clone.quoteName = this.quoteName;
     clone.sqlType = this.sqlType;
+    var codeTable = getCodeTable();
+    clone.setCodeTable(codeTable);
   }
 
   @Override

@@ -262,7 +262,7 @@ public class PathResource extends AbstractResource implements WritableResource {
     } catch (final FileSystemException e) {
       throw Exceptions.wrap("Error opening file: " + getPath(), e);
     } catch (final IOException e) {
-      throw Exceptions.wrap(e);
+      return Exceptions.throwUncheckedException(e);
     }
   }
 

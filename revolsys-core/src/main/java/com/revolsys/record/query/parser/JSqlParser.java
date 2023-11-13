@@ -348,12 +348,10 @@ public class JSqlParser extends AbstractSqlParser {
 
   private QueryValue setFieldDefinition(final QueryValue value1, final QueryValue value2) {
     if (this.recordDefinition != null) {
-      if (value1 instanceof ColumnReference) {
-        if (value2 instanceof Value) {
-          final ColumnReference column = (ColumnReference)value1;
-
+      if (value1 instanceof final ColumnReference column) {
+        if (value2 instanceof final Value queryValue) {
           final String name = column.getName();
-          final Object value = ((Value)value2).getValue();
+          final Object value = queryValue.getValue();
           final FieldDefinition fieldDefinition = this.recordDefinition.getField(name);
           final CodeTable codeTable = this.recordDefinition.getCodeTableByFieldName(name);
           if (codeTable == null || fieldDefinition == this.recordDefinition.getIdField()) {
@@ -361,8 +359,7 @@ public class JSqlParser extends AbstractSqlParser {
             return Value.newValue(fieldDefinition, convertedValue);
           } else {
             Object id;
-            if (value instanceof String) {
-              final String string = (String)value;
+            if (value instanceof final String string) {
               final String[] values = string.split(":");
               id = codeTable.getIdentifier((Object[])values);
             } else {
@@ -387,17 +384,13 @@ public class JSqlParser extends AbstractSqlParser {
       final String sql = this.sqlPrefix + " (" + "\n" + whereClause + "\n)";
       try {
         final Statement statement = CCJSqlParserUtil.parse(sql);
-        if (statement instanceof Select) {
-          final Select select = (Select)statement;
+        if (statement instanceof final Select select) {
           final SelectBody selectBody = select.getSelectBody();
-          if (selectBody instanceof PlainSelect) {
-            final PlainSelect plainSelect = (PlainSelect)selectBody;
+          if (selectBody instanceof final PlainSelect plainSelect) {
             final Expression where = plainSelect.getWhere();
-            if (where instanceof Parenthesis) {
-              final Parenthesis parenthesis = (Parenthesis)where;
+            if (where instanceof final Parenthesis parenthesis) {
               final Expression expression = parenthesis.getExpression();
-              final Condition condition = convertExpression(expression);
-              return condition;
+              return convertExpression(expression);
             }
           }
         }

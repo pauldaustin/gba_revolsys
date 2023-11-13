@@ -414,11 +414,11 @@ public class UrlResource extends AbstractResource {
             final HttpURLConnection httpUrlConnection = (HttpURLConnection)con;
             httpUrlConnection.disconnect();
           }
-          throw Exceptions.wrap(e);
+          return Exceptions.throwUncheckedException(e);
         }
       }
     } catch (final IOException e) {
-      throw Exceptions.wrap(e);
+      return Exceptions.throwUncheckedException(e);
     }
   }
 

@@ -69,6 +69,15 @@ public class OrderBy implements Cloneable {
     return this;
   }
 
+  @Override
+  public String toString() {
+    if (this.ascending) {
+      return this.field.toString();
+    } else {
+      return this.field + " desc";
+    }
+  }
+
   public OrderBy withField(final QueryValue field) {
     final OrderBy clone = clone();
     clone.field = field;

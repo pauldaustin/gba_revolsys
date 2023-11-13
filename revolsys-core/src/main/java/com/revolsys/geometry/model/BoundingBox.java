@@ -29,6 +29,7 @@ import com.revolsys.geometry.model.impl.LineStringDouble;
 import com.revolsys.geometry.model.impl.RectangleXY;
 import com.revolsys.geometry.util.OutCode;
 import com.revolsys.geometry.util.Points;
+import com.revolsys.io.StringWriter;
 import com.revolsys.record.io.format.wkt.WktParser;
 import com.revolsys.util.Emptyable;
 import com.revolsys.util.Property;
@@ -268,41 +269,47 @@ public interface BoundingBox
   }
 
   static String toString(final BoundingBox boundingBox) {
-    final StringBuilder s = new StringBuilder();
-    final int srid = boundingBox.getHorizontalCoordinateSystemId();
-    if (srid > 0) {
-      s.append("SRID=");
-      s.append(srid);
-      s.append(";");
-    }
-    if (boundingBox.isEmpty()) {
-      s.append("BBOX EMPTY");
-    } else {
-      s.append("BBOX");
-      final int axisCount = boundingBox.getAxisCount();
-      if (axisCount == 3) {
-        s.append(" Z");
-      } else if (axisCount == 4) {
-        s.append(" ZM");
-      } else if (axisCount != 2) {
-        s.append(" ");
-        s.append(axisCount);
+    final StringWriter s = new StringWriter();
+    try {
+      final int srid = boundingBox.getHorizontalCoordinateSystemId();
+      if (srid > 0) {
+        s.write("SRID=");
+        s.write(Integer.toString(srid));
+        s.write(";");
       }
-      s.append("(");
-      for (int axisIndex = 0; axisIndex < axisCount; axisIndex++) {
-        if (axisIndex > 0) {
-          s.append(' ');
+      if (boundingBox.isEmpty()) {
+        s.write("BBOX EMPTY");
+      } else {
+        s.write("BBOX");
+        final int axisCount = boundingBox.getAxisCount();
+        if (axisCount == 3) {
+          s.write(" Z");
+        } else if (axisCount == 4) {
+          s.write(" ZM");
+        } else if (axisCount != 2) {
+          s.write(" ");
+          s.write(Integer.toString(axisCount));
         }
-        s.append(Doubles.toString(boundingBox.getMin(axisIndex)));
-      }
-      s.append(',');
-      for (int axisIndex = 0; axisIndex < axisCount; axisIndex++) {
-        if (axisIndex > 0) {
-          s.append(' ');
+        s.write("(");
+        for (int axisIndex = 0; axisIndex < axisCount; axisIndex++) {
+          if (axisIndex > 0) {
+            s.write(' ');
+          }
+          double min = boundingBox.getMin(axisIndex);
+          Doubles.write(s, min);
         }
-        s.append(Doubles.toString(boundingBox.getMax(axisIndex)));
+        s.write(',');
+        for (int axisIndex = 0; axisIndex < axisCount; axisIndex++) {
+          if (axisIndex > 0) {
+            s.append(' ');
+          }
+          double max = boundingBox.getMax(axisIndex);
+          Doubles.write(s, max);
+        }
+        s.write(')');
       }
-      s.append(')');
+    } catch (IOException e) {
+      e.printStackTrace();
     }
     return s.toString();
   }

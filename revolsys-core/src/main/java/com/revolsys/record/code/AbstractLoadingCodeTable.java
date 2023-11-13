@@ -79,6 +79,7 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
       if (callback == null) {
         if (SwingUtilities.isEventDispatchThread()) {
           Logs.error(this, "Cannot load from code table without callback in swing thread");
+          Thread.dumpStack();
         } else {
           final var awaitCallback = new LatchCallback();
           loadValue(idOrValue, awaitCallback);
@@ -127,7 +128,7 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
   private void loadValue(final Object value, final Consumer<CodeTableEntry> callback) {
     if (!isLoaded() && isLoadAll()) {
       if (callback != null) {
-        addLoadingCallback((data) -> {
+        addLoadingCallback(data -> {
           CodeTableEntry entry = null;
           if (data != null) {
             entry = data.getEntry(value);
@@ -151,10 +152,8 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
       } finally {
         this.lock.unlock();
       }
-    } else {
-      if (callback != null) {
-        callback.accept(null);
-      }
+    } else if (callback != null) {
+      callback.accept(null);
     }
   }
 

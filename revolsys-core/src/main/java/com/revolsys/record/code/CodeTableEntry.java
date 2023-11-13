@@ -59,4 +59,8 @@ public interface CodeTableEntry {
   <V> V getValue();
 
   List<Object> getValues();
+
+  default boolean isEmpty() {
+    return false;
+  }
 }
