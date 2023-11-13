@@ -185,7 +185,7 @@ public abstract class ArcGisResponse<V> extends AbstractWebService<V> implements
     setProperties(properties);
   }
 
-  protected boolean isCannotFindHost() {
+  public boolean isCannotFindHost() {
     if (this.parent instanceof ArcGisResponse<?>) {
       return ((ArcGisResponse<?>)this.parent).isCannotFindHost();
     } else {
@@ -221,7 +221,9 @@ public abstract class ArcGisResponse<V> extends AbstractWebService<V> implements
         if (cause instanceof UnknownHostException) {
           if (!isCannotFindHost()) {
             setCannotFindHost(true);
-            Logs.error(this, getPathName() + " Cannot find host " + cause.getMessage());
+            if (!"false".equals(System.getProperty("ArcGisResponse.logUnknownHost"))) {
+              Logs.error(this, getPathName() + " Cannot find host " + cause.getMessage(), e);
+            }
           }
         }
       } catch (final Throwable e) {
