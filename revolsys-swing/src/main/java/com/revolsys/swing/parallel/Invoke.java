@@ -222,6 +222,16 @@ public class Invoke {
     }
   }
 
+  public static void uiThenBackground(final Runnable runnable, String task,
+    Runnable backgroundTask) {
+    if (SwingUtilities.isEventDispatchThread()) {
+      runnable.run();
+      background(task, backgroundTask);
+    } else {
+      SwingUtilities.invokeLater(() -> uiThenBackground(runnable, task, backgroundTask));
+    }
+  }
+
   public static void worker(final SwingWorker<? extends Object, ? extends Object> worker) {
     boolean execute = true;
     final List<SwingWorker<?, ?>> oldWorkers;

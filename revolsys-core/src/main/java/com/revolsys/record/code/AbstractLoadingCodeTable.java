@@ -52,6 +52,8 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
 
   private final boolean loadingAll = false;
 
+  private boolean nullOnUiThread = false;
+
   public AbstractLoadingCodeTable() {
   }
 
@@ -78,13 +80,17 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
     if (entry == null) {
       if (callback == null) {
         if (SwingUtilities.isEventDispatchThread()) {
-          Logs.error(this, "Cannot load from code table without callback in swing thread");
-          Thread.dumpStack();
-        } else {
-          final var awaitCallback = new LatchCallback();
-          loadValue(idOrValue, awaitCallback);
-          entry = awaitCallback.getEntry();
+          if (this.nullOnUiThread) {
+            Logs.error(this, "Cannot load from code table without callback in swing thread");
+            Thread.dumpStack();
+            return null;
+          } else {
+            System.out.println("Cannot load from code table without callback in swing thread");
+          }
         }
+        final var awaitCallback = new LatchCallback();
+        loadValue(idOrValue, awaitCallback);
+        entry = awaitCallback.getEntry();
       } else {
         loadValue(idOrValue, callback);
       }
@@ -204,6 +210,10 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
     } finally {
       this.lock.unlock();
     }
+  }
+
+  protected void setFailOnUiThread(boolean failOnUiThread) {
+    this.nullOnUiThread = failOnUiThread;
   }
 
   public AbstractLoadingCodeTable setLoadAll(final boolean loadAll) {
