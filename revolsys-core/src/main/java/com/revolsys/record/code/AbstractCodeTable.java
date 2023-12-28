@@ -12,10 +12,9 @@ import org.jeometry.common.data.type.DataTypes;
 
 import com.revolsys.io.BaseCloseable;
 import com.revolsys.properties.BaseObjectWithPropertiesAndChange;
-import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.schema.FieldDefinition;
 
-public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChange
+public class AbstractCodeTable extends BaseObjectWithPropertiesAndChange
   implements BaseCloseable, CodeTable, Cloneable {
 
   protected CodeTableData data = new CodeTableData(this);
@@ -55,14 +54,9 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
     return this.data;
   }
 
-  public CodeTableEntry getEntry(final Consumer<CodeTableEntry> callback, final Object idOrValue) {
-    return getData().getEntry(idOrValue);
-  }
-
   @Override
-  public Identifier getIdentifier(final Consumer<CodeTableEntry> callback, final Object value) {
-    final CodeTableEntry entry = getEntry(callback, value);
-    return CodeTableEntry.getIdentifier(entry);
+  public CodeTableEntry getEntry(final Object idOrValue) {
+    return getData().getEntry(idOrValue);
   }
 
   public Identifier getIdentifier(final int index) {
@@ -85,15 +79,6 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   }
 
   @Override
-  public JsonObject getMap(final Consumer<JsonObject> callback, final Identifier id) {
-    final CodeTableEntry entry = getEntry(e -> {
-      final var map = getMap(e);
-      callback.accept(map);
-    }, id);
-    return getMap(entry);
-  }
-
-  @Override
   public String getName() {
     return this.name;
   }
@@ -108,9 +93,8 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   }
 
   @Override
-  public <V> V getValue(final Consumer<CodeTableEntry> callback, final Identifier id) {
-    final CodeTableEntry entry = getEntry(callback, id);
-    return CodeTableEntry.getValue(entry);
+  public <V> V getValue(final Identifier id) {
+    return getEntry(id).getValue();
   }
 
   @Override
@@ -128,9 +112,8 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
   }
 
   @Override
-  public List<Object> getValues(final Consumer<CodeTableEntry> callback, final Identifier id) {
-    final CodeTableEntry entry = getEntry(callback, id);
-    return CodeTableEntry.getValues(entry);
+  public List<Object> getValues(final Identifier id) {
+    return getEntry(id).getValues();
   }
 
   public boolean hasIdentifier(final Identifier id) {
@@ -139,8 +122,7 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
 
   @Override
   public boolean hasValue(final Object value) {
-    final CodeTableEntry entry = getEntry(null, value);
-    return entry != null;
+    return !getEntry(value).isEmpty();
   }
 
   public boolean isCaseSensitive() {
@@ -185,13 +167,9 @@ public abstract class AbstractCodeTable extends BaseObjectWithPropertiesAndChang
 
   @Override
   public void withEntry(Consumer<CodeTableEntry> callback, Object idOrValue) {
-    if (idOrValue == null) {
-      callback.accept(null);
-    } else {
-      final var entry = getEntry(callback, idOrValue);
-      if (entry != null) {
-        callback.accept(entry);
-      }
+    final var entry = getEntry(callback, idOrValue);
+    if (entry.isEmpty()) {
+      callback.accept(entry);
     }
   }
 

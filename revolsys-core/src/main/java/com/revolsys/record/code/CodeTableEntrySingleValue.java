@@ -5,12 +5,12 @@ import java.util.List;
 
 import org.jeometry.common.data.identifier.Identifier;
 
-public class SingleValueCodeTableEntry implements CodeTableEntry {
+public class CodeTableEntrySingleValue implements CodeTableEntry {
   private final Identifier identifier;
 
   private final Object value;
 
-  public SingleValueCodeTableEntry(final Identifier identifier, final Object value) {
+  public CodeTableEntrySingleValue(final Identifier identifier, final Object value) {
     this.identifier = identifier;
     this.value = value;
   }
@@ -49,4 +49,5 @@ public class SingleValueCodeTableEntry implements CodeTableEntry {
   public String toString() {
     return this.identifier.toString();
   }
+
 }

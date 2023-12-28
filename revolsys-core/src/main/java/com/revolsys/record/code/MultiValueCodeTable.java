@@ -2,6 +2,7 @@ package com.revolsys.record.code;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.jeometry.common.data.identifier.Identifier;
@@ -64,8 +65,7 @@ public class MultiValueCodeTable extends AbstractCodeTable {
 
   @Override
   public List<Object> getValues(final Identifier id) {
-    final CodeTableEntry entry = getEntry(null, id);
-    return CodeTableEntry.getValue(entry);
+    return getEntry(id).valuesOrDefault(Collections.singletonList(id));
   }
 
   @Override

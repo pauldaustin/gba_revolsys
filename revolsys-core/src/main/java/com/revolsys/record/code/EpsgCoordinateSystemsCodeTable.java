@@ -3,7 +3,6 @@ package com.revolsys.record.code;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.jeometry.common.data.identifier.Identifier;
 import org.jeometry.common.data.type.DataTypes;
@@ -60,7 +59,7 @@ public class EpsgCoordinateSystemsCodeTable extends AbstractCodeTable {
   }
 
   @Override
-  public Identifier getIdentifier(final Consumer<CodeTableEntry> callback, final Object value) {
+  public Identifier getIdentifier(final Object value) {
     CoordinateSystem coordinateSystem = null;
     if (value instanceof CoordinateSystem) {
       coordinateSystem = (CoordinateSystem)value;
