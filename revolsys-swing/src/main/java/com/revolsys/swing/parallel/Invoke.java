@@ -10,6 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -200,6 +202,12 @@ public class Invoke {
     }
   }
 
+  public static <V> CompletionStage<V> laterFuture(final Consumer<CompletableFuture<V>> action) {
+    final var future = new CompletableFuture<V>();
+    Invoke.later(() -> action.accept(future));
+    return future;
+  }
+
   public static void laterQueue(final Runnable runnable) {
     SwingUtilities.invokeLater(runnable);
   }
@@ -222,8 +230,8 @@ public class Invoke {
     }
   }
 
-  public static void uiThenBackground(final Runnable runnable, String task,
-    Runnable backgroundTask) {
+  public static void uiThenBackground(final Runnable runnable, final String task,
+    final Runnable backgroundTask) {
     if (SwingUtilities.isEventDispatchThread()) {
       runnable.run();
       background(task, backgroundTask);
