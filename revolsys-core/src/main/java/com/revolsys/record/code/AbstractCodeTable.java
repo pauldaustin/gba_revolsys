@@ -17,7 +17,11 @@ import com.revolsys.record.schema.FieldDefinition;
 public class AbstractCodeTable extends BaseObjectWithPropertiesAndChange
   implements BaseCloseable, CodeTable, Cloneable {
 
-  protected CodeTableData data = new CodeTableData(this);
+  protected CodeTableData data = newData();
+
+  protected CodeTableData newData() {
+    return new CodeTableData(this);
+  }
 
   private String name;
 

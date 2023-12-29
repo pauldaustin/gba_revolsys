@@ -61,7 +61,7 @@ public interface RecordLayerFieldUiFactory extends RecordLayerProxy {
     if (factoryDef instanceof Function) {
       factory = (Function<O, F>)factoryDef;
     } else {
-      final ScriptEngine engine = ScriptEngines.JS;
+      final ScriptEngine engine = ScriptEngines.getJs();
       final String script = factoryDef.toString();
       try {
         final SimpleBindings bindings = new SimpleBindings();
@@ -106,7 +106,7 @@ public interface RecordLayerFieldUiFactory extends RecordLayerProxy {
     if (factoryDef instanceof Supplier) {
       factory = (Supplier<F>)factoryDef;
     } else {
-      final ScriptEngine engine = ScriptEngines.JS;
+      final ScriptEngine engine = ScriptEngines.getJs();
       final String script = factoryDef.toString();
       try {
         final SimpleBindings bindings = new SimpleBindings();

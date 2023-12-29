@@ -27,26 +27,15 @@ class CodeTableEntryLoading implements CodeTableEntry {
 
   private CodeTableEntry entry;
 
-  public CodeTableEntryLoading(final AbstractLoadingCodeTable codeTable, final Object value) {
-    this.codeTable = codeTable;
-    this.value = value;
-    this.subscription = Process.EXECUTOR.submit(() -> {
-      this.codeTable.loadValueDo(this.value);
-      this.entry = this.codeTable.entryLoaded(this);
-      fireCallbacks(this.entry);
-      return this.entry;
-    });
-  }
-
   public CodeTableEntryLoading(final AbstractLoadingCodeTable codeTable, final Object value,
-    Runnable loader) {
+    final Runnable loader) {
     this.codeTable = codeTable;
     this.value = value;
     this.subscription = Process.EXECUTOR.submit(() -> {
       loader.run();
-      this.entry = this.codeTable.entryLoaded(this);
-      fireCallbacks(this.entry);
-      return this.entry;
+      final var entry = this.entry = this.codeTable.entryLoaded(this);
+      fireCallbacks(entry);
+      return entry;
     });
   }
 
@@ -131,22 +120,22 @@ class CodeTableEntryLoading implements CodeTableEntry {
   }
 
   @Override
-  public void withEntry(Consumer<CodeTableEntry> action) {
+  public void withEntry(final Consumer<CodeTableEntry> action) {
     addCallback(e -> withEntry(action));
   }
 
   @Override
-  public void withIdentifier(Consumer<Identifier> action) {
+  public void withIdentifier(final Consumer<Identifier> action) {
     addCallback(e -> withIdentifier(action));
   }
 
   @Override
-  public <V> void withValue(Consumer<V> action) {
+  public <V> void withValue(final Consumer<V> action) {
     addCallback(e -> withValue(action));
   }
 
   @Override
-  public <V> void withValues(Consumer<List<Object>> action) {
+  public <V> void withValues(final Consumer<List<Object>> action) {
     addCallback(e -> withValues(action));
   }
 

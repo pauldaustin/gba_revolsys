@@ -64,13 +64,12 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
     }
   }
 
-  protected void addEntryRecord(final CodeTableData data, final Record code) {
+  private void addEntryRecord(final CodeTableData data, final Record code) {
     final String idFieldName = getIdFieldName();
     final Identifier id = code.getIdentifier(idFieldName);
     if (id == null) {
       throw new NullPointerException(idFieldName + "=null for " + code);
     } else {
-      clearCache(id);
       final List<Object> values = new ArrayList<>();
       final List<String> valueFieldNames = getValueFieldNames();
       for (final String fieldName : valueFieldNames) {
@@ -101,10 +100,7 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
   @Override
   public final void addValue(final Record code) {
     addEntryRecord(getData(), code);
-  }
-
-  protected void clearCache(final Identifier id) {
-
+    postAddEntryRecord(this.data, code);
   }
 
   @Override
@@ -231,7 +227,7 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
     if (getRecordStore() == null) {
       return null;
     } else {
-      final var data = new CodeTableData(this);
+      final var data = newData();
       newQuery()//
         .forEachRecord(record -> addEntryRecord(data, record));
       return data;
@@ -275,7 +271,10 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
       }
       query.and(or);
     }
-    query.forEachRecord(record -> addEntryRecord(getData(), record));
+    query.forEachRecord(record -> {
+      addEntryRecord(getData(), record);
+      postAddEntryRecord(this.data, record);
+    });
     return true;
   }
 
@@ -295,6 +294,9 @@ public class RecordStoreCodeTable extends AbstractLoadingCodeTable
       query.addOrderBy(name);
     }
     return query;
+  }
+
+  protected void postAddEntryRecord(final CodeTableData data, final Record code) {
   }
 
   public AbstractLoadingCodeTable setAllowNullValues(final boolean allowNullValues) {

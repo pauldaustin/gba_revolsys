@@ -27,7 +27,8 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
   public AbstractLoadingCodeTable() {
   }
 
-  protected void clearCaches() {
+  public void clearCaches() {
+    getData().clearCaches();
   }
 
   @Override
@@ -46,6 +47,11 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
     } finally {
       this.lock.unlock();
     }
+  }
+
+  protected CodeTableData getDataAll() {
+    refreshIfNeeded();
+    return super.getData();
   }
 
   @Override
@@ -113,10 +119,6 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
 
   protected abstract boolean loadValueDo(Object idOrValue);
 
-  protected CodeTableData newData() {
-    return new CodeTableData(this);
-  }
-
   @Override
   public void refresh() {
     Future<CodeTableData> subscription;
@@ -155,7 +157,6 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
         if (data.isAfter(this.data)) {
           data.setAllLoaded(true);
           this.data = data;
-          clearCaches();
         }
       } finally {
         this.lock.unlock();

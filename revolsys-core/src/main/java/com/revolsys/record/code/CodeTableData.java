@@ -74,6 +74,9 @@ public class CodeTableData implements BaseCloseable, Cloneable {
     }
   }
 
+  public void clearCaches() {
+  }
+
   @Override
   public CodeTableData clone() {
     return new CodeTableData(this);
@@ -83,6 +86,10 @@ public class CodeTableData implements BaseCloseable, Cloneable {
   public void close() {
     this.identifiers.clear();
     this.entryCache.clear();
+  }
+
+  public AbstractCodeTable getCodeTable() {
+    return this.codeTable;
   }
 
   public CodeTableEntry getEntry(final Object idOrValue) {
