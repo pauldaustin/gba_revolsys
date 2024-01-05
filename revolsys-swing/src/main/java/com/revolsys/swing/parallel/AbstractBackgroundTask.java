@@ -1,12 +1,15 @@
 package com.revolsys.swing.parallel;
 
+import java.util.concurrent.Future;
+
 import javax.swing.SwingWorker.StateValue;
 
 import org.jeometry.common.logging.Logs;
 
+import com.revolsys.parallel.process.Process;
 import com.revolsys.swing.menu.MenuFactory;
 
-public abstract class AbstractBackgroundTask implements Runnable, BackgroundTask {
+public abstract class AbstractBackgroundTask implements BackgroundTask {
 
   protected final String taskTitle;
 
@@ -20,8 +23,23 @@ public abstract class AbstractBackgroundTask implements Runnable, BackgroundTask
 
   private final MenuFactory menu = new MenuFactory();
 
+  private Future<?> future;
+
+  private boolean cancelled = false;
+
   public AbstractBackgroundTask(final String taskTitle) {
     this.taskTitle = taskTitle;
+  }
+
+  @Override
+  public void cancel() {
+    if (!this.cancelled) {
+      this.cancelled = true;
+      this.taskStatus = StateValue.DONE;
+      if (this.future != null) {
+        this.future.cancel(true);
+      }
+    }
   }
 
   @Override
@@ -56,7 +74,11 @@ public abstract class AbstractBackgroundTask implements Runnable, BackgroundTask
   }
 
   @Override
-  public void run() {
+  public boolean isCancelled() {
+    return this.cancelled;
+  }
+
+  private void run() {
     try {
       this.taskThreadName = Thread.currentThread().getName();
       this.startTime = System.currentTimeMillis();
@@ -75,9 +97,12 @@ public abstract class AbstractBackgroundTask implements Runnable, BackgroundTask
 
   protected abstract void runTask();
 
-  public void start() {
-    BackgroundTaskManager.addTask(this);
-    final Thread thread = new Thread(this);
-    thread.start();
+  public AbstractBackgroundTask start() {
+    if (!this.cancelled) {
+      BackgroundTaskManager.addTask(this);
+      this.future = Process.EXECUTOR.submit(this::run);
+    }
+    return this;
   }
+
 }

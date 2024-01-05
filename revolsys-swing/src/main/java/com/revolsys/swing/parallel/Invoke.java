@@ -1,18 +1,18 @@
 package com.revolsys.swing.parallel;
 
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.lang.reflect.InvocationTargetException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.swing.SwingUtilities;
@@ -21,62 +21,26 @@ import javax.swing.SwingWorker;
 import org.jeometry.common.exception.Exceptions;
 
 import com.revolsys.beans.PropertyChangeSupport;
-import com.revolsys.collection.list.Lists;
 import com.revolsys.collection.map.Maps;
 import com.revolsys.parallel.ThreadInterruptedException;
 import com.revolsys.util.Property;
 
 public class Invoke {
-  private static final PropertyChangeListener PROPERTY_CHANGE_LISTENER = new PropertyChangeListener() {
-    @Override
-    public synchronized void propertyChange(final PropertyChangeEvent event) {
-      final SwingWorker<?, ?> worker = (SwingWorker<?, ?>)event.getSource();
-
-      if (worker.isCancelled() || worker.isDone()) {
-        try {
-          final List<SwingWorker<?, ?>> oldWorkers;
-          List<SwingWorker<?, ?>> newWorkers;
-          synchronized (WORKERS) {
-            oldWorkers = Lists.toArray(WORKERS);
-            WORKERS.remove(worker);
-            if (worker instanceof MaxThreadsSwingWorker) {
-              final MaxThreadsSwingWorker maxThreadsWorker = (MaxThreadsSwingWorker)worker;
-              final String workerKey = maxThreadsWorker.getWorkerKey();
-              final int maxThreads = maxThreadsWorker.getMaxThreads();
-              int threads = Maps.decrementCount(WORKER_COUNTS, workerKey);
-              final List<SwingWorker<?, ?>> waitingWorkers = WAITING_WORKERS.get(workerKey);
-              while (Property.hasValue(waitingWorkers) && threads < maxThreads) {
-                final SwingWorker<?, ?> nextWorker = waitingWorkers.remove(0);
-                Maps.addCount(WORKER_COUNTS, workerKey);
-                nextWorker.execute();
-                threads++;
-              }
-            }
-            for (final Iterator<SwingWorker<?, ?>> iterator = WORKERS.iterator(); iterator
-              .hasNext();) {
-              final SwingWorker<?, ?> swingWorker = iterator.next();
-              if (swingWorker.isDone()) {
-                iterator.remove();
-              }
-            }
-            newWorkers = getWorkers();
-          }
-          PROPERTY_CHANGE_SUPPORT.firePropertyChange("workers", oldWorkers, newWorkers);
-        } finally {
-          worker.removePropertyChangeListener(this);
-        }
-      }
-    }
-  };
 
   private static final PropertyChangeSupport PROPERTY_CHANGE_SUPPORT = new PropertyChangeSupport(
     Invoke.class);
 
-  private static final List<SwingWorker<?, ?>> WORKERS = new LinkedList<>();
+  private static final List<BackgroundTask> TASKS = new LinkedList<>();
 
-  private static final Map<String, List<SwingWorker<?, ?>>> WAITING_WORKERS = new HashMap<>();
+  private static final Map<String, List<BackgroundTask>> WAITING_TASKS = new HashMap<>();
 
-  private static final Map<String, Integer> WORKER_COUNTS = new HashMap<>();
+  private static final Map<String, Integer> RUNNING_COUNTS = new HashMap<>();
+
+  private static final Map<Object, BackgroundTask> SOURCE_TO_TASK = new HashMap<>();
+
+  private static final ReentrantLock LOCK = new ReentrantLock();
+
+  public static Instant lastTaskTime = Instant.now();
 
   public static <V> V andWait(final Callable<V> callable) {
     try {
@@ -143,21 +107,6 @@ public class Invoke {
     return null;
   }
 
-  public static SwingWorker<?, ?> background(final String description,
-    final Supplier<?> backgroundTask) {
-    if (backgroundTask != null) {
-      if (SwingUtilities.isEventDispatchThread()) {
-        final SwingWorker<?, ?> worker = new SupplierConsumerSwingWorker<>(description,
-          backgroundTask);
-        worker(worker);
-        return worker;
-      } else {
-        backgroundTask.get();
-      }
-    }
-    return null;
-  }
-
   public static <V> SwingWorker<V, Void> background(final String description,
     final Supplier<V> backgroundTask, final Consumer<V> doneTask) {
     if (backgroundTask != null) {
@@ -174,24 +123,33 @@ public class Invoke {
     return null;
   }
 
+  private static void fireChanged() {
+    final var lastTaskTime = Invoke.lastTaskTime;
+    Invoke.lastTaskTime = Instant.now();
+    PROPERTY_CHANGE_SUPPORT.firePropertyChange("taskTime", lastTaskTime, Invoke.lastTaskTime);
+  }
+
   public static PropertyChangeSupport getPropertyChangeSupport() {
     return PROPERTY_CHANGE_SUPPORT;
   }
 
-  public static List<SwingWorker<?, ?>> getWorkers() {
-    synchronized (WORKERS) {
-      final List<SwingWorker<?, ?>> workers = new ArrayList<>();
-      for (final SwingWorker<?, ?> worker : WORKERS) {
-        if (!worker.isDone()) {
-          workers.add(worker);
+  public static List<BackgroundTask> getTasks() {
+    LOCK.lock();
+    try {
+      final var tasks = new ArrayList<BackgroundTask>();
+      for (final var task : TASKS) {
+        if (!task.isTaskClosed()) {
+          tasks.add(task);
         }
       }
-      return workers;
+      return tasks;
+    } finally {
+      LOCK.unlock();
     }
   }
 
-  public static boolean hasWorker() {
-    return !getWorkers().isEmpty();
+  public static boolean hasTasks() {
+    return !TASKS.isEmpty();
   }
 
   public static void later(final Runnable runnable) {
@@ -200,12 +158,6 @@ public class Invoke {
     } else {
       SwingUtilities.invokeLater(runnable);
     }
-  }
-
-  public static <V> CompletionStage<V> laterFuture(final Consumer<CompletableFuture<V>> action) {
-    final var future = new CompletableFuture<V>();
-    Invoke.later(() -> action.accept(future));
-    return future;
   }
 
   public static void laterQueue(final Runnable runnable) {
@@ -230,6 +182,24 @@ public class Invoke {
     }
   }
 
+  public static <I, O> Function<I, CompletableFuture<O>> uiFuture(
+    final BiConsumer<I, CompletableFuture<O>> action) {
+    return v -> uiFuture(v, action);
+  }
+
+  public static <O> CompletableFuture<O> uiFuture(final Consumer<CompletableFuture<O>> action) {
+    final var future = new CompletableFuture<O>();
+    later(() -> action.accept(future));
+    return future;
+  }
+
+  public static <O, I> CompletableFuture<O> uiFuture(I v,
+    final BiConsumer<I, CompletableFuture<O>> action) {
+    final var future = new CompletableFuture<O>();
+    later(() -> action.accept(v, future));
+    return future;
+  }
+
   public static void uiThenBackground(final Runnable runnable, final String task,
     final Runnable backgroundTask) {
     if (SwingUtilities.isEventDispatchThread()) {
@@ -242,30 +212,60 @@ public class Invoke {
 
   public static void worker(final SwingWorker<? extends Object, ? extends Object> worker) {
     boolean execute = true;
-    final List<SwingWorker<?, ?>> oldWorkers;
-    final List<SwingWorker<?, ?>> newWorkers;
-    synchronized (WORKERS) {
-      if (WORKERS.contains(worker)) {
+    BackgroundTask task;
+    LOCK.lock();
+    try {
+      if (SOURCE_TO_TASK.containsKey(worker)) {
         return;
       }
-      oldWorkers = Lists.toArray(WORKERS);
-      WORKERS.add(worker);
-      if (worker instanceof MaxThreadsSwingWorker) {
-        final MaxThreadsSwingWorker maxThreadsWorker = (MaxThreadsSwingWorker)worker;
+      task = BackgroundTask.fromWorker(worker);
+      SOURCE_TO_TASK.put(worker, task);
+      TASKS.add(task);
+      if (worker instanceof final MaxThreadsSwingWorker maxThreadsWorker) {
         final String workerKey = maxThreadsWorker.getWorkerKey();
         final int maxThreads = maxThreadsWorker.getMaxThreads();
-        final int threads = Maps.getCount(WORKER_COUNTS, workerKey);
+        final int threads = Maps.getCount(RUNNING_COUNTS, workerKey);
         if (threads >= maxThreads) {
           execute = false;
-          Maps.addToList(WAITING_WORKERS, workerKey, worker);
+          Maps.addToList(WAITING_TASKS, workerKey, BackgroundTask.fromWorker(worker));
         } else {
-          Maps.addCount(WORKER_COUNTS, workerKey);
+          Maps.addCount(RUNNING_COUNTS, workerKey);
         }
       }
-      newWorkers = getWorkers();
+    } finally {
+      LOCK.unlock();
     }
-    worker.addPropertyChangeListener(PROPERTY_CHANGE_LISTENER);
-    PROPERTY_CHANGE_SUPPORT.firePropertyChange("workers", oldWorkers, newWorkers);
+    worker.addPropertyChangeListener(event -> {
+      if (task.isTaskCancelled() || task.isTaskClosed()) {
+        LOCK.lock();
+        try {
+          SOURCE_TO_TASK.remove(worker);
+          TASKS.remove(task);
+          if (worker instanceof final MaxThreadsSwingWorker maxThreadsWorker) {
+            final String taskKey = maxThreadsWorker.getWorkerKey();
+            final int maxThreads = maxThreadsWorker.getMaxThreads();
+            int runningCount = Maps.decrementCount(RUNNING_COUNTS, taskKey);
+            final var waitingTasks = WAITING_TASKS.get(taskKey);
+            while (Property.hasValue(waitingTasks) && runningCount < maxThreads) {
+              final var nextWorker = waitingTasks.remove(0);
+              Maps.addCount(RUNNING_COUNTS, taskKey);
+              nextWorker.execute();
+              runningCount++;
+            }
+          }
+          for (final var iterator = TASKS.iterator(); iterator.hasNext();) {
+            final var otherTask = iterator.next();
+            if (otherTask.isTaskClosed()) {
+              iterator.remove();
+            }
+          }
+        } finally {
+          LOCK.unlock();
+        }
+        fireChanged();
+      }
+    });
+    fireChanged();
     if (execute) {
       worker.execute();
     }

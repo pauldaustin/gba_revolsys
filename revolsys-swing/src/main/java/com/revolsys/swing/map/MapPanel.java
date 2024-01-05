@@ -91,7 +91,7 @@ import com.revolsys.swing.map.overlay.record.EditRecordGeometryOverlay;
 import com.revolsys.swing.map.overlay.record.SelectRecordsOverlay;
 import com.revolsys.swing.menu.BaseJPopupMenu;
 import com.revolsys.swing.parallel.Invoke;
-import com.revolsys.swing.parallel.SwingWorkerProgressBar;
+import com.revolsys.swing.parallel.BackgroundTaskProgressBar;
 import com.revolsys.swing.toolbar.ToolBar;
 import com.revolsys.swing.undo.UndoManager;
 import com.revolsys.util.CaseConverter;
@@ -172,7 +172,7 @@ public class MapPanel extends JPanel implements GeometryFactoryProxy, PropertyCh
 
   private final Preferences preferences;
 
-  private SwingWorkerProgressBar progressBar;
+  private BackgroundTaskProgressBar progressBar;
 
   private final Project project;
 
@@ -639,7 +639,7 @@ public class MapPanel extends JPanel implements GeometryFactoryProxy, PropertyCh
     return this.preferences;
   }
 
-  public SwingWorkerProgressBar getProgressBar() {
+  public BackgroundTaskProgressBar getProgressBar() {
     return this.progressBar;
   }
 
@@ -823,7 +823,7 @@ public class MapPanel extends JPanel implements GeometryFactoryProxy, PropertyCh
     this.messageLabel.setVisible(false);
     this.leftStatusBar.add(this.messageLabel);
 
-    this.progressBar = new SwingWorkerProgressBar();
+    this.progressBar = new BackgroundTaskProgressBar();
     this.rightStatusBar.add(this.progressBar);
   }
 
