@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.Consumer;
 
 import javax.swing.Action;
 import javax.swing.ActionMap;
@@ -829,32 +828,6 @@ public class LayerRecordForm extends JPanel implements PropertyChangeListener, C
 
   protected Map<String, Integer> getFieldTabIndex() {
     return this.fieldTabIndex;
-  }
-
-  @SuppressWarnings("unchecked")
-  public <T> T getFieldValue(Consumer<T> callback, final String name) {
-    final Object value = this.fieldValues.get(name);
-    final CodeTable codeTable = this.recordDefinition.getCodeTableByFieldName(name);
-    if (codeTable == null) {
-      if (value != null && name.endsWith("_IND")) {
-        if ("Y".equals(value) || Boolean.TRUE.equals(value)) {
-          return (T)"Y";
-        } else {
-          return (T)"N";
-        }
-      } else {
-        return (T)value;
-      }
-    } else {
-      final Identifier id = codeTable.getIdentifier(e -> {
-        if (e == null) {
-          callback.accept(null);
-        } else {
-          callback.accept((T)e.getIdentifier());
-        }
-      }, value);
-      return (T)id;
-    }
   }
 
   @SuppressWarnings("unchecked")

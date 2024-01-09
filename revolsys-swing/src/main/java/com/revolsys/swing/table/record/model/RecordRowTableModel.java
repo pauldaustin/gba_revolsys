@@ -22,6 +22,7 @@ import com.revolsys.record.RecordState;
 import com.revolsys.record.code.CodeTable;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
+import com.revolsys.swing.parallel.Invoke;
 import com.revolsys.swing.table.SortableTableModel;
 import com.revolsys.swing.table.record.RecordRowTable;
 import com.revolsys.util.Property;
@@ -544,7 +545,7 @@ public abstract class RecordRowTableModel extends AbstractRecordTableModel
         final Record record = getRecord(rowIndex);
         if (record != null) {
           final String fieldName = getColumnFieldName(columnIndex);
-          setRecordValue(record, fieldName, value);
+          Invoke.background("setValue", () -> setRecordValue(record, fieldName, value));
         }
       }
     }

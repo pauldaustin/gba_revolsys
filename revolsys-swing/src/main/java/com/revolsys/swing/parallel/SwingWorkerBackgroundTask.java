@@ -12,6 +12,16 @@ public class SwingWorkerBackgroundTask implements BackgroundTask {
   }
 
   @Override
+  public void cancel() {
+    this.worker.cancel(true);
+  }
+
+  @Override
+  public void execute() {
+    this.worker.execute();
+  }
+
+  @Override
   public StateValue getTaskStatus() {
     return this.worker.getState();
   }
@@ -24,6 +34,16 @@ public class SwingWorkerBackgroundTask implements BackgroundTask {
   @Override
   public String getTaskTitle() {
     return this.worker.toString();
+  }
+
+  @Override
+  public boolean isCancelled() {
+    return this.worker.isCancelled();
+  }
+
+  @Override
+  public boolean isTaskCancelled() {
+    return this.worker.isCancelled();
   }
 
   @Override

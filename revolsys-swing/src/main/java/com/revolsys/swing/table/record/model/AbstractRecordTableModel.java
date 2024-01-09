@@ -229,9 +229,15 @@ public abstract class AbstractRecordTableModel extends AbstractTableModel {
         }
       }
       if (isShowCodeValues() && !isIdField(field)) {
-        final Consumer<CodeTableEntry> loadAction = (x) -> fireTableCellUpdated(rowIndex,
-          fieldIndex);
-        text = field.toCodeString(loadAction, objectValue);
+        final Consumer<CodeTableEntry> loadAction = x -> fireTableCellUpdated(rowIndex, fieldIndex);
+        final var codeTable = field.getCodeTable();
+        if (codeTable == null) {
+          text = field.toString(objectValue);
+        } else {
+          text = codeTable.getEntry(objectValue)
+            .addCallback(loadAction)
+            .valueOrDefault(objectValue.toString());
+        }
       } else {
         text = field.toString(objectValue);
       }

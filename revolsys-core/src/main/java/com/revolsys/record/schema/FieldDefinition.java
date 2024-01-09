@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Consumer;
 
 import org.jeometry.common.compare.NumericComparator;
 import org.jeometry.common.data.identifier.Identifier;
@@ -30,7 +29,6 @@ import com.revolsys.properties.BaseObjectWithProperties;
 import com.revolsys.record.Record;
 import com.revolsys.record.RecordState;
 import com.revolsys.record.code.CodeTable;
-import com.revolsys.record.code.CodeTableEntry;
 import com.revolsys.record.io.format.json.JsonObject;
 import com.revolsys.record.io.format.json.JsonObjectHash;
 import com.revolsys.record.query.ColumnReference;
@@ -796,12 +794,14 @@ public class FieldDefinition extends BaseObjectWithProperties implements CharSeq
     return this.name.subSequence(beginIndex, endIndex);
   }
 
-  public String toCodeString(final Consumer<CodeTableEntry> callback, final Object value) {
-    return CodeTable.toCodeString(callback, this.codeTable, this.type, value);
-  }
-
   public String toCodeString(final Object value) {
-    return toCodeString(null, value);
+    if (value == null) {
+      return null;
+    } else if (this.codeTable == null) {
+      return this.type.toString(value);
+    } else {
+      return this.codeTable.toCodeString(this.type, value);
+    }
   }
 
   @Override

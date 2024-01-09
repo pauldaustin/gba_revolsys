@@ -2,7 +2,6 @@ package com.revolsys.gis.esri.gdb.file.capi;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 import javax.swing.JComponent;
 
@@ -58,8 +57,8 @@ public class FileGdbDomainCodeTable extends AbstractCodeTable {
   }
 
   @Override
-  public CodeTableEntry getEntry(final Consumer<CodeTableEntry> callback, final Object idOrValue) {
-    return this.domain.getEntry(callback, idOrValue);
+  public CodeTableEntry getEntry(final Object idOrValue) {
+    return this.domain.getEntry(idOrValue);
   }
 
   @Override

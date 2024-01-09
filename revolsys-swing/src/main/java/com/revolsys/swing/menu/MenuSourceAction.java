@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 
 import javax.swing.Icon;
 
-import com.revolsys.swing.parallel.Invoke;
+import com.revolsys.swing.parallel.BackgroundTask;
 import com.revolsys.swing.tree.BaseTreeNode;
 
 public class MenuSourceAction extends AbstractActionMainMenuItemFactory {
@@ -40,7 +40,7 @@ public class MenuSourceAction extends AbstractActionMainMenuItemFactory {
     if (this.runInBackground) {
       final String name = getName();
       final Runnable runnable = this::actionDo;
-      Invoke.background(name, runnable);
+      BackgroundTask.startRunnable(name, runnable);
     } else {
       actionDo();
     }

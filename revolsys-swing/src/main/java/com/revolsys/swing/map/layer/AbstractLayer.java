@@ -72,6 +72,7 @@ import com.revolsys.swing.map.ProjectFrame;
 import com.revolsys.swing.map.component.GeometryFactoryField;
 import com.revolsys.swing.map.layer.menu.TreeItemScaleMenu;
 import com.revolsys.swing.menu.MenuFactory;
+import com.revolsys.swing.parallel.BackgroundTask;
 import com.revolsys.swing.parallel.Invoke;
 import com.revolsys.swing.preferences.PreferenceFields;
 import com.revolsys.swing.table.NumberTableCellRenderer;
@@ -696,7 +697,7 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
       }
     } else {
       final PanelComponentHolder basePanel = new PanelComponentHolder();
-      addPropertyChangeListener("initialized", (event) -> {
+      addPropertyChangeListener("initialized", event -> {
         if (isInitialized() && isExists()) {
           Invoke.later(() -> {
             final Component tableViewComponent = newTableViewComponent(config);
@@ -879,9 +880,7 @@ public abstract class AbstractLayer extends BaseObjectWithProperties
 
   @Override
   public final void refresh() {
-    Invoke.background("Refresh Layer " + getName(), () -> {
-      refreshBackground();
-    });
+    BackgroundTask.startRunnable("Refresh Layer " + getName(), this::refreshBackground);
   }
 
   @Override

@@ -1,17 +1,12 @@
 package com.revolsys.record.code;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
-
-import javax.swing.SwingUtilities;
 
 import org.jeometry.common.exception.Exceptions;
-import org.jeometry.common.logging.Logs;
 
 import com.revolsys.io.BaseCloseable;
 import com.revolsys.parallel.process.Process;
@@ -19,54 +14,21 @@ import com.revolsys.parallel.process.Process;
 public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
   implements BaseCloseable, Cloneable {
 
-  private class LatchCallback implements Consumer<CodeTableEntry> {
-    private final CountDownLatch latch = new CountDownLatch(1);
-
-    private CodeTableEntry entry;
-
-    @Override
-    public void accept(final CodeTableEntry entry) {
-      this.latch.countDown();
-      this.entry = entry;
-    }
-
-    public CodeTableEntry getEntry() {
-      try {
-        this.latch.await();
-      } catch (final InterruptedException e) {
-        Exceptions.throwUncheckedException(e);
-      }
-      return this.entry;
-    }
-  }
-
-  private final Map<Object, CodeTableLoadingEntry> loadingByValue = new HashMap<>();
+  private final Map<Object, CodeTableEntryLoading> loadingByValue = new HashMap<>();
 
   private boolean loadMissingCodes = true;
 
   private boolean loadAll = true;
 
-  private final List<Consumer<CodeTableData>> loadingCallbacks = new ArrayList<>();
-
-  private Future<CodeTableData> dataFuture;
-
   private final boolean loadingAll = false;
 
-  private boolean nullOnUiThread = false;
+  private Future<CodeTableData> refreshSubscription;
 
   public AbstractLoadingCodeTable() {
   }
 
-  private void addLoadingCallback(final Consumer<CodeTableData> action) {
-    this.lock.lock();
-    try {
-      this.loadingCallbacks.add(action);
-    } finally {
-      this.lock.unlock();
-    }
-  }
-
-  protected void clearCaches() {
+  public void clearCaches() {
+    getData().clearCaches();
   }
 
   @Override
@@ -74,26 +36,29 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
     return (AbstractLoadingCodeTable)super.clone();
   }
 
-  @Override
-  public CodeTableEntry getEntry(final Consumer<CodeTableEntry> callback, final Object idOrValue) {
-    CodeTableEntry entry = super.getEntry(callback, idOrValue);
-    if (entry == null) {
-      if (callback == null) {
-        if (SwingUtilities.isEventDispatchThread()) {
-          if (this.nullOnUiThread) {
-            Logs.error(this, "Cannot load from code table without callback in swing thread");
-            Thread.dumpStack();
-            return null;
-          } else {
-            System.out.println("Cannot load from code table without callback in swing thread");
-          }
-        }
-        final var awaitCallback = new LatchCallback();
-        loadValue(idOrValue, awaitCallback);
-        entry = awaitCallback.getEntry();
-      } else {
-        loadValue(idOrValue, callback);
+  CodeTableEntry entryLoaded(final CodeTableEntryLoading loadingEntry) {
+    this.lock.lock();
+    try {
+      final Object loadingValue = loadingEntry.getLoadingValue();
+      if (loadingEntry == this.loadingByValue.get(loadingValue)) {
+        this.loadingByValue.remove(loadingValue);
       }
+      return this.data.getEntry(loadingValue);
+    } finally {
+      this.lock.unlock();
+    }
+  }
+
+  protected CodeTableData getDataAll() {
+    refreshIfNeeded();
+    return super.getData();
+  }
+
+  @Override
+  public CodeTableEntry getEntry(final Object idOrValue) {
+    final CodeTableEntry entry = super.getEntry(idOrValue);
+    if (entry.isEmpty()) {
+      return loadValue(idOrValue);
     }
     return entry;
   }
@@ -110,18 +75,11 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
 
   @Override
   public boolean isLoading() {
-    this.lock.lock();
-    try {
-      if (this.dataFuture != null) {
-        if (this.dataFuture.isDone()) {
-          this.dataFuture = null;
-        } else {
-          return true;
-        }
-      }
+    final var subscription = this.refreshSubscription;
+    if (subscription == null) {
       return false;
-    } finally {
-      this.lock.unlock();
+    } else {
+      return !subscription.isDone();
     }
   }
 
@@ -131,63 +89,88 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
 
   protected abstract CodeTableData loadAll();
 
-  private void loadValue(final Object value, final Consumer<CodeTableEntry> callback) {
-    if (!isLoaded() && isLoadAll()) {
-      if (callback != null) {
-        addLoadingCallback(data -> {
-          CodeTableEntry entry = null;
-          if (data != null) {
-            entry = data.getEntry(value);
-          }
-          callback.accept(entry);
-        });
-      }
-      refresh();
-    } else if (isLoadMissingCodes()) {
-      this.lock.lock();
-      try {
+  private CodeTableEntry loadValue(final Object value) {
+    this.lock.lock();
+    try {
+      if (!isLoaded() && isLoadAll()) {
         var loading = this.loadingByValue.get(value);
-        if (loading == null || loading.isExpired()) {
-          if (loading != null) {
-            loading.cancel();
-          }
-          loading = new CodeTableLoadingEntry(this, value);
+        if (loading == null) {
+          final Runnable loader = this::refresh;
+          loading = new CodeTableEntryLoading(this, value, loader);
           this.loadingByValue.put(value, loading);
         }
-        loading.addCallback(callback);
-      } finally {
-        this.lock.unlock();
+        return loading;
+
+      } else if (isLoadMissingCodes()) {
+        var loading = this.loadingByValue.get(value);
+        if (loading == null) {
+          final Runnable loader = () -> loadValueDo(value);
+          loading = new CodeTableEntryLoading(this, value, loader);
+          this.loadingByValue.put(value, loading);
+        }
+        return loading;
+      } else {
+        return CodeTableEntry.EMPTY;
       }
-    } else if (callback != null) {
-      callback.accept(null);
+    } finally {
+      this.lock.unlock();
     }
   }
 
   protected abstract boolean loadValueDo(Object idOrValue);
 
-  protected CodeTableData newData() {
-    return new CodeTableData(this);
-  }
-
   @Override
   public void refresh() {
+    Future<CodeTableData> subscription;
+    this.lock.lock();
+    try {
+      if (this.refreshSubscription == null || this.refreshSubscription.isDone()) {
+        this.refreshSubscription = subscription = Process.EXECUTOR.submit(this::refreshDo);
+      } else {
+        subscription = this.refreshSubscription;
+      }
+    } finally {
+      this.lock.unlock();
+    }
+    try {
+      subscription.get();
+      this.lock.lock();
+      try {
+        this.refreshSubscription = null;
+      } finally {
+        this.lock.unlock();
+      }
+    } catch (final InterruptedException e) {
+      Exceptions.throwUncheckedException(e);
+    } catch (final ExecutionException e) {
+      Exceptions.throwCauseException(e);
+    }
+  }
+
+  protected CodeTableData refreshDo() {
     final var data = loadAll();
     if (data != null) {
       this.lock.lock();
+      final var loadingByValue = new LinkedHashMap<>(this.loadingByValue);
+      this.loadingByValue.clear();
       try {
         if (data.isAfter(this.data)) {
           data.setAllLoaded(true);
           this.data = data;
-          clearCaches();
-          for (final var callback : this.loadingCallbacks) {
-            Process.EXECUTOR.execute(() -> callback.accept(data));
-          }
-          this.loadingCallbacks.clear();
         }
       } finally {
         this.lock.unlock();
       }
+      for (final var e : loadingByValue.entrySet()) {
+        final var value = e.getKey();
+        final var callback = e.getValue();
+        Process.EXECUTOR.execute(() -> {
+          final var entry = data.getEntry(value);
+          callback.fireCallbacks(entry);
+        });
+      }
     }
+    return this.data;
   }
 
   @Override
@@ -198,22 +181,6 @@ public abstract class AbstractLoadingCodeTable extends AbstractCodeTable
     } else {
       return false;
     }
-  }
-
-  public CodeTableData removeLoadingEntry(final CodeTableLoadingEntry codeTableLoadingEntry) {
-    this.lock.lock();
-    try {
-      if (codeTableLoadingEntry == this.loadingByValue.get(codeTableLoadingEntry.getValue())) {
-        this.loadingByValue.remove(codeTableLoadingEntry.getValue());
-      }
-      return getData();
-    } finally {
-      this.lock.unlock();
-    }
-  }
-
-  protected void setFailOnUiThread(boolean failOnUiThread) {
-    this.nullOnUiThread = failOnUiThread;
   }
 
   public AbstractLoadingCodeTable setLoadAll(final boolean loadAll) {

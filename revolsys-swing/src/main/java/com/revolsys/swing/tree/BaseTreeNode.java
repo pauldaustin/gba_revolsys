@@ -269,37 +269,29 @@ public class BaseTreeNode implements TreeNode, Iterable<BaseTreeNode>, PropertyC
   }
 
   public void expand() {
-    Invoke.andWait(() -> {
-      final TreePath treePath = getTreePath();
-      expand(treePath);
-    });
+    final TreePath treePath = getTreePath();
+    expand(treePath);
   }
 
   public void expand(final List<?> path) {
     if (path != null) {
-      Invoke.andWait(() -> {
-        final TreePath treePath = getTreePath(path);
-        expand(treePath);
-      });
+      final TreePath treePath = getTreePath(path);
+      expand(treePath);
     }
   }
 
   public void expand(final TreePath treePath) {
-    Invoke.andWait(() -> {
-      final JTree tree = getTree();
-      if (tree != null) {
-        tree.expandPath(treePath);
-      }
-    });
+    final JTree tree = getTree();
+    if (tree != null) {
+      tree.expandPath(treePath);
+    }
   }
 
   public void expandChildren() {
-    Invoke.andWait(() -> {
-      expand();
-      for (final BaseTreeNode child : getChildren()) {
-        child.expand();
-      }
-    });
+    expand();
+    for (final BaseTreeNode child : getChildren()) {
+      child.expand();
+    }
   }
 
   @Override
@@ -718,14 +710,13 @@ public class BaseTreeNode implements TreeNode, Iterable<BaseTreeNode>, PropertyC
     final Object userObject = getUserObject();
     if (source == userObject) {
       final TreeModel model = getTreeModel();
-      if (model instanceof DefaultTreeModel) {
-        final DefaultTreeModel defaultModel = (DefaultTreeModel)model;
+      if (model instanceof final DefaultTreeModel defaultModel) {
         defaultModel.nodeChanged(this);
       }
       final String propertyName = e.getPropertyName();
       if ("open".equals(propertyName)) {
         if ((Boolean)e.getNewValue()) {
-          expand();
+          Invoke.andWait(() -> expand());
         }
       }
     }

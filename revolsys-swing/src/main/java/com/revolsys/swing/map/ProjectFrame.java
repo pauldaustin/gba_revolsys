@@ -82,7 +82,7 @@ import com.revolsys.swing.map.view.pdf.SaveAsPdf;
 import com.revolsys.swing.menu.MenuFactory;
 import com.revolsys.swing.parallel.BackgroundTaskTableModel;
 import com.revolsys.swing.parallel.Invoke;
-import com.revolsys.swing.parallel.SwingWorkerProgressBar;
+import com.revolsys.swing.parallel.BackgroundTaskProgressBar;
 import com.revolsys.swing.preferences.PreferencesDialog;
 import com.revolsys.swing.scripting.ScriptRunner;
 import com.revolsys.swing.toolbar.ToolBar;
@@ -419,7 +419,7 @@ public class ProjectFrame extends BaseFrame {
   protected void addBottomTabsTasks() {
     final int tabIndex = BackgroundTaskTableModel.addNewTabPanel(this.bottomTabs);
 
-    final SwingWorkerProgressBar progressBar = this.mapPanel.getProgressBar();
+    final BackgroundTaskProgressBar progressBar = this.mapPanel.getProgressBar();
     final JButton viewTasksAction = RunnableAction.newButton(null, "View Running Tasks",
       Icons.getIcon("time_go"), () -> this.bottomTabs.setSelectedIndex(tabIndex));
     viewTasksAction.setBorderPainted(false);

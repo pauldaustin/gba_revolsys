@@ -44,36 +44,6 @@ public interface CodeTable
     }
   }
 
-  public static String toCodeString(final Consumer<CodeTableEntry> callback,
-    final CodeTable codeTable, final DataType type, final Object value) {
-    if (value == null || value instanceof String && !Property.hasValue(value)) {
-      return null;
-    } else if (codeTable == null) {
-      return type.toString(value);
-    } else {
-      final List<Object> values = codeTable.getValues(callback, value);
-      if (values == null || values.isEmpty()) {
-        return type.toString(value);
-      } else if (values.size() == 1) {
-        final Object codeValue = values.get(0);
-        if (codeValue instanceof Code) {
-          return ((Code)codeValue).getDescription();
-        } else if (codeValue instanceof String) {
-          final String string = (String)codeValue;
-          if (Property.hasValue(string)) {
-            return string;
-          } else {
-            return null;
-          }
-        } else {
-          return DataTypes.toString(codeValue);
-        }
-      } else {
-        return Strings.toString(values);
-      }
-    }
-  }
-
   default void addValue(final Record record) {
     throw new UnsupportedOperationException("addValue");
   }
@@ -95,57 +65,50 @@ public interface CodeTable
     }
   }
 
-  default List<String> getFieldNameAliases() {
-    return Collections.emptyList();
-  }
-
-  default Identifier getIdentifier(final Consumer<CodeTableEntry> callback,
-    final List<Object> values) {
+  default CodeTableEntry getEntry(final List<Object> values) {
     if (values.size() == 1) {
       final Object value = values.get(0);
-      return getIdentifier(callback, value);
+      return getEntry(value);
     } else {
       return null;
     }
   }
 
-  default Identifier getIdentifier(final Consumer<CodeTableEntry> callback,
-    final Map<String, ? extends Object> valueMap) {
+  default CodeTableEntry getEntry(final Object... values) {
+    if (values != null && values.length == 1) {
+      final Object value = values[0];
+      return getEntry(value);
+    } else {
+      return CodeTableEntry.EMPTY;
+    }
+  }
+
+  CodeTableEntry getEntry(Object value);
+
+  default List<String> getFieldNameAliases() {
+    return Collections.emptyList();
+  }
+
+  default Identifier getIdentifier(final List<Object> values) {
+    return getEntry(values).getIdentifier();
+  }
+
+  default Identifier getIdentifier(final Map<String, ? extends Object> valueMap) {
     final List<String> valueFieldNames = getValueFieldNames();
     final List<Object> values = new ArrayList<>();
     for (final String name : valueFieldNames) {
       final Object value = valueMap.get(name);
       values.add(value);
     }
-    return getIdentifier(callback, values);
-  }
-
-  default Identifier getIdentifier(final Consumer<CodeTableEntry> callback,
-    final Object... values) {
-    if (values != null && values.length == 1) {
-      final Object value = values[0];
-      return getIdentifier(callback, value);
-    } else {
-      return null;
-    }
-  }
-
-  Identifier getIdentifier(Consumer<CodeTableEntry> callback, final Object value);
-
-  default Identifier getIdentifier(final List<Object> values) {
-    return getIdentifier(null, values);
-  }
-
-  default Identifier getIdentifier(final Map<String, ? extends Object> valueMap) {
-    return getIdentifier(null, valueMap);
+    return getEntry(values).getIdentifier();
   }
 
   default Identifier getIdentifier(final Object... values) {
-    return getIdentifier(null, values);
+    return getEntry(values).getIdentifier();
   }
 
   default Identifier getIdentifier(final Object value) {
-    return getIdentifier(null, value);
+    return getEntry(value).getIdentifier();
   }
 
   Identifier getIdentifierByIndex(final int index);
@@ -167,13 +130,6 @@ public interface CodeTable
       final List<Object> values = entry.getValues();
       return JsonObject.hash(keys, values);
     }
-  }
-
-  JsonObject getMap(Consumer<JsonObject> callback, final Identifier id);
-
-  default JsonObject getMap(final Consumer<JsonObject> callback, final Object id) {
-    final Identifier identifier = Identifier.newIdentifier(id);
-    return getMap(callback, identifier);
   }
 
   default JsonObject getMap(final Identifier id) {
@@ -205,16 +161,7 @@ public interface CodeTable
     return null;
   }
 
-  <V> V getValue(Consumer<CodeTableEntry> callback, final Identifier id);
-
-  default <V> V getValue(final Consumer<CodeTableEntry> callback, final Object id) {
-    final Identifier identifier = Identifier.newIdentifier(id);
-    return getValue(callback, identifier);
-  }
-
-  default <V> V getValue(final Identifier id) {
-    return getValue(null, id);
-  }
+  <V> V getValue(final Identifier id);
 
   default <V> V getValue(final Object id) {
     final Identifier identifier = Identifier.newIdentifier(id);
@@ -240,27 +187,17 @@ public interface CodeTable
     return values;
   }
 
-  default List<Object> getValues(final Consumer<CodeTableEntry> callback, final Identifier id) {
-    final Object value = getValue(callback, id);
-    if (value == null) {
-      return null;
-    } else {
-      return Collections.singletonList(value);
-    }
-  }
-
   default List<Object> getValues(final Consumer<CodeTableEntry> callback, final Object id) {
     final Identifier identifier = Identifier.newIdentifier(id);
-    return getValues(callback, identifier);
+    return getEntry(identifier).getValues();
   }
 
   default List<Object> getValues(final Identifier id) {
-    return getValues(null, id);
+    return getEntry(id).getValues();
   }
 
   default List<Object> getValues(final Object id) {
-    final Identifier identifier = Identifier.newIdentifier(id);
-    return getValues(null, identifier);
+    return getEntry(id).getValues();
   }
 
   default boolean hasValue(final Object value) {
@@ -308,40 +245,33 @@ public interface CodeTable
 
   int size();
 
+  default String toCodeString(final DataType type, final Object value) {
+    if (value == null || value instanceof String && !Property.hasValue(value)) {
+      return null;
+    } else {
+      final List<Object> values = getValues(value);
+      if (values == null || values.isEmpty()) {
+        return type.toString(value);
+      } else if (values.size() == 1) {
+        final Object codeValue = values.get(0);
+        if (codeValue instanceof Code) {
+          return ((Code)codeValue).getDescription();
+        } else if (codeValue instanceof String) {
+          final String string = (String)codeValue;
+          if (Property.hasValue(string)) {
+            return string;
+          } else {
+            return null;
+          }
+        } else {
+          return DataTypes.toString(codeValue);
+        }
+      } else {
+        return Strings.toString(values);
+      }
+    }
+  }
+
   void withEntry(Consumer<CodeTableEntry> callback, Object idOrValue);
 
-  default <T> void withIdentifier(Consumer<Identifier> callback, CodeTableEntry entry) {
-    if (entry == null) {
-      callback.accept(null);
-    } else {
-      final var identifier = entry.getIdentifier();
-      callback.accept(identifier);
-    }
-  }
-
-  default <T> void withIdentifier(Consumer<Identifier> callback, final Object idOrValue) {
-    withEntry(entry -> withIdentifier(callback, entry), idOrValue);
-  }
-
-  default void withMap(Consumer<JsonObject> callback, CodeTableEntry entry) {
-    final var map = getMap(entry);
-    callback.accept(map);
-  }
-
-  default void withMap(Consumer<JsonObject> callback, final Object idOrValue) {
-    withEntry(entry -> withMap(callback, entry), idOrValue);
-  }
-
-  default <T> void withValue(Consumer<T> callback, CodeTableEntry entry) {
-    if (entry == null) {
-      callback.accept(null);
-    } else {
-      final T value = entry.getValue();
-      callback.accept(value);
-    }
-  }
-
-  default <T> void withValue(Consumer<T> callback, final Object idOrValue) {
-    withEntry(entry -> withValue(callback, entry), idOrValue);
-  }
 }

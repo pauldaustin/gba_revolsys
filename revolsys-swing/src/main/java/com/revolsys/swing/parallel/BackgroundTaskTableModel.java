@@ -6,18 +6,16 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.SwingConstants;
-import javax.swing.SwingWorker;
 import javax.swing.SwingWorker.StateValue;
 import javax.swing.Timer;
 
@@ -129,7 +127,7 @@ public class BackgroundTaskTableModel extends AbstractTableModel implements Prop
 
   private transient List<BackgroundTask> tasks = new ArrayList<>();
 
-  private final transient Map<SwingWorker<?, ?>, BackgroundTask> taskBySwingWorker = new LinkedHashMap<>();
+  private final transient Set<BackgroundTask> taskSet = new HashSet<>();
 
   private final transient PropertyChangeListener taskListener;
 
@@ -158,16 +156,9 @@ public class BackgroundTaskTableModel extends AbstractTableModel implements Prop
       }));
   }
 
-  private void addNewWorkers(final List<SwingWorker<?, ?>> workers) {
-    for (final SwingWorker<?, ?> worker : workers) {
-      if (!worker.isDone() && !this.taskBySwingWorker.containsKey(worker)) {
-        BackgroundTask task;
-        if (worker instanceof BackgroundTask) {
-          task = (BackgroundTask)worker;
-        } else {
-          task = new SwingWorkerBackgroundTask(worker);
-        }
-        this.taskBySwingWorker.put(worker, task);
+  private void addNewTasks(final List<BackgroundTask> tasks) {
+    for (final var task : tasks) {
+      if (!task.isTaskClosed() && this.taskSet.add(task)) {
         this.tasks.add(task);
       }
     }
@@ -285,29 +276,24 @@ public class BackgroundTaskTableModel extends AbstractTableModel implements Prop
     return this.doneCount > 0;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void propertyChange(final PropertyChangeEvent event) {
     Invoke.later(() -> {
       final String propertyName = event.getPropertyName();
-      if (propertyName.equals("workers")) {
-        final List<SwingWorker<?, ?>> workers = (List<SwingWorker<?, ?>>)event.getNewValue();
-        removeDoneWorkers(workers);
-        addNewWorkers(workers);
+      if (propertyName.equals("taskTime")) {
+        final var tasks = Invoke.getTasks();
+        removeDoneTasks(tasks);
+        addNewTasks(tasks);
         updateCounts();
         fireTableDataChanged();
       }
     });
   }
 
-  private void removeDoneWorkers(final List<SwingWorker<?, ?>> workers) {
-    for (final Iterator<Entry<SwingWorker<?, ?>, BackgroundTask>> iterator = this.taskBySwingWorker
-      .entrySet()
-      .iterator(); iterator.hasNext();) {
-      final Entry<SwingWorker<?, ?>, BackgroundTask> entry = iterator.next();
-      final SwingWorker<?, ?> worker = entry.getKey();
-      if (worker.isDone() || !workers.contains(worker)) {
-        final BackgroundTask task = entry.getValue();
+  private void removeDoneTasks(final List<BackgroundTask> tasks) {
+    for (final var iterator = this.taskSet.iterator(); iterator.hasNext();) {
+      final var task = iterator.next();
+      if (task.isTaskClosed() || !tasks.contains(task)) {
         iterator.remove();
         this.tasks.remove(task);
       }
@@ -341,6 +327,5 @@ public class BackgroundTaskTableModel extends AbstractTableModel implements Prop
     firePropertyChange("pendingCount", -1, this.pendingCount);
     firePropertyChange("runningCount", -1, this.runningCount);
     firePropertyChange("doneCount", -1, this.doneCount);
-
   }
 }

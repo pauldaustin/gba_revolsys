@@ -58,7 +58,7 @@ public class FieldCalculator extends AbstractUpdateField implements DocumentList
 
   private JTextArea expressionField;
 
-  private final ScriptEngine scriptEngine = ScriptEngines.JS;
+  private final ScriptEngine scriptEngine = ScriptEngines.getJs();
 
   private final Compilable scriptEngineCompiler = (Compilable)this.scriptEngine;
 
