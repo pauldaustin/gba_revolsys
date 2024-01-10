@@ -5,21 +5,22 @@ import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.SwingUtilities;
+
 public class SwingUiExecutorService extends AbstractExecutorService {
 
-  public static final SwingUiExecutorService EXECUTOR = new SwingUiExecutorService();
-
-  private SwingUiExecutorService() {
+  public SwingUiExecutorService() {
   }
 
   @Override
-  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+  public boolean awaitTermination(final long timeout, final TimeUnit unit)
+    throws InterruptedException {
     return false;
   }
 
   @Override
-  public void execute(Runnable command) {
-    Invoke.later(command);
+  public void execute(final Runnable command) {
+    SwingUtilities.invokeLater(command);
   }
 
   @Override

@@ -1,26 +1,29 @@
 package com.revolsys.swing.parallel;
 
+import java.awt.Component;
 import java.awt.Image;
 import java.io.File;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.jeometry.common.exception.Exceptions;
 import org.jeometry.common.logging.Logs;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.support.GenericApplicationContext;
 
 import com.revolsys.log.LogbackUtil;
+import com.revolsys.swing.SwingUtil;
 import com.revolsys.swing.desktop.DesktopInitializer;
 import com.revolsys.swing.logging.ListLoggingAppender;
 import com.revolsys.swing.logging.LoggingEventPanel;
@@ -34,7 +37,17 @@ import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxy;
 import ch.qos.logback.core.Appender;
 
-public class SpringSwingMain implements UncaughtExceptionHandler, InitializingBean {
+public class SpringSwingMain implements UncaughtExceptionHandler {
+
+  public static void start(final Class<? extends SpringSwingMain> appClass, final String... args) {
+    final SpringApplicationBuilder builder = new SpringApplicationBuilder(appClass)
+      .web(WebApplicationType.NONE)
+      .headless(false);
+
+    final var beanFactory = (GenericApplicationContext)builder.run(args);
+    beanFactory.getBean(appClass).run(beanFactory);
+
+  }
 
   protected Set<File> initialFiles = new LinkedHashSet<>();
 
@@ -42,40 +55,33 @@ public class SpringSwingMain implements UncaughtExceptionHandler, InitializingBe
 
   private final String name;
 
+  private GenericApplicationContext beanFactory;
+
   public SpringSwingMain(final String name) {
     this.name = name;
     Thread.setDefaultUncaughtExceptionHandler(this);
   }
 
-  @Override
-  public void afterPropertiesSet() {
-    new Thread(() -> {
-      try {
-        if (swingBefore()) {
-          SwingUtilities.invokeAndWait(() -> {
-            swingInit();
-            swingAfter();
-          });
-          if (appBefore()) {
-            SwingUtilities.invokeAndWait(() -> {
-              appSwingInit();
-            });
-          }
-        }
-      } catch (final InvocationTargetException e) {
-        Logs.error(this, e.getCause());
-      } catch (final InterruptedException e) {
-      } catch (final RuntimeException e) {
-        Logs.error(this, e.getCause());
-      }
-    }).start();
-  }
-
-  protected boolean appBefore() {
+  /**
+   * Override to perform any non Swing tasks after the Look and Feel has been initialized,
+   * but before the app swing components are initialized.
+   */
+  protected boolean appPreSwingInit() {
     return true;
   }
 
+  private boolean appPreSwingInit(final Void v) {
+    return appPreSwingInit();
+  }
+
+  /**
+   * Override to setup the swing components, don't use {@link Component#setVisible(boolean)} instead use {@link SwingUtil#showAsync(java.awt.Component)}.
+   */
   protected void appSwingInit() {
+  }
+
+  protected GenericApplicationContext getBeanFactory() {
+    return this.beanFactory;
   }
 
   public void logError(final Throwable e) {
@@ -90,6 +96,38 @@ public class SpringSwingMain implements UncaughtExceptionHandler, InitializingBe
     }
   }
 
+  /**
+   * Override to initialize anything that needs to be setup before the Swing Thread starts
+   */
+  protected void preSwingInit() {
+  }
+
+  public final void run(final GenericApplicationContext beanFactory) {
+    this.beanFactory = beanFactory;
+    CompletableFuture//
+      .runAsync(this::preSwingInit)
+
+      .thenRunAsync(this::swingInitLookAndFeel, SwingUtil.EXECUTOR)
+
+      .thenApplyAsync(this::appPreSwingInit)
+
+      .thenComposeAsync((startApp) -> {
+        if (startApp) {
+          return CompletableFuture.runAsync(this::appSwingInit, SwingUtil.EXECUTOR);
+        } else {
+          return CompletableFuture.completedFuture(null);
+        }
+      })
+
+      .handle((v, e) -> {
+        if (e != null) {
+          Logs.error(this, e.getCause());
+        }
+        return v;
+      })
+      .join();
+  }
+
   public void setLookAndFeelName(final String lookAndFeelName) {
     this.lookAndFeelName = lookAndFeelName;
   }
@@ -102,14 +140,10 @@ public class SpringSwingMain implements UncaughtExceptionHandler, InitializingBe
     }
   }
 
-  protected void swingAfter() {
-  }
-
-  protected boolean swingBefore() {
-    return true;
-  }
-
-  private void swingInit() {
+  /**
+   * Initialize the Look & Feel
+   */
+  private void swingInitLookAndFeel() {
     try {
       boolean lookSet = false;
       if (Property.hasValue(this.lookAndFeelName)) {

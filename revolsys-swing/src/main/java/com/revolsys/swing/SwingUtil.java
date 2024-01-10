@@ -77,6 +77,7 @@ import com.revolsys.swing.field.TextArea;
 import com.revolsys.swing.field.TextField;
 import com.revolsys.swing.menu.MenuFactory;
 import com.revolsys.swing.parallel.Invoke;
+import com.revolsys.swing.parallel.SwingUiExecutorService;
 import com.revolsys.util.CaseConverter;
 import com.revolsys.util.OS;
 import com.revolsys.util.PreferenceKey;
@@ -451,6 +452,15 @@ public interface SwingUtil {
     } else {
       return y + getY(parent);
     }
+  }
+
+  /**
+   * Hide the component asynchronously.
+   *
+   * @param component the component to hide.
+   */
+  static void hideAsync(final Component component) {
+    SwingUtilities.invokeLater(() -> component.setVisible(false));
   }
 
   static boolean isAltDown(final InputEvent event) {
@@ -1060,6 +1070,15 @@ public interface SwingUtil {
     }
   }
 
+  /**
+   * Shows the component asynchronously.
+   *
+   * @param component the component to show.
+   */
+  static void showAsync(final Component component) {
+    SwingUtilities.invokeLater(() -> component.setVisible(true));
+  }
+
   static void toFront(final Window window) {
     if (window != null) {
       final boolean alwaysOnTop = window.isAlwaysOnTop();
@@ -1087,4 +1106,6 @@ public interface SwingUtil {
     }
     return activeWindow;
   }
+
+  SwingUiExecutorService EXECUTOR = new SwingUiExecutorService();
 }
