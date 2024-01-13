@@ -326,7 +326,9 @@ public class RecordLayerTablePanel extends TablePanel
         final TableCellEditor cellEditor = table.getCellEditor();
         cellEditor.stopCellEditing();
       }
-      final Point point = e.getPoint();
+
+      final Point point = new Point(e.getXOnScreen(), e.getYOnScreen());
+      SwingUtilities.convertPointFromScreen(point, table);
       final int row = table.rowAtPoint(point);
       final LayerRecord record = table.getRecord(row);
       this.layer.showForm(record);
