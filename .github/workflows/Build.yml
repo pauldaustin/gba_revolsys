@@ -17,9 +17,9 @@ jobs:
       contents: read
       packages: write 
 
-  # NOTE: Add variable in github repositor setting
-  # JEOMETRY_REPO (e.g. jeometry-org/jeometry)
-
+    env:
+      JEOMETRY_REPO: ${{vars.JEOMETRY_REPO}}
+ 
     steps:
 
       - name: Initialize Environment
