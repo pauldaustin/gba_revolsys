@@ -77,8 +77,8 @@ jobs:
         BASE_REF=$(echo "$REF" | tr '[:lower:]' '[:upper:]')
         OTHER_VERSION="0.REVOLSYS-${BASE_REF}-SNAPSHOT"
         VERSION="${BASE_REF}-SNAPSHOT"
+        find jeometry -name pom.xml -exec sed -i "s/<version>.*-SNAPSHOT<\\/version>/<version>${OTHER_VERSION}<\\/version>/g" {} \;    
         sed -i "s/<org.jeometry.version>.*<\\/org.jeometry.version>/<org.jeometry.version>${OTHER_VERSION}<\\/org.jeometry.version>/g" ./revolsys/pom.xml
-        mvn -f ./jeometry/pom.xml -B -q versions:set "-DnewVersion=${OTHER_VERSION}" -DgenerateBackupPoms=false -DprocessDependencies=false
         
 #### Build ####
     - name: Build
