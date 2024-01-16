@@ -259,7 +259,7 @@ public class LongHashMap<T> implements Map<Long, T>, Cloneable, Serializable {
      */
     @Override
     public Long next() {
-      return new Long(nextEntry().getLongKey());
+      return nextEntry().getLongKey();
     }
   }
 
