@@ -492,7 +492,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <org.jeometry.version>MAIN-SNAPSHOT</org.jeometry.version>
+    <org.jeometry.version>0.REVOLSYS-MAIN-SNAPSHOT</org.jeometry.version>
     <gpg.skip>true</gpg.skip>
     <github.global.server>github</github.global.server>
     <skipTests>true</skipTests>

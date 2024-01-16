@@ -23,7 +23,6 @@ jobs:
 
     steps:
 
-#### Checkout jeometry ####
     - name: Checkout jeometry
       uses: actions/checkout@v4
       with:
@@ -32,7 +31,6 @@ jobs:
         path: jeometry
         token: ${{secrets.PUSH_TOKEN}}
 
-#### Checkout revolsys ####
     - name: Checkout revolsys
       uses: actions/checkout@v4
       with:
@@ -40,7 +38,6 @@ jobs:
         repository: ${{github.repository}}
         path: revolsys
 
-#### JAVA VERSION ####
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -48,7 +45,6 @@ jobs:
         distribution: 'microsoft'
         cache: 'maven'
 
-#### Initialize Environment ####
     - name: Initialize Environment
       run: |
         REF="$GITHUB_REF"
@@ -65,12 +61,10 @@ jobs:
         echo "REF=${REF}" >> $GITHUB_ENV
         echo "OTHER_REF=${OTHER_REF}" >> $GITHUB_ENV
 
-#### Get App Version ####
     - name: Get Project Version
       working-directory: ./revolsys
       run: echo "PROJECT_VERSION=$(grep version pom.xml|head -1 | sed 's/<\/*version>//g' | sed 's/ //g')" >> $GITHUB_ENV
 
-#### Set Snapshot Version ####
     - name: Set Snapshot Version
       if: contains(env.PROJECT_VERSION, 'SNAPSHOT')
       run: |
@@ -80,7 +74,10 @@ jobs:
         find jeometry -name pom.xml -exec sed -i "s/<version>.*-SNAPSHOT<\\/version>/<version>${OTHER_VERSION}<\\/version>/g" {} \;    
         sed -i "s/<org.jeometry.version>.*<\\/org.jeometry.version>/<org.jeometry.version>${OTHER_VERSION}<\\/org.jeometry.version>/g" ./revolsys/pom.xml
         
-#### Build ####
-    - name: Build
+    - name: Build Jeometry
+      working-directory: ./jeometry
+      run: mvn -B -ntp -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip install
+
+    - name: Build Jeometry
       working-directory: ./revolsys
       run: mvn -B -ntp -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip install
