@@ -61,9 +61,7 @@ import java.io.Serializable;
  * floating point operations in (non-IEEE-754-standard) extended-precision.
  * A JVM implementation may choose to use the non-standard extended-precision
  * as its default arithmetic mode.
- * To prevent this from happening, this code uses the
- * Java <tt>strictfp</tt> modifier,
- * which forces all operations to take place in the standard IEEE-754 rounding model.
+ *
  * <p>
  * The API provides both a set of value-oriented operations
  * and a set of mutating operations.
@@ -98,7 +96,7 @@ import java.io.Serializable;
  * @author Martin Davis
  *
  */
-public strictfp final class DD implements Serializable, Comparable, Cloneable {
+public final class DD implements Serializable, Comparable, Cloneable {
   /**
    * The value nearest to the constant e (the natural logarithm base).
    */
