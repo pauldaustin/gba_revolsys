@@ -78,6 +78,6 @@ jobs:
       working-directory: ./jeometry
       run: mvn -B -ntp -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip install
 
-    - name: Build Jeometry
+    - name: Build Revolsys
       working-directory: ./revolsys
       run: mvn -B -ntp -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip install
