@@ -72,7 +72,7 @@ jobs:
       - name: Set Snapshot Version
         if: contains(env.PROJECT_VERSION, 'SNAPSHOT')
         run: |
-          BASE_REF=$(echo "$REF" | tr '[:lower:]' '[:upper:]')
+          BASE_REF=$(echo "$REF" | tr '[:lower:]' '[:upper:]' | sed -E 's/[^0-9A-Za-z.]+/_/g')
           OTHER_VERSION="0.REVOLSYS-${BASE_REF}-SNAPSHOT"
           VERSION="${BASE_REF}-SNAPSHOT"
           find jeometry -name pom.xml -exec sed -i "s/<version>.*-SNAPSHOT<\\/version>/<version>${OTHER_VERSION}<\\/version>/g" {} \;    
