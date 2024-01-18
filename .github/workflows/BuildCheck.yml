@@ -1,4 +1,4 @@
-name: Build
+name: Build Check
 
 on:
   push:
@@ -18,6 +18,7 @@ jobs:
       packages: write 
 
     env:
+# The vars below must be added to the Github Repository settings variables for Actions
       JEOMETRY_REPO: ${{vars.JEOMETRY_REPO}}
  
     steps:
