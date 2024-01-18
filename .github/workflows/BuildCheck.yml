@@ -13,14 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    permissions: 
-      contents: read
-      packages: write 
-
     env:
 # The vars below must be added to the Github Repository settings variables for Actions
       JEOMETRY_REPO: ${{vars.JEOMETRY_REPO}}
- 
+
     steps:
 
       - name: Initialize Environment
