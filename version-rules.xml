@@ -57,5 +57,10 @@
         <ignoreVersion type="regex">\d{8}\.\d{6}</ignoreVersion>
       </ignoreVersions>
     </rule>
+    <rule groupId="org.apache.pdfbox" comparisonMethod="maven">
+      <ignoreVersions>
+        <ignoreVersion type="regex">3\..*</ignoreVersion>
+      </ignoreVersions>
+    </rule>
   </rules>
 </ruleset>
