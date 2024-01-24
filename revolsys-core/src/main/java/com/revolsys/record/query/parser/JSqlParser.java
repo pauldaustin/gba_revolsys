@@ -71,7 +71,6 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.ColDataType;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.util.cnfexpression.MultiAndExpression;
 import net.sf.jsqlparser.util.cnfexpression.MultiOrExpression;
 import net.sf.jsqlparser.util.cnfexpression.MultipleExpression;
@@ -96,6 +95,7 @@ public class JSqlParser extends AbstractSqlParser {
     this.converters.put(OrExpression.class, convertBinaryExpression(Or::new));
     this.converters.put(MultiOrExpression.class, convertMultipleExpression(Or::new));
 
+    this.converters.put(ExpressionList.class, this::convertExpressionList);
     this.converters.put(EqualsTo.class, convertBinaryExpression(Q.EQUAL));
     this.converters.put(GreaterThan.class,
       convertBinaryExpression(com.revolsys.record.query.GreaterThan::new));
@@ -208,7 +208,7 @@ public class JSqlParser extends AbstractSqlParser {
     final CastExpression castExpression = (CastExpression)expression;
     final Expression leftExpression = castExpression.getLeftExpression();
     final QueryValue leftValue = convertExpression(leftExpression);
-    final ColDataType type = castExpression.getType();
+    final ColDataType type = castExpression.getColDataType();
     final String dataType = type.getDataType();
     return new Cast(leftValue, dataType);
   }
@@ -243,14 +243,24 @@ public class JSqlParser extends AbstractSqlParser {
     }
   }
 
+  private QueryValue convertExpressionList(final Expression expression) {
+    final var expressions = (ExpressionList<Expression>)expression;
+    final var values = new ArrayList<Object>();
+    for (final Expression subExpression : expressions) {
+      final QueryValue subCondition = convertExpression(subExpression);
+      values.add(subCondition);
+    }
+    return new CollectionValue(values);
+  }
+
   private QueryValue convertFunction(final Expression expression) {
     final net.sf.jsqlparser.expression.Function function = (net.sf.jsqlparser.expression.Function)expression;
     final String name = function.getName();
-    final ExpressionList expressions = function.getParameters();
+    final var expressions = function.getParameters();
     final List<QueryValue> parameters = new ArrayList<>();
     if (expressions != null) {
-      for (final Expression parameter : expressions.getExpressions()) {
-        final QueryValue parameterVaue = convertExpression(parameter);
+      for (final Object parameter : expressions) {
+        final QueryValue parameterVaue = convertExpression((Expression)parameter);
         parameters.add(parameterVaue);
       }
     }
@@ -261,13 +271,7 @@ public class JSqlParser extends AbstractSqlParser {
     final InExpression inExpression = (InExpression)expression;
     final Expression leftExpression = inExpression.getLeftExpression();
     final QueryValue leftValue = convertExpression(leftExpression);
-    final ExpressionList expressions = (ExpressionList)inExpression.getRightItemsList();
-    final ArrayList<Object> values = new ArrayList<>();
-    for (final Expression subExpression : expressions.getExpressions()) {
-      final QueryValue subCondition = convertExpression(subExpression);
-      values.add(subCondition);
-    }
-    final CollectionValue collectionValue = new CollectionValue(values);
+    final var collectionValue = convertExpression(inExpression.getRightExpression());
     final In in = new In(leftValue, collectionValue);
     if (inExpression.isNot()) {
       return Q.not(in);
@@ -385,8 +389,7 @@ public class JSqlParser extends AbstractSqlParser {
       try {
         final Statement statement = CCJSqlParserUtil.parse(sql);
         if (statement instanceof final Select select) {
-          final SelectBody selectBody = select.getSelectBody();
-          if (selectBody instanceof final PlainSelect plainSelect) {
+          if (select instanceof final PlainSelect plainSelect) {
             final Expression where = plainSelect.getWhere();
             if (where instanceof final Parenthesis parenthesis) {
               final Expression expression = parenthesis.getExpression();
