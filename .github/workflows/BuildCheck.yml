@@ -1,0 +1,83 @@
+name: Build Check
+
+on:
+  push:
+    branches:
+    - 'main'
+    - 'feature/*'
+    - 'patch/*'
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+# The vars below must be added to the Github Repository settings variables for Actions
+      JEOMETRY_REPO: ${{vars.JEOMETRY_REPO}}
+
+    steps:
+
+      - name: Initialize Environment
+        run: |
+          if [ -z "${JEOMETRY_REPO}" ]; then
+            echo "JEOMETRY_REPO=jeometry-org/jeometry" >> $GITHUB_ENV
+          fi
+          
+          REF="$GITHUB_REF"
+          if [[ "$REF" =~ ^refs/heads/.* ]]; then
+            REF="${REF/refs\/heads\//}"
+            OTHER_REF=${REF}
+          elif [[ "$REF" =~ ^refs/tags/.* ]]; then
+            REF="${REF/refs\/tags\//}"
+            OTHER_REF=0.REVOLSYS-${REF}
+          else
+            echo "Ref must be a branch or tag '${REF}'"
+            exit -1
+          fi
+          echo "REF=${REF}" >> $GITHUB_ENV
+          echo "OTHER_REF=${OTHER_REF}" >> $GITHUB_ENV
+
+      - name: Checkout jeometry
+        uses: actions/checkout@v4
+        with:
+          ref: ${{env.OTHER_REF}}
+          repository: ${{env.JEOMETRY_REPO}}
+          path: jeometry
+          token: ${{secrets.PUSH_TOKEN}}
+
+      - name: Checkout revolsys
+        uses: actions/checkout@v4
+        with:
+          ref: ${{env.REF}}
+          repository: ${{github.repository}}
+          path: revolsys
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'microsoft'
+          cache: 'maven'
+
+      - name: Get Project Version
+        working-directory: ./revolsys
+        run: echo "PROJECT_VERSION=$(grep version pom.xml|head -1 | sed 's/<\/*version>//g' | sed 's/ //g')" >> $GITHUB_ENV
+
+      - name: Set Snapshot Version
+        if: contains(env.PROJECT_VERSION, 'SNAPSHOT')
+        run: |
+          BASE_REF=$(echo "$REF" | tr '[:lower:]' '[:upper:]' | sed -E 's/[^0-9A-Za-z.]+/_/g')
+          OTHER_VERSION="0.REVOLSYS-${BASE_REF}-SNAPSHOT"
+          VERSION="${BASE_REF}-SNAPSHOT"
+          find jeometry -name pom.xml -exec sed -i "s/<version>.*-SNAPSHOT<\\/version>/<version>${OTHER_VERSION}<\\/version>/g" {} \;    
+          sed -i "s/<org.jeometry.version>.*<\\/org.jeometry.version>/<org.jeometry.version>${OTHER_VERSION}<\\/org.jeometry.version>/g" ./revolsys/pom.xml
+
+      - name: Build Jeometry
+        working-directory: ./jeometry
+        run: mvn -B -ntp -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip install
+
+      - name: Build Revolsys
+        working-directory: ./revolsys
+        run: mvn -B -ntp -DskipTests -Dmaven.javadoc.skip=true -Dmaven.source.skip install
