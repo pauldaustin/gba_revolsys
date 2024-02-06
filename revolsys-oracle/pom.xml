@@ -9,7 +9,7 @@
   <parent>
     <groupId>com.revolsys.open</groupId>
     <artifactId>revolsys-parent</artifactId>
-    <version>MAIN-SNAPSHOT</version>
+    <!-- VERSION --><version>MAIN-SNAPSHOT</version>
   </parent>
   <dependencies>
     <dependency>

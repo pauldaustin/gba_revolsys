@@ -6,7 +6,7 @@
   <parent>
     <artifactId>revolsys-parent</artifactId>
     <groupId>com.revolsys.open</groupId>
-    <version>MAIN-SNAPSHOT</version>
+    <!-- VERSION --><version>MAIN-SNAPSHOT</version>
   </parent>
   <artifactId>revolsys-core</artifactId>
   <name>RS Core</name>
