@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 import org.jeometry.common.data.identifier.Identifier;
@@ -248,6 +249,10 @@ public class Value implements QueryValue {
     } else if (this.displayValue instanceof Timestamp) {
       final Timestamp time = (Timestamp)this.displayValue;
       final String stringValue = Dates.format("yyyy-MM-dd HH:mm:ss.S", time);
+      return "{ts '" + stringValue + "'}";
+    } else if (this.displayValue instanceof Instant) {
+      final Instant time = (Instant)this.displayValue;
+      final String stringValue = Dates.format("yyyy-MM-dd HH:mm:ss.S", Timestamp.from(time));
       return "{ts '" + stringValue + "'}";
     } else if (this.displayValue instanceof java.util.Date) {
       final java.util.Date time = (java.util.Date)this.displayValue;

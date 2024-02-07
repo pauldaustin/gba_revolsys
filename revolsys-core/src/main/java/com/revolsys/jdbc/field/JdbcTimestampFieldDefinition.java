@@ -14,7 +14,7 @@ import com.revolsys.util.Property;
 public class JdbcTimestampFieldDefinition extends JdbcFieldDefinition {
   public JdbcTimestampFieldDefinition(final String dbName, final String name, final int sqlType,
     final boolean required, final String description, final Map<String, Object> properties) {
-    super(dbName, name, DataTypes.TIMESTAMP, sqlType, 0, 0, required, description, properties);
+    super(dbName, name, DataTypes.INSTANT, sqlType, 0, 0, required, description, properties);
   }
 
   @Override
@@ -26,7 +26,12 @@ public class JdbcTimestampFieldDefinition extends JdbcFieldDefinition {
   @Override
   public Object getValueFromResultSet(final ResultSet resultSet, final int columnIndex,
     final boolean internStrings) throws SQLException {
-    return resultSet.getTimestamp(columnIndex);
+    final var timestamp = resultSet.getTimestamp(columnIndex);
+    if (timestamp == null) {
+      return null;
+    } else {
+      return timestamp.toInstant();
+    }
   }
 
   @Override
@@ -35,6 +40,9 @@ public class JdbcTimestampFieldDefinition extends JdbcFieldDefinition {
     if (Property.isEmpty(value)) {
       final int sqlType = getSqlType();
       statement.setNull(parameterIndex, sqlType);
+    } else if (value instanceof Timestamp) {
+      final var timestamp = (Timestamp)value;
+      statement.setTimestamp(parameterIndex, timestamp);
     } else {
       final Timestamp timestamp = Dates.getTimestamp(value);
       statement.setTimestamp(parameterIndex, timestamp);
