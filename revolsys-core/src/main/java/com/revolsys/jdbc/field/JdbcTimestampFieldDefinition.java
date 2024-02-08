@@ -32,7 +32,7 @@ public class JdbcTimestampFieldDefinition extends JdbcFieldDefinition {
     final ResultSet resultSet, final ColumnIndexes indexes, final boolean internStrings)
     throws SQLException {
     final int index = indexes.incrementAndGet();
-    final Timestamp timestamp = resultSet.getTimestamp(index);
+    final var timestamp = resultSet.getTimestamp(index);
     if (timestamp == null) {
       return null;
     } else {
@@ -46,8 +46,7 @@ public class JdbcTimestampFieldDefinition extends JdbcFieldDefinition {
     if (Property.isEmpty(value)) {
       final int sqlType = getSqlType();
       statement.setNull(parameterIndex, sqlType);
-    } else if (value instanceof Timestamp) {
-      final Timestamp timestamp = (Timestamp)value;
+    } else if (value instanceof final Timestamp timestamp) {
       statement.setTimestamp(parameterIndex, timestamp);
     } else {
       final Timestamp timestamp = Dates.getTimestamp(value);

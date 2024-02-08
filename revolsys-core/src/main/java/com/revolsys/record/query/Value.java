@@ -354,6 +354,10 @@ public class Value implements QueryValue {
       final Timestamp time = (Timestamp)this.displayValue;
       final String stringValue = Dates.format("yyyy-MM-dd HH:mm:ss.S", time);
       return "{ts '" + stringValue + "'}";
+    } else if (this.displayValue instanceof Instant) {
+      final Instant time = (Instant)this.displayValue;
+      final String stringValue = Dates.format("yyyy-MM-dd HH:mm:ss.S", Timestamp.from(time));
+      return "{ts '" + stringValue + "'}";
     } else if (this.displayValue instanceof java.util.Date) {
       final java.util.Date time = (java.util.Date)this.displayValue;
       final String stringValue = Dates.format("yyyy-MM-dd HH:mm:ss.S", time);
