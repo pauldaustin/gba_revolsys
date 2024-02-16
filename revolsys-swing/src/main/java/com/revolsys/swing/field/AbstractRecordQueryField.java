@@ -60,6 +60,7 @@ import com.revolsys.record.query.Query;
 import com.revolsys.record.query.TableReference;
 import com.revolsys.record.query.Value;
 import com.revolsys.record.query.functions.F;
+import com.revolsys.record.query.functions.Upper;
 import com.revolsys.record.schema.FieldDefinition;
 import com.revolsys.record.schema.RecordDefinition;
 import com.revolsys.swing.Icons;
@@ -414,10 +415,13 @@ public abstract class AbstractRecordQueryField extends ValueField
           final Condition whereCondition = query.getWhereCondition();
           if (whereCondition instanceof BinaryCondition) {
             final BinaryCondition binaryCondition = (BinaryCondition)whereCondition;
-            if (binaryCondition.getOperator().equalsIgnoreCase("like")) {
+            if (binaryCondition.getOperator().equalsIgnoreCase("like")
+              || binaryCondition.getOperator().equalsIgnoreCase("ilike")) {
               final String likeString = "%" + queryText.toUpperCase().replaceAll("[^A-Z0-9 ]", "%")
                 + "%";
               Q.setValue(0, binaryCondition, likeString);
+            } else if (binaryCondition.getLeft() instanceof Upper) {
+              Q.setValue(0, binaryCondition, queryText.toUpperCase());
             } else {
               Q.setValue(0, binaryCondition, queryText);
             }
