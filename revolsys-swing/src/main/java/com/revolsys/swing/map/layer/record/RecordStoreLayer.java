@@ -128,13 +128,17 @@ public class RecordStoreLayer extends AbstractRecordLayer {
     }
   }
 
-  protected RecordStoreLayerRecord findCachedRecord(final LayerRecord record) {
-    final Identifier identifier = record.getIdentifier();
+  public RecordStoreLayerRecord findCachedRecord(final Identifier identifier) {
     if (identifier == null) {
       return null;
     } else {
       return this.recordReferences.getRecord(identifier);
     }
+  }
+
+  protected RecordStoreLayerRecord findCachedRecord(final LayerRecord record) {
+    final Identifier identifier = record.getIdentifier();
+    return findCachedRecord(identifier);
   }
 
   @Override
@@ -200,41 +204,36 @@ public class RecordStoreLayer extends AbstractRecordLayer {
     }
   }
 
+  @SuppressWarnings("unchecked")
   public <R extends Record> void forEachRecordsPersisted(final Query query,
     final Consumer<? super R> consumer) {
     if (query != null && isExists()) {
-      forEachRecordsPersistedDo(query, consumer);
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  protected <R extends Record> void forEachRecordsPersistedDo(final Query query,
-    final Consumer<? super R> consumer) {
-    final RecordStore recordStore = getRecordStore();
-    if (recordStore != null) {
-      try (
-        final BaseCloseable booleanValueCloseable = eventsDisabled();
-        Transaction transaction = recordStore.newTransaction();
-        final RecordReader reader = newRecordStoreRecordReader(query);) {
-        transaction.setRollbackOnly();
-        final LabelCountMap labelCountMap = query.getProperty("statistics");
-        for (final LayerRecord record : reader.<LayerRecord> i()) {
-          final Identifier identifier = record.getIdentifier();
-          R proxyRecord = null;
-          if (identifier == null) {
-            proxyRecord = (R)newProxyLayerRecordNoId(record);
-          } else {
-            synchronized (getSync()) {
-              final LayerRecord cachedRecord = getCachedRecord(identifier, record, true);
-              if (!cachedRecord.isDeleted()) {
-                proxyRecord = (R)cachedRecord.getRecordProxy();
+      final RecordStore recordStore = getRecordStore();
+      if (recordStore != null) {
+        try (
+          final BaseCloseable booleanValueCloseable = eventsDisabled();
+          Transaction transaction = recordStore.newTransaction();
+          final RecordReader reader = newRecordStoreRecordReader(query);) {
+          transaction.setRollbackOnly();
+          final LabelCountMap labelCountMap = query.getProperty("statistics");
+          for (final LayerRecord record : reader.<LayerRecord> i()) {
+            final Identifier identifier = record.getIdentifier();
+            R proxyRecord = null;
+            if (identifier == null) {
+              proxyRecord = (R)newProxyLayerRecordNoId(record);
+            } else {
+              synchronized (getSync()) {
+                final LayerRecord cachedRecord = getCachedRecord(identifier, record, true);
+                if (!cachedRecord.isDeleted()) {
+                  proxyRecord = (R)cachedRecord.getRecordProxy();
+                }
               }
             }
-          }
-          if (proxyRecord != null) {
-            consumer.accept(proxyRecord);
-            if (labelCountMap != null) {
-              labelCountMap.addCount(record);
+            if (proxyRecord != null) {
+              consumer.accept(proxyRecord);
+              if (labelCountMap != null) {
+                labelCountMap.addCount(record);
+              }
             }
           }
         }

@@ -147,6 +147,16 @@ public class Join implements QueryValue, TableReferenceProxy {
     return null;
   }
 
+  public Join on(final QueryValue fromFieldName, final Query query, final String toFieldName) {
+    final TableReference toTable = query.getTable();
+    return on(fromFieldName, toTable, toFieldName);
+  }
+
+  public Join on(final QueryValue from, final TableReference toTable, final String toFieldName) {
+    final Condition condition = Q.equal(from, toTable.getColumn(toFieldName));
+    return and(condition);
+  }
+
   public Join on(final String fromFieldName, final Object value) {
     final Condition condition = this.table.equal(fromFieldName, value);
     return and(condition);
