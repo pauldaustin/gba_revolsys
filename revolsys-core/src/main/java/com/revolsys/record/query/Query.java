@@ -1081,7 +1081,12 @@ public class Query extends BaseObjectWithProperties
   }
 
   public Query selectAll() {
-    return select(getRecordDefinition().getFieldDefinitions());
+    RecordDefinition recordDefinition = getRecordDefinition();
+    return selectAll(recordDefinition);
+  }
+
+  public Query selectAll(RecordDefinition recordDefinition) {
+    return select(recordDefinition.getFieldDefinitions());
   }
 
   public Query selectCsv(final String select) {

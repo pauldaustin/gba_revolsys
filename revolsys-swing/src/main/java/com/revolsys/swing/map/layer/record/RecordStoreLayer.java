@@ -128,13 +128,17 @@ public class RecordStoreLayer extends AbstractRecordLayer {
     }
   }
 
-  protected RecordStoreLayerRecord findCachedRecord(final LayerRecord record) {
-    final Identifier identifier = record.getIdentifier();
+  public RecordStoreLayerRecord findCachedRecord(final Identifier identifier) {
     if (identifier == null) {
       return null;
     } else {
       return this.recordReferences.getRecord(identifier);
     }
+  }
+
+  protected RecordStoreLayerRecord findCachedRecord(final LayerRecord record) {
+    final Identifier identifier = record.getIdentifier();
+    return findCachedRecord(identifier);
   }
 
   @Override
@@ -377,10 +381,8 @@ public class RecordStoreLayer extends AbstractRecordLayer {
           if (!originalMatches) {
             count++;
           }
-        } else {
-          if (originalMatches) {
-            count--;
-          }
+        } else if (originalMatches) {
+          count--;
         }
       }
       return count;
