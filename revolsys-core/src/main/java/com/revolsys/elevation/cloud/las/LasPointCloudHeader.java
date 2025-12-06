@@ -362,6 +362,10 @@ public class LasPointCloudHeader
     return this.pointFormat.getId();
   }
 
+  public long getPointRecordsOffset() {
+    return this.pointRecordsOffset;
+  }
+
   public UUID getProjectId() {
     return this.projectId;
   }

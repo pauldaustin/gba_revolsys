@@ -98,19 +98,19 @@ public class ChannelReader extends AbstractDataReader implements BaseCloseable {
     }
   }
 
-  @Override
-  public long position() {
-    if (isSeekable()) {
-      final SeekableByteChannel channel = (SeekableByteChannel)getChannel();
-      try {
-        return channel.position() - getAvailable();
-      } catch (final IOException e) {
-        throw Exceptions.wrap(e);
-      }
-    } else {
-      return super.position();
-    }
-  }
+  // @Override
+  // public long position() {
+  // if (isSeekable()) {
+  // final SeekableByteChannel channel = (SeekableByteChannel)getChannel();
+  // try {
+  // return channel.position() - getAvailable();
+  // } catch (final IOException e) {
+  // throw Exceptions.wrap(e);
+  // }
+  // } else {
+  // return super.position();
+  // }
+  // }
 
   public ByteBuffer readByteByteBuffer(final long offset, final int size) {
     final long position = position();

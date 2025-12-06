@@ -114,6 +114,23 @@ public abstract class AbstractDataReader extends InputStream implements DataRead
     this.tempBuffer = null;
   }
 
+  private ByteBuffer ensureBytes(final int count) {
+    final int remaining = this.buffer.remaining();
+    if (remaining == 0) {
+      ensureRemaining();
+      return this.buffer;
+    } else if (remaining < count) {
+      this.tempBuffer.clear();
+      this.tempBuffer.limit(count);
+      this.tempBuffer.put(this.buffer);
+      ensureRemaining();
+      this.tempBuffer.put(this.buffer);
+      return this.tempBuffer;
+    } else {
+      return this.buffer;
+    }
+  }
+
   private int ensureRemaining() {
     ByteBuffer buffer = this.buffer;
     int remaining = buffer.remaining();
@@ -213,22 +230,12 @@ public abstract class AbstractDataReader extends InputStream implements DataRead
 
   @Override
   public double getDouble() {
-    if (this.buffer.remaining() < 8) {
-      final ByteBuffer tempBuffer = readTempBytes(8);
-      return tempBuffer.getDouble();
-    } else {
-      return this.buffer.getDouble();
-    }
+    return ensureBytes(8).getDouble();
   }
 
   @Override
   public float getFloat() {
-    if (this.buffer.remaining() < 4) {
-      final ByteBuffer tempBuffer = readTempBytes(4);
-      return tempBuffer.getFloat();
-    } else {
-      return this.buffer.getFloat();
-    }
+    return ensureBytes(4).getFloat();
   }
 
   @Override
@@ -238,32 +245,17 @@ public abstract class AbstractDataReader extends InputStream implements DataRead
 
   @Override
   public int getInt() {
-    if (this.buffer.remaining() < 4) {
-      final ByteBuffer tempBuffer = readTempBytes(4);
-      return tempBuffer.getInt();
-    } else {
-      return this.buffer.getInt();
-    }
+    return ensureBytes(4).getInt();
   }
 
   @Override
   public long getLong() {
-    if (this.buffer.remaining() < 8) {
-      final ByteBuffer tempBuffer = readTempBytes(8);
-      return tempBuffer.getLong();
-    } else {
-      return this.buffer.getLong();
-    }
+    return ensureBytes(8).getLong();
   }
 
   @Override
   public short getShort() {
-    if (this.buffer.remaining() < 2) {
-      final ByteBuffer tempBuffer = readTempBytes(2);
-      return tempBuffer.getShort();
-    } else {
-      return this.buffer.getShort();
-    }
+    return ensureBytes(2).getShort();
   }
 
   @Override
@@ -385,15 +377,6 @@ public abstract class AbstractDataReader extends InputStream implements DataRead
   }
 
   protected abstract int readInternal(ByteBuffer buffer) throws IOException;
-
-  protected ByteBuffer readTempBytes(final int count) {
-    if (getBytes(this.tempBytes, 0, count) == -1) {
-      throw new EndOfFileException();
-    }
-    this.tempBuffer.clear();
-    this.tempBuffer.limit(count);
-    return this.tempBuffer;
-  }
 
   @Override
   public void seek(final long position) {

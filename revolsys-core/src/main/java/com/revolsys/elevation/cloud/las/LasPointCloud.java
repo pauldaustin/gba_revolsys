@@ -26,6 +26,7 @@ import com.revolsys.geometry.model.BoundingBox;
 import com.revolsys.geometry.model.GeometryFactory;
 import com.revolsys.geometry.model.Point;
 import com.revolsys.io.BaseCloseable;
+import com.revolsys.io.EndOfFileException;
 import com.revolsys.io.StringWriter;
 import com.revolsys.io.ZipUtil;
 import com.revolsys.io.channels.ChannelReader;
@@ -143,11 +144,13 @@ public class LasPointCloud extends BaseObjectWithProperties
     final Iterable<LasPoint> iterable = iterable();
     try {
       iterable.forEach(action);
+    } catch (final EndOfFileException e) {
     } catch (RuntimeException | Error e) {
+      throw e;
+    } finally {
       if (iterable instanceof BaseCloseable) {
         ((BaseCloseable)iterable).close();
       }
-      throw e;
     }
   }
 

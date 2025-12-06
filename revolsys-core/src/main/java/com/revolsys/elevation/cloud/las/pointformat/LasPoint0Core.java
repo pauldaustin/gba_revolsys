@@ -115,7 +115,6 @@ public class LasPoint0Core extends BaseLasPoint {
     setXYZ(xRecord, yRecord, zRecord);
     this.intensity = reader.getUnsignedShort();
     this.returnByte = reader.getByte();
-
     this.classificationByte = reader.getByte();
     this.scanAngleRank = reader.getByte();
     this.userData = reader.getUnsignedByte();
